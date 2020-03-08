@@ -3,7 +3,7 @@ import unittest
 import xml.etree.cElementTree as Et
 import os
 
-from Plugwise-Smile import Smile
+from Plugwise_Smile import Smile
 
 
 class TestSmileMethods(unittest.TestCase):

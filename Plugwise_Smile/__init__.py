@@ -1,1 +1,1 @@
-from .Plugwise_Smile import Smile
+from Plugwise_Smile import Smile

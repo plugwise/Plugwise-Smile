@@ -15,7 +15,7 @@ setup(
     author_email='info@compa.nl',
     license='MIT',
     packages=['Plugwise-Smile'],
-    install_requires=['asyncio','aiohttp','async_timeout','dateutil','datetime','pytz','python-dateutil'],
+    install_requires=['asyncio','aiohttp','async_timeout','datetime','pytz','python-dateutil'],
     zip_safe=False
 )
 

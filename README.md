@@ -1,8 +1,2 @@
-# Configuration file `configuration.yaml` entry
+# Plugwise Smile python module
 
-```
-climate:
-  - platform: plugwise_async
-    password: abcdefgh
-    host: 192.168.1.2
-```

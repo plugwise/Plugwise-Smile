@@ -256,8 +256,6 @@ class Smile:
                     device_data.update( {'central_heating_state': controller_data['central_heating_state']} )
                     device_data.update( {'cooling_state': controller_data['cooling_state']} )
                     device_data.update( {'dhw_state': controller_data['dhw_state']} )
-                    device_data.update( {'outdoor_temp': outdoor_temp} )
-                    device_data.update( {'illuminance': illuminance} )
         else:
             device_data['type'] = 'heater_central'
             if 'boiler_temp' in controller_data:

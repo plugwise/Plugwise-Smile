@@ -580,7 +580,7 @@ class Smile:
 	location_name = current_location.find('name').text
 	location_type = current_location.find('type').text
 
-	uri = self._endpoint + LOCATIONS + ":id=" + location_id
+	uri = LOCATIONS + ":id=" + location_id
 
 	data = "<locations>" \
 	       + '<location id="' \

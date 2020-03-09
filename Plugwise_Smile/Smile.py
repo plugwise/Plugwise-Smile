@@ -90,16 +90,22 @@ class Smile:
         task = loop.create_task(self.close_connection())
         loop.run_until_complete(task)
 
-    async def request(self, command, retry=3):
+    async def request(self, command, retry=3, method='get', data={}, headers = {'Content-type': 'text/xml'}):
         """Request data."""
         # pylint: disable=too-many-return-statements
 
         url = self._endpoint + command
         _LOGGER.debug("Plugwise command: %s",command)
+        _LOGGER.debug("Plugwise command type: %s",method)
+        _LOGGER.debug("Plugwise command data: %s",data)
 
         try:
             with async_timeout.timeout(self._timeout):
-                resp = await self.websession.get(url,auth=self._auth)
+                if method == 'get':
+                    resp = await self.websession.get(url,auth=self._auth)
+                if method == 'put':
+                    #_LOGGER.debug("Sending: %s with %s", command, data, headers)
+                    resp = await self.websession.put(url,data=data,headers=headers,auth=self._auth)
         except asyncio.TimeoutError:
             if retry < 1:
                 _LOGGER.error("Timed out sending command to Plugwise: %s", command)
@@ -120,10 +126,10 @@ class Smile:
         # Encode to ensure utf8 parsing
         return etree.XML(self.escape_illegal_xml_characters(result).encode())
 
-    def sync_request(self, command, retry=2):
+    def sync_request(self, command, retry=2, method='get', data={}, headers = {'Content-type': 'text/xml'}):
         """Request data."""
         loop = asyncio.get_event_loop()
-        task = loop.create_task(self.request(command, retry))
+        task = loop.create_task(self.request(command, retry, method, data, headers))
         return loop.run_until_complete(task)
 
     # Appliances
@@ -222,8 +228,8 @@ class Smile:
             controller_data = self.get_appliance_from_appl_id(ctrl_id)
         device_data = {}
         if dev_id:  
-            _LOGGER.debug("Plugwise id: %s",dev_id)
-            _LOGGER.debug("Plugwise ctrl_id: %s",ctrl_id)
+            #_LOGGER.debug("Plugwise id: %s",dev_id)
+            #_LOGGER.debug("Plugwise ctrl_id: %s",ctrl_id)
             device_data = self.get_appliance_from_loc_id(dev_id)
             preset = self.get_preset_from_id(dev_id)
             presets = self.get_presets_from_id(dev_id)
@@ -416,7 +422,7 @@ class Smile:
         """Gets the presets from the thermostat based on location_id."""
         rule_ids = {}
         locator = 'zone_setpoint_and_state_based_on_preset'
-        _LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
+        #_LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
         rule_ids = self.get_rule_id_and_zone_location_by_template_tag_with_id(locator, dev_id)
         if rule_ids is None:
             rule_ids = self.get_rule_id_and_zone_location_by_name_with_id('Thermostat presets', dev_id)
@@ -433,7 +439,7 @@ class Smile:
         """Obtains the available schemas or schedules based on the location_id."""
         rule_ids = {}
         locator = 'zone_preset_based_on_time_and_presence_with_override'
-        _LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
+        #_LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
         rule_ids = self.get_rule_id_and_zone_location_by_template_tag_with_id(locator, dev_id)
         schemas = {}
         l_schemas = {}
@@ -453,7 +459,7 @@ class Smile:
         epoch = dt.datetime(1970, 1, 1, tzinfo=pytz.utc)
         rule_ids = {}
         locator = 'zone_preset_based_on_time_and_presence_with_override'
-        _LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
+        #_LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
         rule_ids = self.get_rule_id_and_zone_location_by_template_tag_with_id(locator, dev_id)
         schemas = {}
         if rule_ids:
@@ -468,7 +474,7 @@ class Smile:
 
     def get_rule_id_and_zone_location_by_template_tag_with_id(self, rule_name, dev_id):
         """Obtains the rule_id based on the given template_tag and location_id."""
-        _LOGGER.debug("Plugwise rule and id: %s -> %s",rule_name,dev_id)
+        #_LOGGER.debug("Plugwise rule and id: %s -> %s",rule_name,dev_id)
         schema_ids = {}
         rules = self._domain_objects.findall('.//rule')
         for rule in rules:
@@ -561,10 +567,10 @@ class Smile:
         if preset_dictionary != {}:
             return preset_dictionary
 
-    def _set_schema_state(self, loc_id, name, state):
+    async def _set_schema_state(self, loc_id, name, state):
         """Sets the schedule, helper-function."""
         schema_rule_ids = {}
-        schema_rule_ids = self.get_rule_id_and_zone_location_by_name_with_id(self._domain_objects, str(name), loc_id)
+        schema_rule_ids = self.get_rule_id_and_zone_location_by_name_with_id(str(name), loc_id)
         for schema_rule_id,location_id in schema_rule_ids.items():
             if location_id == loc_id:
                 templates = self._domain_objects.findall(".//*[@id='{}']/template".format(schema_rule_id))
@@ -579,19 +585,20 @@ class Smile:
                        '<template id="{}" /><active>{}</active></rule>' \
                        '</rules>'.format(schema_rule_id, name, template_id, state)
 
-                xml = requests.put(
-                      self._endpoint + uri,
-                      auth=(self._username, self._password),
-                      data=data,
-                      headers={'Content-Type': 'text/xml'},
-                      timeout=10
-                )
+                await self.request(uri, method='put', data=data)
+#                xml = requests.put(
+#                      self._endpoint + uri,
+#                      auth=(self._username, self._password),
+#                      data=data,
+#                      headers={'Content-Type': 'text/xml'},
+#                      timeout=10
+#                )
 
-                if xml.status_code != requests.codes.ok: # pylint: disable=no-member
-                    CouldNotSetTemperatureException("Could not set the schema to {}.".format(state) + xml.text)
-                return '{} {}'.format(xml.text, data)
+                #if xml.status_code != requests.codes.ok: # pylint: disable=no-member
+                #    CouldNotSetTemperatureException("Could not set the schema to {}.".format(state) + xml.text)
+                #return '{} {}'.format(xml.text, data)
 
-    def _set_preset(self, loc_id, loc_type, preset):
+    async def _set_preset(self, loc_id, loc_type, preset):
         """Sets the preset, helper function."""
         location_ids = []
         appliances = self._domain_objects.findall('.//appliance')
@@ -603,58 +610,62 @@ class Smile:
                         if location.attrib is not None:
                             location_id = location.attrib['id']
                             if location_id == loc_id:
-                                locations_root = self.get_locations()
-                                current_location = locations_root.find("location[@id='" + location_id + "']")
+                                current_location = self._locations.find("location[@id='" + location_id + "']")
                                 location_name = current_location.find('name').text
                                 location_type = current_location.find('type').text
 
-                                xml = requests.put(
-                                        self._endpoint
-                                        + LOCATIONS
-                                        + ";id="
-                                        + location_id,
-                                        auth=(self._username, self._password),
-                                        data="<locations>"
-                                        + '<location id="'
-                                        + location_id
-                                        + '">'
-                                        + "<name>"
-                                        + location_name
-                                        + "</name>"
-                                        + "<type>"
-                                        + location_type
-                                        + "</type>"
-                                        + "<preset>"
-                                        + preset
-                                        + "</preset>"
-                                        + "</location>"
-                                        + "</locations>",
-                                        headers={"Content-Type": "text/xml"},
-                                        timeout=10,
-                                    )
-                                if xml.status_code != requests.codes.ok: # pylint: disable=no-member
-                                    raise CouldNotSetPresetException("Could not set the given preset: " + xml.text)
-                                return xml.text
 
-    def _set_temp(self, loc_id, loc_type, temperature):
+                                uri=LOCATIONS + ":id=" + location_id
+
+                                data="<locations>" \
+                                    + '<location id="' \
+                                    + location_id \
+                                    + '">' \
+                                    + "<name>" \
+                                    + location_name \
+                                    + "</name>" \
+                                    + "<type>" \
+                                    + location_type \
+                                    + "</type>" \
+                                    + "<preset>" \
+                                    + preset \
+                                    + "</preset>" \
+                                    + "</location>" \
+                                    + "</locations>"
+
+                                await self.request(uri, method='put', data=data)
+                                #xml = requests.put(
+                                #        self._endpoint
+                                #        + LOCATIONS
+                                #        + ";id="
+                                #        + location_id,
+                                #        auth=(self._username, self._password),
+                                #        headers={"Content-Type": "text/xml"},
+                                #        timeout=10,
+                                #    )
+                                #if xml.status_code != requests.codes.ok: # pylint: disable=no-member
+                                #    raise CouldNotSetPresetException("Could not set the given preset: " + xml.text)
+                                #return xml.text
+
+    async def _set_temp(self, loc_id, loc_type, temperature):
         """Sends a temperature-set request, helper function."""
         uri = self.__get_temperature_uri(loc_id, loc_type)
         temperature = str(temperature)
+        data="<thermostat_functionality><setpoint>" + temperature + "</setpoint></thermostat_functionality>"
 
         if uri is not None:
-            xml = requests.put(
-                self._endpoint + uri,
-                auth=(self._username, self._password),
-                data="<thermostat_functionality><setpoint>" + temperature + "</setpoint></thermostat_functionality>",
-                headers={"Content-Type": "text/xml"},
-                timeout=10,
-            )
+            await self.request(uri, method='put', data=data)
 
-            if xml.status_code != requests.codes.ok: # pylint: disable=no-member
-                CouldNotSetTemperatureException("Could not set the temperature." + xml.text)
-            return xml.text
+            #if xml.status_code != requests.codes.ok: # pylint: disable=no-member
+            #    CouldNotSetTemperatureException("Could not set the temperature." + xml.text)
+            #return xml.text
         else:
             CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
+            return False
+
+        await self.update_device()
+
+        return True
 
     def __get_temperature_uri(self, loc_id, loc_type):
         """Determine the location-set_temperature uri - from DOMAIN_OBJECTS."""
@@ -687,18 +698,20 @@ class Smile:
 
 
 
-    def set_schedule_state(self, loc_id,name, state):
+    async def set_schedule_state(self, loc_id,name, state):
         """Sets the schedule, with the given name, connected to a location, to true or false - DOMAIN_OBJECTS."""
-        self._set_schema_state(loc_id, name, state)
+        _LOGGER.debug("Changing schedule state to: %s", state)
+        await self._set_schema_state(loc_id, name, state)
         
-    def set_preset(self, domain_objects, loc_id, loc_type, preset):
+    async def set_preset(self, loc_id, loc_type, preset):
         """Sets the given location-preset on the relevant thermostat - from DOMAIN_OBJECTS."""
-        self._set_preset(loc_id, loc_type, preset)
+        _LOGGER.debug("Changing preset to: %s", preset)
+        await self._set_preset(loc_id, loc_type, preset)
         
-    def set_temperature(self, loc_id, loc_type, temperature):
+    async def set_temperature(self, loc_id, loc_type, temperature):
         """Sends a temperature-set request to the relevant thermostat, connected to a location - from DOMAIN_OBJECTS."""
-        #selfdomain_objects = self.get_domain_objects()
-        self._set_temp(loc_id, loc_type, temperature)
+        _LOGGER.debug("Changing temperature to: %s", temperature)
+        await self._set_temp(loc_id, loc_type, temperature)
 
     @staticmethod
     def escape_illegal_xml_characters(xmldata):

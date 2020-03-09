@@ -119,7 +119,7 @@ class Smile:
 
         #_LOGGER.debug(result)
 
-	# B*llsh*t for now, but we should parse it (xml, not json)
+        # B*llsh*t for now, but we should parse it (xml, not json)
         if not result or result == '{"errorCode":0}':
             return None
 
@@ -144,7 +144,7 @@ class Smile:
         task = loop.create_task(self.update_appliances())
         loop.run_until_complete(task)
 
-    # Direct objects 
+    # Direct objects
     async def update_direct_objects(self):
         """Request data."""
         self._direct_objects = await self.request(APPLIANCES)
@@ -208,7 +208,7 @@ class Smile:
                 thermostat.append(appl_id)
                 if thermostat != []:
                     thermostats.append(thermostat)
-        
+
         for loc_id,location in loc_dict.items():
             thermostat = []
             device = self.get_thermostat_from_id(loc_id)
@@ -227,7 +227,7 @@ class Smile:
         if ctrl_id:
             controller_data = self.get_appliance_from_appl_id(ctrl_id)
         device_data = {}
-        if dev_id:  
+        if dev_id:
             #_LOGGER.debug("Plugwise id: %s",dev_id)
             #_LOGGER.debug("Plugwise ctrl_id: %s",ctrl_id)
             device_data = self.get_appliance_from_loc_id(dev_id)
@@ -292,7 +292,7 @@ class Smile:
             location_id = location.attrib['id']
             if location_name != "Home":
                 location_dictionary[location_id] = location_name
-            
+
         return location_dictionary
 
     def get_thermostat_from_id(self, dev_id):
@@ -313,7 +313,7 @@ class Smile:
         else:
             if 'thermostatic_radiator_valve' in temp_list:
                 device_list = temp_list
-          
+
         if device_list != []:
             return device_list
 
@@ -352,7 +352,7 @@ class Smile:
                                     temperature = float(temperature)
                                     appl_dict['current_temp'] = temperature
                                 appl_list.append(appl_dict.copy())
-        
+
         for dict in sorted(appl_list, key=lambda k: k['type'], reverse=True):
             if dict['type'] == "zone_thermostat":
                 return dict
@@ -395,15 +395,15 @@ class Smile:
                         appliance_data['central_heating_state'] = central_heating_state
                     appliance_data['cooling_state'] = None
                     locator = (".//logs/point_log[type='cooling_state']/period/measurement")
-                    if appliance.find(locator) is not None:                      
+                    if appliance.find(locator) is not None:
                         cooling_state = (appliance.find(locator).text == "on")
                         appliance_data['cooling_state'] = cooling_state
                     appliance_data['dhw_state'] = None
                     locator = (".//logs/point_log[type='domestic_hot_water_state']/period/measurement")
-                    if appliance.find(locator) is not None:                      
+                    if appliance.find(locator) is not None:
                         domestic_hot_water_state = (appliance.find(locator).text == "on")
                         appliance_data['dhw_state'] = domestic_hot_water_state
-     
+
         if appliance_data != {}:
             return appliance_data
 
@@ -576,41 +576,41 @@ class Smile:
 
     async def _set_preset(self, location_id, loc_type, preset):
         """Sets the preset, helper function."""
-	current_location = self._locations.find("location[@id='" + location_id + "']")
-	location_name = current_location.find('name').text
-	location_type = current_location.find('type').text
+        current_location = self._locations.find("location[@id='" + location_id + "']")
+        location_name = current_location.find('name').text
+        location_type = current_location.find('type').text
 
-	uri = LOCATIONS + ":id=" + location_id
+        uri = LOCATIONS + ":id=" + location_id
 
-	data = "<locations>" \
-	       + '<location id="' \
-	       + location_id \
-	       + '">' \
-	       + "<name>" \
-	       + location_name \
-	       + "</name>" \
-	       + "<type>" \
-	       + location_type \
-	       + "</type>" \
-	       + "<preset>" \
-	       + preset \
-	       + "</preset>" \
-	       + "</location>" \
-	       + "</locations>"
+        data = "<locations>" \
+            + '<location id="' \
+            + location_id \
+            + '">' \
+            + "<name>" \
+            + location_name \
+            + "</name>" \
+            + "<type>" \
+            + location_type \
+            + "</type>" \
+            + "<preset>" \
+            + preset \
+            + "</preset>" \
+            + "</location>" \
+            + "</locations>"
 
-	await self.request(uri, method='put', data=data)
-	#xml = requests.put(
-	#        self._endpoint
-	#        + LOCATIONS
-	#        + ";id="
-	#        + location_id,
-	#        auth=(self._username, self._password),
-	#        headers={"Content-Type": "text/xml"},
-	#        timeout=10,
-	#    )
-	#if xml.status_code != requests.codes.ok: # pylint: disable=no-member
-	#    raise CouldNotSetPresetException("Could not set the given preset: " + xml.text)
-	#return xml.text
+        await self.request(uri, method='put', data=data)
+        #xml = requests.put(
+        #        self._endpoint
+        #        + LOCATIONS
+        #        + ";id="
+        #        + location_id,
+        #        auth=(self._username, self._password),
+        #        headers={"Content-Type": "text/xml"},
+        #        timeout=10,
+        #    )
+        #if xml.status_code != requests.codes.ok: # pylint: disable=no-member
+        #    raise CouldNotSetPresetException("Could not set the given preset: " + xml.text)
+        #return xml.text
 
     async def _set_temp(self, loc_id, loc_type, temperature):
         """Sends a temperature-set request, helper function."""
@@ -634,22 +634,22 @@ class Smile:
 
     def __get_temperature_uri(self, loc_id, loc_type):
         """Determine the location-set_temperature uri - from DOMAIN_OBJECTS."""
-	locator = (
-	    "location[@id='"
-	    + loc_id
-	    + "']/actuator_functionalities/thermostat_functionality"
-	)
-	thermostat_functionality_id = self._domain_objects.find(locator).attrib['id']
+        locator = (
+        "location[@id='"
+        + loc_id
+        + "']/actuator_functionalities/thermostat_functionality"
+        )
+        thermostat_functionality_id = self._domain_objects.find(locator).attrib['id']
 
-	temperature_uri = (
-	    LOCATIONS
-	    + ";id="
-	    + loc_id
-	    + "/thermostat;id="
-	    + thermostat_functionality_id
-	)
+        temperature_uri = (
+            LOCATIONS
+            + ";id="
+            + loc_id
+            + "/thermostat;id="
+            + thermostat_functionality_id
+        )
 
-	return temperature_uri
+        return temperature_uri
 
 
 
@@ -657,12 +657,12 @@ class Smile:
         """Sets the schedule, with the given name, connected to a location, to true or false - DOMAIN_OBJECTS."""
         _LOGGER.debug("Changing schedule state to: %s", state)
         await self._set_schema_state(loc_id, name, state)
-        
+
     async def set_preset(self, loc_id, loc_type, preset):
         """Sets the given location-preset on the relevant thermostat - from DOMAIN_OBJECTS."""
         _LOGGER.debug("Changing preset to: %s", preset)
         await self._set_preset(loc_id, loc_type, preset)
-        
+
     async def set_temperature(self, loc_id, loc_type, temperature):
         """Sends a temperature-set request to the relevant thermostat, connected to a location - from DOMAIN_OBJECTS."""
         _LOGGER.debug("Changing temperature to: %s", temperature)

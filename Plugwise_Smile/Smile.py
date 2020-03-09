@@ -511,17 +511,6 @@ class Smile:
         if schema_ids != {}:
             return schema_ids
 
-    def get_outdoor_temperature(self):
-        """Obtains the outdoor_temperature from the thermostat."""
-        locations = self._domain_objects.findall(".//location")
-        for location in locations:
-            locator = (".//logs/point_log[type='outdoor_temperature']/period/measurement")
-            if location.find(locator) is not None:
-                measurement = location.find(locator).text
-                value = float(measurement)
-                value = '{:.1f}'.format(round(value, 1))
-                return value
-
     def get_water_pressure(self):
         """Obtains the water pressure value from the thermostat"""
         appliances = self._domain_objects.findall(".//appliance")

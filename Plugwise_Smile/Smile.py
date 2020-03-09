@@ -95,16 +95,16 @@ class Smile:
         # pylint: disable=too-many-return-statements
 
         url = self._endpoint + command
-        _LOGGER.debug("Plugwise command: %s",command)
-        _LOGGER.debug("Plugwise command type: %s",method)
-        _LOGGER.debug("Plugwise command data: %s",data)
+        #_LOGGER.debug("Plugwise command: %s",command)
+        #_LOGGER.debug("Plugwise command type: %s",method)
+        #_LOGGER.debug("Plugwise command data: %s",data)
 
         try:
             with async_timeout.timeout(self._timeout):
                 if method == 'get':
                     resp = await self.websession.get(url,auth=self._auth)
                 if method == 'put':
-                    #_LOGGER.debug("Sending: %s with %s", command, data, headers)
+                    #_LOGGER.debug("Sending: command/url %s with data %s using headers %s", command, data, headers)
                     resp = await self.websession.put(url,data=data,headers=headers,auth=self._auth)
         except asyncio.TimeoutError:
             if retry < 1:
@@ -119,8 +119,7 @@ class Smile:
 
         #_LOGGER.debug(result)
 
-        # B*llsh*t for now, but we should parse it (xml, not json)
-        if not result or result == '{"errorCode":0}':
+        if not result or 'error' in result:
             return None
 
         # Encode to ensure utf8 parsing
@@ -580,7 +579,7 @@ class Smile:
         location_name = current_location.find('name').text
         location_type = current_location.find('type').text
 
-        uri = LOCATIONS + ":id=" + location_id
+        uri = LOCATIONS + ";id=" + location_id
 
         data = "<locations>" \
             + '<location id="' \
@@ -655,17 +654,17 @@ class Smile:
 
     async def set_schedule_state(self, loc_id,name, state):
         """Sets the schedule, with the given name, connected to a location, to true or false - DOMAIN_OBJECTS."""
-        _LOGGER.debug("Changing schedule state to: %s", state)
+        #_LOGGER.debug("Changing schedule state to: %s", state)
         await self._set_schema_state(loc_id, name, state)
 
     async def set_preset(self, loc_id, loc_type, preset):
         """Sets the given location-preset on the relevant thermostat - from DOMAIN_OBJECTS."""
-        _LOGGER.debug("Changing preset to: %s", preset)
+        #_LOGGER.debug("Changing preset for %s - %s to: %s", loc_id, loc_type, preset)
         await self._set_preset(loc_id, loc_type, preset)
 
     async def set_temperature(self, loc_id, loc_type, temperature):
         """Sends a temperature-set request to the relevant thermostat, connected to a location - from DOMAIN_OBJECTS."""
-        _LOGGER.debug("Changing temperature to: %s", temperature)
+        #_LOGGER.debug("Changing temperature to: %s", temperature)
         await self._set_temp(loc_id, loc_type, temperature)
 
     @staticmethod

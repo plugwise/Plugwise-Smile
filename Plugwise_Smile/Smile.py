@@ -118,6 +118,7 @@ class Smile:
         result = await resp.text()
 
         #_LOGGER.debug(result)
+        _LOGGER.debug('Pluwise network traffic - talking to Smile with %s', command)
 
         if not result or 'error' in result:
             return None

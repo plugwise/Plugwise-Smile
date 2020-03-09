@@ -598,54 +598,43 @@ class Smile:
                 #    CouldNotSetTemperatureException("Could not set the schema to {}.".format(state) + xml.text)
                 #return '{} {}'.format(xml.text, data)
 
-    async def _set_preset(self, loc_id, loc_type, preset):
+    async def _set_preset(self, location_id, loc_type, preset):
         """Sets the preset, helper function."""
-        location_ids = []
-        appliances = self._domain_objects.findall('.//appliance')
-        for appliance in appliances:
-            if appliance.find('type') is not None:
-                appliance_type = appliance.find('type').text
-                if appliance_type == loc_type:
-                    for location in appliance.iter('location'):
-                        if location.attrib is not None:
-                            location_id = location.attrib['id']
-                            if location_id == loc_id:
-                                current_location = self._locations.find("location[@id='" + location_id + "']")
-                                location_name = current_location.find('name').text
-                                location_type = current_location.find('type').text
+	current_location = self._locations.find("location[@id='" + location_id + "']")
+	location_name = current_location.find('name').text
+	location_type = current_location.find('type').text
 
+	uri = self._endpoint + LOCATIONS + ":id=" + location_id
 
-                                uri=LOCATIONS + ":id=" + location_id
+	data = "<locations>" \
+	       + '<location id="' \
+	       + location_id \
+	       + '">' \
+	       + "<name>" \
+	       + location_name \
+	       + "</name>" \
+	       + "<type>" \
+	       + location_type \
+	       + "</type>" \
+	       + "<preset>" \
+	       + preset \
+	       + "</preset>" \
+	       + "</location>" \
+	       + "</locations>"
 
-                                data="<locations>" \
-                                    + '<location id="' \
-                                    + location_id \
-                                    + '">' \
-                                    + "<name>" \
-                                    + location_name \
-                                    + "</name>" \
-                                    + "<type>" \
-                                    + location_type \
-                                    + "</type>" \
-                                    + "<preset>" \
-                                    + preset \
-                                    + "</preset>" \
-                                    + "</location>" \
-                                    + "</locations>"
-
-                                await self.request(uri, method='put', data=data)
-                                #xml = requests.put(
-                                #        self._endpoint
-                                #        + LOCATIONS
-                                #        + ";id="
-                                #        + location_id,
-                                #        auth=(self._username, self._password),
-                                #        headers={"Content-Type": "text/xml"},
-                                #        timeout=10,
-                                #    )
-                                #if xml.status_code != requests.codes.ok: # pylint: disable=no-member
-                                #    raise CouldNotSetPresetException("Could not set the given preset: " + xml.text)
-                                #return xml.text
+	await self.request(uri, method='put', data=data)
+	#xml = requests.put(
+	#        self._endpoint
+	#        + LOCATIONS
+	#        + ";id="
+	#        + location_id,
+	#        auth=(self._username, self._password),
+	#        headers={"Content-Type": "text/xml"},
+	#        timeout=10,
+	#    )
+	#if xml.status_code != requests.codes.ok: # pylint: disable=no-member
+	#    raise CouldNotSetPresetException("Could not set the given preset: " + xml.text)
+	#return xml.text
 
     async def _set_temp(self, loc_id, loc_type, temperature):
         """Sends a temperature-set request, helper function."""

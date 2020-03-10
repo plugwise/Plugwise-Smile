@@ -562,6 +562,8 @@ class Smile:
                        '</rules>'.format(schema_rule_id, name, template_id, state)
 
                 await self.request(uri, method='put', data=data)
+
+                await self.update_device()
 #                xml = requests.put(
 #                      self._endpoint + uri,
 #                      auth=(self._username, self._password),
@@ -599,6 +601,8 @@ class Smile:
             + "</locations>"
 
         await self.request(uri, method='put', data=data)
+
+        await self.update_device()
         #xml = requests.put(
         #        self._endpoint
         #        + LOCATIONS

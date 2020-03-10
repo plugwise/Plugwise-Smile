@@ -6,7 +6,7 @@ def readme():
 
 setup(
     name='Plugwise_Smile',
-    version='0.0.12',
+    version='0.0.13',
     description='Plugwise_Smile (Anna/Adam/P1) API to use in conjunction with Home Assistant.',
     long_description='Plugwise Smile API to use in conjunction with Home Assistant, but it can also be used without Home Assistant.',
     keywords='HomeAssistant HA Home Assistant Anna Adam P1 Smile Plugwise',

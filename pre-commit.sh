@@ -10,3 +10,4 @@ grep -r --include="*.xml" '<latitude>' | grep -v '52.21' && echo "COMMIT REJECTE
 grep -r --include="*.xml" '<city>' | grep -v 'Sassenheim' && echo "COMMIT REJECTED, found your hometown, modify domain_objects and set city to Sassenheim (that is: Plugwise HQ)!" && exit 1
 grep -r --include="*.xml" '<postal_code>' | grep -v '2171' && echo "COMMIT REJECTED, found your hometown, modify domain_objects and set postal_code to 2171 (that is: Plugwise HQ)!" && exit 1
 
+exit 0

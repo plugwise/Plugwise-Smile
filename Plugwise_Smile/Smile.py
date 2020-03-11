@@ -193,7 +193,7 @@ class Smile:
         task = loop.create_task(self.update_device())
         loop.run_until_complete(task)
 
-    def get_devices(self):
+    async def get_devices(self):
         #self.sync_update_device()
         await self.update_appliances()
         await self.update_locations()

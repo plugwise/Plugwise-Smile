@@ -17,8 +17,8 @@ Module providing interfacing with Plugwise:
   - [ ]  - V2
   - [ ] [Home-Assistant](https://home-assistant.io) via 
   - [ ]  - Native -> 20200311 for now as 'plugwise' but using haanna
-  - [x]  - `custom_component` [Plugwise-HA](https://github.com/plugwise/Plugwise-Smile)
-  - [ ]  - `HACS` [Plugwise-HA](https://github.com/plugwise/Plugwise-Smile)
+  - [x]  - `custom_component` [Plugwise-HA](https://github.com/plugwise/Plugwise-HA)
+  - [ ]  - `HACS` [Plugwise-HA](https://github.com/plugwise/Plugwise-HA)
 
 ## License, origins and contributors
 

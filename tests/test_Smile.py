@@ -13,6 +13,9 @@ from lxml import etree
 
 from Plugwise_Smile.Smile import Smile
 
+# Prepare aiohttp app routes
+# taking smile_type (i.e. directory name under tests/{smile_app}/
+# as inclusion point
 async def setup_app():
     global smile_type
     if not smile_type:
@@ -25,6 +28,7 @@ async def setup_app():
     app.router.add_get('/core/modules',smile_modules)
     return app
 
+# Wrapper for appliances uri
 async def smile_appliances(request):
     global smile_type
     f=open('tests/{}/core.appliances.xml'.format(smile_type),'r')
@@ -62,7 +66,7 @@ async def smile_modules(request):
 
 async def test_smile_modules(aiohttp_client, loop):
     global smile_type
-    smile_type = 'anna'
+    smile_type = 'anna_without_boiler'
     app = aiohttp.web.Application()
     app.router.add_get('/core/modules',smile_modules)
     client = await aiohttp_client(app)
@@ -71,6 +75,7 @@ async def test_smile_modules(aiohttp_client, loop):
     text = await resp.text()
     assert 'xml' in text
 
+# Generic connect
 @pytest.mark.asyncio
 async def connect():
     global smile_type
@@ -100,9 +105,10 @@ async def connect():
     """Connect to the smile"""
     connection = await smile.connect()
     assert connection == True
-    return server,smile
+    return server,smile,client
 
 
+# GEneric list_devices
 @pytest.mark.asyncio
 async def list_devices(server,smile):
     device_list={}
@@ -116,17 +122,20 @@ async def list_devices(server,smile):
     return device_list
 
 
+# Generic disconnect
 @pytest.mark.asyncio
-async def disconnect(server):
+async def disconnect(server,client):
     if not server:
         return False
     await server.close()
+    await client.session.close()
 
+# Actual test for directory 'Anna' without a boiler
 @pytest.mark.asyncio
-async def test_connect_anna():
+async def test_connect_anna_without_boiler():
     global smile_type
-    smile_type = 'anna'
-    server,smile = await connect()
+    smile_type = 'anna_without_boiler'
+    server,smile,client = await connect()
     device_list = await list_devices(server,smile)
     #print(device_list)
     for dev_id,details in device_list.items():
@@ -137,16 +146,19 @@ async def test_connect_anna():
         assert data['selected_schedule'] == 'Normal'
         assert data['boiler_state'] == None
         assert data['battery'] == None
-    await disconnect(server)
+    await disconnect(server,client)
 
+# Actual test for directory 'Adam'
+# living room floor radiator valve and separate zone thermostat
+# an three rooms with conventional radiators
 @pytest.mark.asyncio
 async def test_connect_adam():
     global smile_type
-    smile_type = 'adam'
-    server,smile = await connect()
+    smile_type = 'adam_living_floor_plus_3_rooms'
+    server,smile,client = await connect()
     device_list = await list_devices(server,smile)
     print(device_list)
     for dev_id,details in device_list.items():
         data = smile.get_device_data(dev_id, details['ctrl'])
         print(data)
-    await disconnect(server)
+    await disconnect(server,client)

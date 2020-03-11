@@ -39,4 +39,17 @@ Don't commit test-data in `tests/anna` or `tests/adam` that shouldn't be availab
 To prevent this we've included a pre-commit hook that checks and validates that no private information is there (but do double-check yourselves!)
 See 'pre-commit.sh' for details
 
+Excerpt:
+
+ - [ ] modify `domain_objects` and `modules` and set all occurances of `mac-address` to `0123456789AB`
+ - [ ] modify `domain_objects` and set `short_id` to `abcdefgh`
+ - [ ] modify `domain_objects` and set `wifi_ip` to `127.0.0.1`
+ - [ ] modify `domain_objects` and set `lan_ip` to `127.0.0.1`
+ - [ ] modify `domain_objects` and set all `ip_addresses` to `127.0.0.1`
+ - [ ] modify `domain_objects` and set `hostname` to `smile000000`
+ - [ ] modify `domain_objects` and set `longitude` to `4.49`
+ - [ ] modify `domain_objects` and set `latitude` to `52.21`
+ - [ ] modify `domain_objects` and set `city` to `Sassenheim`
+ - [ ] modify `domain_objects` and set `postal_code` to `2171`
+
 

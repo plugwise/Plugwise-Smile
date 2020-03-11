@@ -3,3 +3,4 @@ lxml
 pytz
 aiohttp
 async_timeout
+python-dateutil

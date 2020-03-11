@@ -142,14 +142,27 @@ async def test_connect_anna_without_boiler():
     server,smile,client = await connect()
     device_list = await list_devices(server,smile)
     #print(device_list)
+    #testdata dictionary with key ctrl_id_dev_id => keys:values
+    testdata={
+        "c46b4794d28149699eacf053deedd003_c34c6864216446528e95d88985e714cc": {
+                'type': 'thermostat',
+                'setpoint_temp': 16.0,
+                'current_temp': 20.62,
+                'selected_schedule': 'Normal',
+                'boiler_state': None,
+                'battery': None,
+            }
+        }
     for dev_id,details in device_list.items():
         data = smile.get_device_data(dev_id, details['ctrl'])
-        assert data['type'] == 'thermostat'
-        assert data['setpoint_temp'] == 16.0
-        assert data['current_temp'] == 20.62
-        assert data['selected_schedule'] == 'Normal'
-        assert data['boiler_state'] == None
-        assert data['battery'] == None
+        test_id = '{}_{}'.format(details['ctrl'],dev_id)
+        assert test_id in testdata
+        assert data['type'] == testdata[test_id]['type']
+        assert data['setpoint_temp'] == testdata[test_id]['setpoint_temp']
+        assert data['current_temp'] == testdata[test_id]['current_temp']
+        assert data['selected_schedule'] == testdata[test_id]['selected_schedule']
+        assert data['boiler_state'] == testdata[test_id]['boiler_state']
+        assert data['battery'] == testdata[test_id]['battery']
     await disconnect(server,client)
 
 # Actual test for directory 'Adam'
@@ -162,7 +175,11 @@ async def test_connect_adam():
     server,smile,client = await connect()
     device_list = await list_devices(server,smile)
     print(device_list)
+    #testdata dictionary with key ctrl_id_dev_id => keys:values
+    testdata={}
     for dev_id,details in device_list.items():
         data = smile.get_device_data(dev_id, details['ctrl'])
+        test_id = '{}_{}'.format(details['ctrl'],dev_id)
+        #assert test_id in testdata
         print(data)
     await disconnect(server,client)

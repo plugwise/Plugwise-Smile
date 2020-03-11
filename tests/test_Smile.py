@@ -116,7 +116,7 @@ async def connect():
 @pytest.mark.asyncio
 async def list_devices(server,smile):
     device_list={}
-    devices = smile.get_devices()
+    devices = await smile.get_devices()
     for dev in devices:
         if dev['name'] == 'Controlled Device':
             ctrl_id = dev['id']

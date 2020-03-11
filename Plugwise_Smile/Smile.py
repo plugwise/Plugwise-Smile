@@ -185,7 +185,7 @@ class Smile:
         await self.update_appliances()
         await self.update_domain_objects()
         await self.update_direct_objects()
-        await self.update_locations()
+        #await self.update_locations()
 
     def sync_update_device(self):
         """Request data."""
@@ -195,6 +195,8 @@ class Smile:
 
     def get_devices(self):
         #self.sync_update_device()
+        await self.update_appliances()
+        await self.update_locations()
 
         appl_dict = self.get_appliance_dictionary()
         loc_dict = self.get_location_dictionary()
@@ -564,7 +566,7 @@ class Smile:
 
                 await self.request(uri, method='put', data=data)
 
-                await self.update_device()
+                await self.update_domain_objects()
 #                xml = requests.put(
 #                      self._endpoint + uri,
 #                      auth=(self._username, self._password),
@@ -579,6 +581,7 @@ class Smile:
 
     async def _set_preset(self, location_id, loc_type, preset):
         """Sets the preset, helper function."""
+        await self.update_locations()
         current_location = self._locations.find("location[@id='" + location_id + "']")
         location_name = current_location.find('name').text
         location_type = current_location.find('type').text
@@ -603,7 +606,7 @@ class Smile:
 
         await self.request(uri, method='put', data=data)
 
-        await self.update_device()
+        await self.update_domain_objects()
         #xml = requests.put(
         #        self._endpoint
         #        + LOCATIONS
@@ -633,7 +636,7 @@ class Smile:
             CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
             return False
 
-        await self.update_device()
+        await self.update_domain_objects()
 
         return True
 

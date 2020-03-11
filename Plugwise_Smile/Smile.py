@@ -383,25 +383,26 @@ class Smile:
                         value = float(measurement)
                         water_pressure = '{:.1f}'.format(round(value, 1))
                         appliance_data['water_pressure'] = water_pressure
+                    direct_objects = self._direct_objects
                     appliance_data['boiler_state'] = None
                     locator = (".//logs/point_log[type='boiler_state']/period/measurement")
-                    if appliance.find(locator) is not None:
-                        boiler_state = (appliance.find(locator).text == "on")
+                    if direct_objects.find(locator) is not None:
+                        boiler_state = (direct_objects.find(locator).text == "on")
                         appliance_data['boiler_state'] = boiler_state
                     appliance_data['central_heating_state'] = None
                     locator = (".//logs/point_log[type='central_heating_state']/period/measurement")
-                    if appliance.find(locator) is not None:
-                        central_heating_state = (appliance.find(locator).text == "on")
+                    if direct_objects.find(locator) is not None:
+                        central_heating_state = (direct_objects.find(locator).text == "on")
                         appliance_data['central_heating_state'] = central_heating_state
                     appliance_data['cooling_state'] = None
                     locator = (".//logs/point_log[type='cooling_state']/period/measurement")
-                    if appliance.find(locator) is not None:
-                        cooling_state = (appliance.find(locator).text == "on")
+                    if direct_objects.find(locator) is not None:                      
+                        cooling_state = (direct_objects.find(locator).text == "on")
                         appliance_data['cooling_state'] = cooling_state
                     appliance_data['dhw_state'] = None
                     locator = (".//logs/point_log[type='domestic_hot_water_state']/period/measurement")
-                    if appliance.find(locator) is not None:
-                        domestic_hot_water_state = (appliance.find(locator).text == "on")
+                    if direct_objects.find(locator) is not None:                      
+                        domestic_hot_water_state = (direct_objects.find(locator).text == "on")
                         appliance_data['dhw_state'] = domestic_hot_water_state
 
         if appliance_data != {}:

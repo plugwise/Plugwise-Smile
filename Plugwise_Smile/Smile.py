@@ -70,7 +70,8 @@ class Smile:
             _LOGGER.error('Connected but expected text not returned, we got %s',result)
             return False
 
-        await self.update_device()
+        # Update all endpoints on first connect
+        await self.full_update_device()
 
         return True
 
@@ -118,7 +119,7 @@ class Smile:
         result = await resp.text()
 
         #_LOGGER.debug(result)
-        _LOGGER.debug('Pluwise network traffic - talking to Smile with %s', command)
+        _LOGGER.debug('Plugwise network traffic - talking to Smile with %s', command)
 
         if not result or 'error' in result:
             return None
@@ -180,23 +181,23 @@ class Smile:
         task = loop.create_task(self.update_locations())
         loop.run_until_complete(task)
 
-    async def update_device(self):
+    async def full_update_device(self):
         """Update device."""
         await self.update_appliances()
         await self.update_domain_objects()
         await self.update_direct_objects()
-        #await self.update_locations()
+        await self.update_locations()
 
-    def sync_update_device(self):
+    def sync_full_update_device(self):
         """Request data."""
         loop = asyncio.get_event_loop()
-        task = loop.create_task(self.update_device())
+        task = loop.create_task(self.full_update_device())
         loop.run_until_complete(task)
 
     async def get_devices(self):
         #self.sync_update_device()
-        await self.update_appliances()
-        await self.update_locations()
+        #await self.update_appliances()
+        #await self.update_locations()
 
         appl_dict = self.get_appliance_dictionary()
         loc_dict = self.get_location_dictionary()
@@ -223,15 +224,11 @@ class Smile:
 
     def get_device_data(self, dev_id, ctrl_id):
         """Provides the device-data, based on location_id, from APPLIANCES."""
-        outdoor_temp = self.get_outdoor_temperature()
-        illuminance = self.get_illuminance()
 
         if ctrl_id:
             controller_data = self.get_appliance_from_appl_id(ctrl_id)
         device_data = {}
         if dev_id:
-            #_LOGGER.debug("Plugwise id: %s",dev_id)
-            #_LOGGER.debug("Plugwise ctrl_id: %s",ctrl_id)
             device_data = self.get_appliance_from_loc_id(dev_id)
             preset = self.get_preset_from_id(dev_id)
             presets = self.get_presets_from_id(dev_id)
@@ -259,6 +256,10 @@ class Smile:
                     device_data.update( {'cooling_state': controller_data['cooling_state']} )
                     device_data.update( {'dhw_state': controller_data['dhw_state']} )
         else:
+            # Only fetch on controller, not device
+            outdoor_temp = self.get_outdoor_temperature()
+            illuminance = self.get_illuminance()
+
             device_data['type'] = 'heater_central'
             if 'boiler_temp' in controller_data:
                 device_data.update( {'boiler_temp': controller_data['boiler_temp']} )
@@ -398,12 +399,12 @@ class Smile:
                         appliance_data['central_heating_state'] = central_heating_state
                     appliance_data['cooling_state'] = None
                     locator = (".//logs/point_log[type='cooling_state']/period/measurement")
-                    if direct_objects.find(locator) is not None:                      
+                    if direct_objects.find(locator) is not None:
                         cooling_state = (direct_objects.find(locator).text == "on")
                         appliance_data['cooling_state'] = cooling_state
                     appliance_data['dhw_state'] = None
                     locator = (".//logs/point_log[type='domestic_hot_water_state']/period/measurement")
-                    if direct_objects.find(locator) is not None:                      
+                    if direct_objects.find(locator) is not None:
                         domestic_hot_water_state = (direct_objects.find(locator).text == "on")
                         appliance_data['dhw_state'] = domestic_hot_water_state
 
@@ -518,7 +519,7 @@ class Smile:
         if self._domain_objects.find(locator) is not None:
             measurement = self._domain_objects.find(locator).text
             value = float(measurement)
-            value = '{:.1f}'.format(round(value, 1))
+            value = float('{:.1f}'.format(round(value, 1)))
             return value
 
     def get_illuminance(self):
@@ -527,7 +528,7 @@ class Smile:
         if self._domain_objects.find(locator) is not None:
             measurement = self._domain_objects.find(locator).text
             value = float(measurement)
-            value = '{:.1f}'.format(round(value, 1))
+            value = float('{:.1f}'.format(round(value, 1)))
             return value
 
     def get_preset_dictionary(self, rule_id):
@@ -546,8 +547,9 @@ class Smile:
         if preset_dictionary != {}:
             return preset_dictionary
 
-    async def _set_schema_state(self, loc_id, name, state):
-        """Sets the schedule, helper-function."""
+    async def set_schedule_state(self, loc_id,name, state):
+        """Sets the schedule, with the given name, connected to a location, to true or false - DOMAIN_OBJECTS."""
+        #_LOGGER.debug("Changing schedule state to: %s", state)
         schema_rule_ids = {}
         schema_rule_ids = self.get_rule_id_and_zone_location_by_name_with_id(str(name), loc_id)
         for schema_rule_id,location_id in schema_rule_ids.items():
@@ -566,21 +568,14 @@ class Smile:
 
                 await self.request(uri, method='put', data=data)
 
-                await self.update_device()
-#                xml = requests.put(
-#                      self._endpoint + uri,
-#                      auth=(self._username, self._password),
-#                      data=data,
-#                      headers={'Content-Type': 'text/xml'},
-#                      timeout=10
-#                )
+                # All get_schema related items check domain_objects so update that
+                await self.update_domain_objects()
 
-                #if xml.status_code != requests.codes.ok: # pylint: disable=no-member
-                #    CouldNotSetTemperatureException("Could not set the schema to {}.".format(state) + xml.text)
-                #return '{} {}'.format(xml.text, data)
+        return True
 
-    async def _set_preset(self, location_id, loc_type, preset):
-        """Sets the preset, helper function."""
+    async def set_preset(self, loc_id, loc_type, preset):
+        """Sets the given location-preset on the relevant thermostat - from DOMAIN_OBJECTS."""
+        #_LOGGER.debug("Changing preset for %s - %s to: %s", loc_id, loc_type, preset)
         await self.update_locations()
         current_location = self._locations.find("location[@id='" + location_id + "']")
         location_name = current_location.find('name').text
@@ -606,22 +601,13 @@ class Smile:
 
         await self.request(uri, method='put', data=data)
 
-        await self.update_device()
-        #xml = requests.put(
-        #        self._endpoint
-        #        + LOCATIONS
-        #        + ";id="
-        #        + location_id,
-        #        auth=(self._username, self._password),
-        #        headers={"Content-Type": "text/xml"},
-        #        timeout=10,
-        #    )
-        #if xml.status_code != requests.codes.ok: # pylint: disable=no-member
-        #    raise CouldNotSetPresetException("Could not set the given preset: " + xml.text)
-        #return xml.text
+        # All get_preset related items check domain_objects so update that
+        await self.update_domain_objects()
 
-    async def _set_temp(self, loc_id, loc_type, temperature):
-        """Sends a temperature-set request, helper function."""
+        return True
+
+    async def set_temperature(self, loc_id, loc_type, temperature):
+        """Sends a temperature-set request to the relevant thermostat, connected to a location - from DOMAIN_OBJECTS."""
         uri = self.__get_temperature_uri(loc_id, loc_type)
         temperature = str(temperature)
         data="<thermostat_functionality><setpoint>" + temperature + "</setpoint></thermostat_functionality>"
@@ -636,7 +622,10 @@ class Smile:
             CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
             return False
 
-        await self.update_device()
+        # get_temp_uri relates to **appliances** because of get_appliance for setpoint, so update that
+        # with a delay to ensure the device updated the xml
+        await asyncio.sleep(1)
+        await self.update_appliances()
 
         return True
 
@@ -661,20 +650,7 @@ class Smile:
 
 
 
-    async def set_schedule_state(self, loc_id,name, state):
-        """Sets the schedule, with the given name, connected to a location, to true or false - DOMAIN_OBJECTS."""
-        #_LOGGER.debug("Changing schedule state to: %s", state)
-        await self._set_schema_state(loc_id, name, state)
 
-    async def set_preset(self, loc_id, loc_type, preset):
-        """Sets the given location-preset on the relevant thermostat - from DOMAIN_OBJECTS."""
-        #_LOGGER.debug("Changing preset for %s - %s to: %s", loc_id, loc_type, preset)
-        await self._set_preset(loc_id, loc_type, preset)
-
-    async def set_temperature(self, loc_id, loc_type, temperature):
-        """Sends a temperature-set request to the relevant thermostat, connected to a location - from DOMAIN_OBJECTS."""
-        #_LOGGER.debug("Changing temperature to: %s", temperature)
-        await self._set_temp(loc_id, loc_type, temperature)
 
     @staticmethod
     def escape_illegal_xml_characters(xmldata):

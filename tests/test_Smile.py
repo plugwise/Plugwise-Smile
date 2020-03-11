@@ -145,8 +145,8 @@ async def test_connect_anna_without_boiler():
     testdata={
         "c46b4794d28149699eacf053deedd003": {
                 'type': 'heater_central',
-                'outdoor_temp': '10.8',
-                'illuminance': '35.0',
+                'outdoor_temp': 10.8,
+                'illuminance': 35.0,
         },
         "c46b4794d28149699eacf053deedd003_c34c6864216446528e95d88985e714cc": {
                 'type': 'thermostat',
@@ -210,7 +210,7 @@ async def test_connect_adam_plus_anna():
     testdata={
         '2743216f626f43948deec1f7ab3b3d70': {
                 'type': 'heater_central',
-                'outdoor_temp': '12.4',
+                'outdoor_temp': 12.4,
                 'illuminance': None,
         },
         '2743216f626f43948deec1f7ab3b3d70_009490cc2f674ce6b576863fbb64f867': {

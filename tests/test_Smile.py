@@ -64,7 +64,11 @@ async def smile_modules(request):
     f.close()
     return aiohttp.web.Response(text=data)
 
-async def test_smile_modules(aiohttp_client, loop):
+# Test if at least modules functions before going further
+# note that this only tests the modules-app for functionality
+# if this fails, none of the actual tests against the Smile library
+# will function correctly
+async def test_mock(aiohttp_client, loop):
     global smile_type
     smile_type = 'anna_without_boiler'
     app = aiohttp.web.Application()

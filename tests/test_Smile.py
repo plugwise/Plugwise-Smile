@@ -7,6 +7,7 @@ import pytest_aiohttp
 
 import asyncio
 import aiohttp
+import codecov
 import os
 
 from lxml import etree

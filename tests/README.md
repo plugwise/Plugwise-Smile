@@ -20,6 +20,19 @@ Intended:
  - [x] anna_without_boiler => Just an Anna (i.e. attached to city heating)
  - [ ] anna_legacy => An Anna setup with a boiler, but legacy firmware
 
+If you see an unchecked item and feel your setup fits in, please **MAIL** one of the authors the output of the below links. Feel free to create a PR if you follow the below privacy hint:
+
+They should al start with `<xml` and copied as plain text (i.e. not preformatted like Chrome and Safari do).
+Either use wget/curl or use your 'developer view' from your browser to copy the source text
+ 
+```
+http://{ip_of_your_smile}/core/appliances
+http://{ip_of_your_smile}/core/direct_objects
+http://{ip_of_your_smile}/core/domain_objects
+http://{ip_of_your_smile}/core/locations
+http://{ip_of_your_smile}/core/modules
+```
+
 # Important
 
 Don't commit test-data in `tests/anna` or `tests/adam` that shouldn't be available to 'the internet'.

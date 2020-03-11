@@ -566,7 +566,7 @@ class Smile:
 
                 await self.request(uri, method='put', data=data)
 
-                await self.update_domain_objects()
+                await self.update_device()
 #                xml = requests.put(
 #                      self._endpoint + uri,
 #                      auth=(self._username, self._password),
@@ -606,7 +606,7 @@ class Smile:
 
         await self.request(uri, method='put', data=data)
 
-        await self.update_domain_objects()
+        await self.update_device()
         #xml = requests.put(
         #        self._endpoint
         #        + LOCATIONS
@@ -636,7 +636,7 @@ class Smile:
             CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
             return False
 
-        await self.update_domain_objects()
+        await self.update_device()
 
         return True
 

@@ -21,7 +21,7 @@
 		</services>
 		<protocols>
 			<zig_bee_node id='9ca5df0038564aeeb59709ab3de23f97'>
-				<mac_address>000D6F000D13CA9A</mac_address>
+				<mac_address>0123456789AB</mac_address>
 				<type>router</type>
 				<reachable>true</reachable>
 				<power_source>mains</power_source>
@@ -127,7 +127,7 @@
 		</services>
 		<protocols>
 			<zig_bee_node id='87f66dac0b92499897598c95fe55286e'>
-				<mac_address>000D6F000D13CCFD</mac_address>
+				<mac_address>0123456789AB</mac_address>
 				<type>router</type>
 				<reachable>true</reachable>
 				<power_source>mains</power_source>
@@ -620,13 +620,13 @@
 		<vendor_model>smile_open_therm</vendor_model>
 		<hardware_version>AME Smile 2.0 board</hardware_version>
 		<firmware_version>3.0.15</firmware_version>
-		<mac_address>D40FB2019891</mac_address>
-		<short_id>cnbljxgd</short_id>
+		<mac_address>0123456789AB</mac_address>
+		<short_id>abcdefghj</short_id>
 		<send_data>true</send_data>
 		<anonymous>false</anonymous>
 		<lan_ip></lan_ip>
-		<wifi_ip>192.168.1.212</wifi_ip>
-		<hostname>smile019891</hostname>
+		<wifi_ip>127.0.0.1</wifi_ip>
+		<hostname>smile000000</hostname>
 		<time>2020-03-11T18:41:50+01:00</time>
 		<timezone>Europe/Amsterdam</timezone>
 		<ssh_relay>disabled</ssh_relay>
@@ -641,9 +641,9 @@
 		</project>
 		<gateway_environment id='d85c8e52b9d94a9ab14f9d6b348bd215'>
 			<savings_result_value/>
-			<longitude>6</longitude>
+			<longitude>4.49</longitude>
 			<thermostat_model/>
-			<city>Velp</city>
+			<city>Sassenheim</city>
 			<country>NL</country>
 			<electricity_consumption_tariff_structure/>
 			<electricity_production_peak_tariff/>
@@ -652,9 +652,9 @@
 			<thermostat_brand/>
 			<electricity_production_off_peak_tariff/>
 			<central_heating_installation_date/>
-			<postal_code/>
+			<postal_code>2171</postal_code>
 			<electricity_consumption_off_peak_tariff/>
-			<latitude>52</latitude>
+			<latitude>52.21</latitude>
 			<gas_consumption_tariff/>
 			<modified_date>2020-02-22T15:18:08.980+01:00</modified_date>
 			<electricity_production_tariff_structure/>
@@ -883,7 +883,7 @@
 				<unit></unit>
 				<last_consecutive_log_date>2020-03-02T17:21:52+01:00</last_consecutive_log_date>
 				<period start_date="2020-03-11T18:36:53.693+01:00" end_date="2020-03-11T18:36:53.693+01:00">
-					<measurement log_date="2020-03-11T18:36:53.693+01:00">192.168.1.212</measurement>
+					<measurement log_date="2020-03-11T18:36:53.693+01:00">127.0.0.1</measurement>
 				</period>
 				<network_address id='863b10fc324c41e5a6d56890c7a79048'/>
 			</point_log>
@@ -1196,7 +1196,7 @@
 		<services/>
 		<protocols>
 			<zig_bee_coordinator id='fcd3478dede94c5c87b5ea39a3404708'>
-				<mac_address>000D6F000D5A168D</mac_address>
+				<mac_address>0123456789AB</mac_address>
 				<permit_joining>false</permit_joining>
 				<neighbors><zig_bee_node id='87f66dac0b92499897598c95fe55286e'/><zig_bee_node id='9ca5df0038564aeeb59709ab3de23f97'/></neighbors>
 				<zig_bee_nodes><zig_bee_node id='87f66dac0b92499897598c95fe55286e'/><zig_bee_node id='9ca5df0038564aeeb59709ab3de23f97'/></zig_bee_nodes>

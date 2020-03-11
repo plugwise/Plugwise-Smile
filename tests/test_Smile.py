@@ -137,12 +137,8 @@ async def disconnect(server,client):
 # Actual test for directory 'Anna' without a boiler
 @pytest.mark.asyncio
 async def test_connect_anna_without_boiler():
-    global smile_type
-    smile_type = 'anna_without_boiler'
-    server,smile,client = await connect()
-    device_list = await list_devices(server,smile)
-    #print(device_list)
-    #testdata dictionary with key ctrl_id_dev_id => keys:values
+    # testdata is a dictionary with key ctrl_id_dev_id => keys:values
+    #testdata={ 'ctrl_id:dev_id': { 'type': 'thermostat', 'battery': None }
     testdata={
         "c46b4794d28149699eacf053deedd003_c34c6864216446528e95d88985e714cc": {
                 'type': 'thermostat',
@@ -153,16 +149,26 @@ async def test_connect_anna_without_boiler():
                 'battery': None,
             }
         }
+    global smile_type
+    smile_type = 'anna_without_boiler'
+    server,smile,client = await connect()
+    device_list = await list_devices(server,smile)
+    #print(device_list)
     for dev_id,details in device_list.items():
         data = smile.get_device_data(dev_id, details['ctrl'])
         test_id = '{}_{}'.format(details['ctrl'],dev_id)
         assert test_id in testdata
-        assert data['type'] == testdata[test_id]['type']
-        assert data['setpoint_temp'] == testdata[test_id]['setpoint_temp']
-        assert data['current_temp'] == testdata[test_id]['current_temp']
-        assert data['selected_schedule'] == testdata[test_id]['selected_schedule']
-        assert data['boiler_state'] == testdata[test_id]['boiler_state']
-        assert data['battery'] == testdata[test_id]['battery']
+        for testkey in testdata[test_id]:
+            print('Asserting {}'.format(testkey))
+            assert data[testkey] == testdata[test_id][testkey]
+
+    out_temp = smile.get_outdoor_temperature()
+    print('Asserting outdoor temperature')
+    assert float(out_temp) == 10.8      # Actual value
+    illuminance = smile.get_illuminance()
+    print('Asserting illuminance')
+    assert float(illuminance) == 35.0   # Actual value
+
     await disconnect(server,client)
 
 # Actual test for directory 'Adam'
@@ -182,4 +188,41 @@ async def test_connect_adam():
         test_id = '{}_{}'.format(details['ctrl'],dev_id)
         #assert test_id in testdata
         print(data)
+    await disconnect(server,client)
+
+# Actual test for directory 'Adam + Anna'
+@pytest.mark.asyncio
+async def test_connect_adam_plus_anna():
+    #testdata dictionary with key ctrl_id_dev_id => keys:values
+    testdata={
+        '2743216f626f43948deec1f7ab3b3d70_009490cc2f674ce6b576863fbb64f867': {
+                'type': 'thermostat',
+                'setpoint_temp': 20.5,
+                'current_temp': 20.55,
+                'active_preset': 'home',
+                'selected_schedule': 'Weekschema',
+                'boiler_state': None,
+                'battery': None,
+                'dhw_state': False,
+            }
+        }
+    global smile_type
+    smile_type = 'adam_plus_anna'
+    server,smile,client = await connect()
+    device_list = await list_devices(server,smile)
+    #print(device_list)
+    for dev_id,details in device_list.items():
+        data = smile.get_device_data(dev_id, details['ctrl'])
+        test_id = '{}_{}'.format(details['ctrl'],dev_id)
+        #assert test_id in testdata
+        for testkey in testdata[test_id]:
+            print('Asserting {}'.format(testkey))
+            assert data[testkey] == testdata[test_id][testkey]
+
+    out_temp = smile.get_outdoor_temperature()
+    print('Asserting outdoor temperature')
+    assert float(out_temp) == 12.4      # Actual value
+    illuminance = smile.get_illuminance()
+    print('Asserting illuminance (none)')
+    assert illuminance == None   # Adam has no illuminance
     await disconnect(server,client)

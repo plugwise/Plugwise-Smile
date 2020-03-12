@@ -76,6 +76,7 @@ async def smile_set_schedule(request):
     text="<xml />"
     raise aiohttp.web.HTTPAccepted(text=text)
 
+"""
 # Test if at least modules functions before going further
 # note that this only tests the modules-app for functionality
 # if this fails, none of the actual tests against the Smile library
@@ -95,6 +96,7 @@ async def test_mock(aiohttp_client, loop):
 
     resp = await client.put('/core/locations;id=bla')
     assert resp.status == 202
+"""
 
 # Generic connect
 @pytest.mark.asyncio

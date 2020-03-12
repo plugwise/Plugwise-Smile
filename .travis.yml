@@ -1,12 +1,10 @@
 language: python
 python:
-  - 3.7.5
+  - 3.7
 before_install:
   - python --version
   - pip install -U pip
-  - pip install -U asyncio aiohttp
-  - pip install -U coverage pytest pytest_asyncio pytest_aiohttp pytest-cov pytest-coverage
-  - pip install -U codecov 
+  - pip install -U codecov coverage pytest pytest_asyncio pytest_aiohttp pytest-cov pytest-coverage
 install:
   - pip install -r requirements.txt
 script: PYTHONPATH=`pwd` pytest -rpP tests/test_Smile.py --cov='.'

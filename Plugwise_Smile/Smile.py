@@ -118,26 +118,30 @@ class Smile:
     # Appliances
     async def update_appliances(self):
         """Request data."""
-        self._appliances = await self.request(APPLIANCES)
-        return self._appliances
+        new_data = await self.request(APPLIANCES)
+        if new_data is not None:
+            self._appliances = new_data
 
     # Direct objects
     async def update_direct_objects(self):
         """Request data."""
-        self._direct_objects = await self.request(APPLIANCES)
-        return self._direct_objects
+        new_data = await self.request(DIRECT_OBJECTS)
+        if new_data is not None:
+            self._direct_objects = new_data
 
     # Domain objects
     async def update_domain_objects(self):
         """Request data."""
-        self._domain_objects = await self.request(DOMAIN_OBJECTS)
-        return self._domain_objects
+        new_data = await self.request(DOMAIN_OBJECTS)
+        if new_data is not None:
+            self._domain_objects = new_data
 
     # Locations
     async def update_locations(self):
         """Request data."""
-        self._locations = await self.request(LOCATIONS)
-        return self._locations
+        new_data = await self.request(LOCATIONS)
+        if new_data is not None:
+            self._locations = new_data
 
     async def full_update_device(self):
         """Update device."""

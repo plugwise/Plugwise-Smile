@@ -1,11 +1,11 @@
 language: python
 python:
-  - 3.7
+  - 3.7.5
 before_install:
   - python --version
   - pip install -U pip
   - pip install -U asyncio aiohttp
-  - pip install -U coverage pytest pytest_asyncio pytest_aiohttp pytest-cov
+  - pip install -U coverage pytest pytest_asyncio pytest_aiohttp pytest-cov pytest-coverage
   - pip install -U codecov 
 install:
   - pip install -r requirements.txt

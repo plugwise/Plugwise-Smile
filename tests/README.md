@@ -10,7 +10,7 @@ python3 -m pytest -rpP tests/test_Smile.py
 
 Intended:
 
- - [ ] p1v3 => A P1 v3
+ - [x] p1v3 => A P1 v3
  - [ ] p1v2 => A P1 v2
  - [ ] p1v1 => A P1 v2
  - [ ] adam => An Adam setup with a boiler, Floor, Koen, Plug, Tom and Lisa (i.e. the whole shebang)

@@ -15,11 +15,11 @@ from lxml import etree
 from Plugwise_Smile.Smile import Smile
 
 # Prepare aiohttp app routes
-# taking smile_type (i.e. directory name under tests/{smile_app}/
+# taking smile_setup (i.e. directory name under tests/{smile_app}/
 # as inclusion point
 async def setup_app():
-    global smile_type
-    if not smile_type:
+    global smile_setup
+    if not smile_setup:
         return False
     app = aiohttp.web.Application()
     app.router.add_get('/core/appliances',smile_appliances)
@@ -34,36 +34,36 @@ async def setup_app():
 
 # Wrapper for appliances uri
 async def smile_appliances(request):
-    global smile_type
-    f=open('tests/{}/core.appliances.xml'.format(smile_type),'r')
+    global smile_setup
+    f=open('tests/{}/core.appliances.xml'.format(smile_setup),'r')
     data=f.read()
     f.close()
     return aiohttp.web.Response(text=data)
 
 async def smile_direct_objects(request):
-    global smile_type
-    f=open('tests/{}/core.direct_objects.xml'.format(smile_type),'r')
+    global smile_setup
+    f=open('tests/{}/core.direct_objects.xml'.format(smile_setup),'r')
     data=f.read()
     f.close()
     return aiohttp.web.Response(text=data)
 
 async def smile_domain_objects(request):
-    global smile_type
-    f=open('tests/{}/core.domain_objects.xml'.format(smile_type),'r')
+    global smile_setup
+    f=open('tests/{}/core.domain_objects.xml'.format(smile_setup),'r')
     data=f.read()
     f.close()
     return aiohttp.web.Response(text=data)
 
 async def smile_locations(request):
-    global smile_type
-    f=open('tests/{}/core.locations.xml'.format(smile_type),'r')
+    global smile_setup
+    f=open('tests/{}/core.locations.xml'.format(smile_setup),'r')
     data=f.read()
     f.close()
     return aiohttp.web.Response(text=data)
 
 async def smile_modules(request):
-    global smile_type
-    f=open('tests/{}/core.modules.xml'.format(smile_type),'r')
+    global smile_setup
+    f=open('tests/{}/core.modules.xml'.format(smile_setup),'r')
     data=f.read()
     f.close()
     return aiohttp.web.Response(text=data)
@@ -81,8 +81,8 @@ async def smile_set_schedule(request):
 # if this fails, none of the actual tests against the Smile library
 # will function correctly
 async def test_mock(aiohttp_client, loop):
-    global smile_type
-    smile_type = 'anna_without_boiler'
+    global smile_setup
+    smile_setup = 'anna_without_boiler'
     app = aiohttp.web.Application()
     app.router.add_get('/core/modules',smile_modules)
     app.router.add_route('PUT', '/core/locations{tail:.*}', smile_set_temp_or_preset)
@@ -98,9 +98,9 @@ async def test_mock(aiohttp_client, loop):
 
 # Generic connect
 @pytest.mark.asyncio
-async def connect():
-    global smile_type
-    if not smile_type:
+async def connect(smile_type='thermostat'):
+    global smile_setup
+    if not smile_setup:
         return False
     port =  aiohttp.test_utils.unused_port()
 
@@ -119,7 +119,7 @@ async def connect():
     assert 'xml' in text
     assert '<vendor_name>Plugwise</vendor_name>' in text
 
-    smile = Smile( host=server.host, password='abcdefgh', port=server.port, websession=websession)
+    smile = Smile( host=server.host, password='abcdefgh', port=server.port, websession=websession, smile_type=smile_type)
     assert smile._timeout == 20
     assert smile._domain_objects == None
 
@@ -134,10 +134,17 @@ async def connect():
 async def list_devices(server,smile):
     device_list={}
     devices = await smile.get_devices()
+    ctrl_id = None
     for dev in devices:
         if dev['name'] == 'Controlled Device':
             ctrl_id = dev['id']
-        else:
+        if dev['name'] == 'Home' and smile._smile_type == 'power':
+            ctrl_id = dev['id']
+
+    assert ctrl_id != None
+
+    for dev in devices:
+        if dev['name'] != 'Controlled Device':
             device_list[dev['id']]={'name': dev['name'], 'ctrl': ctrl_id}
     #print(device_list)
     return device_list
@@ -175,8 +182,8 @@ async def test_connect_anna_without_boiler():
                 'battery': None,
             }
         }
-    global smile_type
-    smile_type = 'anna_without_boiler'
+    global smile_setup
+    smile_setup = 'anna_without_boiler'
     server,smile,client = await connect()
     device_list = await list_devices(server,smile)
     #print(device_list)
@@ -223,8 +230,8 @@ async def test_connect_anna_without_boiler():
 # an three rooms with conventional radiators
 @pytest.mark.asyncio
 async def test_connect_adam():
-    global smile_type
-    smile_type = 'adam_living_floor_plus_3_rooms'
+    global smile_setup
+    smile_setup = 'adam_living_floor_plus_3_rooms'
     server,smile,client = await connect()
     device_list = await list_devices(server,smile)
     print(device_list)
@@ -261,15 +268,15 @@ async def test_connect_adam_plus_anna():
                 'dhw_state': False,
             }
         }
-    global smile_type
-    smile_type = 'adam_plus_anna'
+    global smile_setup
+    smile_setup = 'adam_plus_anna'
     server,smile,client = await connect()
     device_list = await list_devices(server,smile)
     #print(device_list)
     for dev_id,details in device_list.items():
         data = smile.get_device_data(dev_id, details['ctrl'])
         test_id = '{}_{}'.format(details['ctrl'],dev_id)
-        #assert test_id in testdata
+        assert test_id in testdata
         #for item,value in data.items():
         #    print(item)
         #    print(value)
@@ -299,6 +306,33 @@ async def test_connect_adam_plus_anna():
         assert schema_change == True
         schema_change = await smile.set_schedule_state(location_id, 'NoSuchSchema', 'auto')
         assert schema_change == False
+
+    await smile.close_connection()
+    await disconnect(server,client)
+
+# Actual test for directory 'P1 v3'
+@pytest.mark.asyncio
+async def test_connect_p1v3():
+    #testdata dictionary with key ctrl_id_dev_id => keys:values
+    testdata={
+        'a455b61e52394b2db5081ce025a430f3': {
+                'electricity_consumed_peak_point': 644.0,
+                'electricity_produced_peak_cumulative': 0.0,
+        }
+    }
+    global smile_setup
+    smile_setup = 'p1v3'
+    server,smile,client = await connect(smile_type='power')
+    device_list = await list_devices(server,smile)
+
+    for dev_id,details in device_list.items():
+        data = smile.get_device_data(dev_id, details['ctrl'])
+    ctrl = details['ctrl']
+    data = smile.get_device_data(None, ctrl)
+    print(data)
+    for testkey in testdata[ctrl]:
+        print('Controller asserting {}'.format(testkey))
+        assert data[testkey] == testdata[ctrl][testkey]
 
     await smile.close_connection()
     await disconnect(server,client)

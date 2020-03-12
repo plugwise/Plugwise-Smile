@@ -13,7 +13,7 @@ Module providing interfacing with Plugwise:
   - [ ]  - Lisa
   - [ ]  - Plug
   - [ ]  - Tom
-  - [ ] Smile (v3)
+  - [x] Smile (v3)
   - [ ]  - V2
   - [ ] [Home-Assistant](https://home-assistant.io) via 
   - [ ]  - Native -> 20200311 for now as 'plugwise' but using haanna
@@ -26,4 +26,8 @@ Original (and therefor, license) by [haanna](https://github.com/laetificat/haann
 
 Modified and adjusted by @CoMPaTech and @bouwew in his repository but in 2020 cloned to Plugwise to include more than 'just Anna'
 
+
+# Thanks
+
+On behalf of @CoMPaTech and @bouwew (as well as @riemers) we'd like to thank @TANE from [HAshop](https://hashop.nl) for his support and development devices
 

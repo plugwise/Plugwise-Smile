@@ -529,7 +529,7 @@ class Smile:
         return True
 
     async def set_preset(self, loc_id, preset):
-        """Sets the given location-preset on the relevant thermostat - from DOMAIN_OBJECTS."""
+        """Sets the given location-preset on the relevant thermostat - from LOCATIONS."""
         #_LOGGER.debug("Changing preset for %s - %s to: %s", loc_id, loc_type, preset)
         await self.update_locations()
         current_location = self._locations.find("location[@id='" + loc_id + "']")
@@ -562,9 +562,9 @@ class Smile:
 
         return True
 
-    async def set_temperature(self, loc_id, temperature):
+    async def set_temperature(self, dev_id, temperature):
         """Sends a temperature-set request to the relevant thermostat, connected to a location - from DOMAIN_OBJECTS."""
-        uri = self.__get_temperature_uri(loc_id)
+        uri = self.__get_temperature_uri(dev_id)
         temperature = str(temperature)
         data="<thermostat_functionality><setpoint>" + temperature + "</setpoint></thermostat_functionality>"
 
@@ -585,19 +585,19 @@ class Smile:
 
         return True
 
-    def __get_temperature_uri(self, loc_id):
-        """Determine the location-set_temperature uri - from DOMAIN_OBJECTS."""
+    def __get_temperature_uri(self, dev_id):
+        """Determine the location-set_temperature uri - from LOCATIONS."""
         locator = (
         "location[@id='"
-        + loc_id
+        + dev_id
         + "']/actuator_functionalities/thermostat_functionality"
         )
-        thermostat_functionality_id = self._domain_objects.find(locator).attrib['id']
+        thermostat_functionality_id = self._locations.find(locator).attrib['id']
 
         temperature_uri = (
             LOCATIONS
             + ";id="
-            + loc_id
+            + dev_id
             + "/thermostat;id="
             + thermostat_functionality_id
         )

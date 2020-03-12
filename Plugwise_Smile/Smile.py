@@ -75,21 +75,9 @@ class Smile:
 
         return True
 
-    def sync_connect(self):
-        """Close the Plugwise connection."""
-        loop = asyncio.get_event_loop()
-        task = loop.create_task(self.connect())
-        loop.run_until_complete(task)
-
     async def close_connection(self):
         """Close the Plugwise connection."""
         await self.websession.close()
-
-    def sync_close_connection(self):
-        """Close the Plugwise connection."""
-        loop = asyncio.get_event_loop()
-        task = loop.create_task(self.close_connection())
-        loop.run_until_complete(task)
 
     async def request(self, command, retry=3, method='get', data={}, headers = {'Content-type': 'text/xml'}):
         """Request data."""
@@ -127,23 +115,11 @@ class Smile:
         # Encode to ensure utf8 parsing
         return etree.XML(self.escape_illegal_xml_characters(result).encode())
 
-    def sync_request(self, command, retry=2, method='get', data={}, headers = {'Content-type': 'text/xml'}):
-        """Request data."""
-        loop = asyncio.get_event_loop()
-        task = loop.create_task(self.request(command, retry, method, data, headers))
-        return loop.run_until_complete(task)
-
     # Appliances
     async def update_appliances(self):
         """Request data."""
         self._appliances = await self.request(APPLIANCES)
         return self._appliances
-
-    def sync_update_appliances(self):
-        """Request data."""
-        loop = asyncio.get_event_loop()
-        task = loop.create_task(self.update_appliances())
-        loop.run_until_complete(task)
 
     # Direct objects
     async def update_direct_objects(self):
@@ -151,23 +127,11 @@ class Smile:
         self._direct_objects = await self.request(APPLIANCES)
         return self._direct_objects
 
-    def sync_update_direct_objects(self):
-        """Request data."""
-        loop = asyncio.get_event_loop()
-        task = loop.create_task(self.update_appliances())
-        loop.run_until_complete(task)
-
     # Domain objects
     async def update_domain_objects(self):
         """Request data."""
         self._domain_objects = await self.request(DOMAIN_OBJECTS)
         return self._domain_objects
-
-    def sync_update_domain_objects(self):
-        """Request data."""
-        loop = asyncio.get_event_loop()
-        task = loop.create_task(self.update_domain_objects())
-        loop.run_until_complete(task)
 
     # Locations
     async def update_locations(self):
@@ -175,24 +139,12 @@ class Smile:
         self._locations = await self.request(LOCATIONS)
         return self._locations
 
-    def sync_update_locations(self):
-        """Request data."""
-        loop = asyncio.get_event_loop()
-        task = loop.create_task(self.update_locations())
-        loop.run_until_complete(task)
-
     async def full_update_device(self):
         """Update device."""
         await self.update_appliances()
         await self.update_domain_objects()
         await self.update_direct_objects()
         await self.update_locations()
-
-    def sync_full_update_device(self):
-        """Request data."""
-        loop = asyncio.get_event_loop()
-        task = loop.create_task(self.full_update_device())
-        loop.run_until_complete(task)
 
     async def get_devices(self):
         #self.sync_update_device()
@@ -552,6 +504,8 @@ class Smile:
         #_LOGGER.debug("Changing schedule state to: %s", state)
         schema_rule_ids = {}
         schema_rule_ids = self.get_rule_id_and_zone_location_by_name_with_id(str(name), loc_id)
+        if not schema_rule_ids:
+            return False
         for schema_rule_id,location_id in schema_rule_ids.items():
             if location_id == loc_id:
                 templates = self._domain_objects.findall(".//*[@id='{}']/template".format(schema_rule_id))
@@ -569,23 +523,24 @@ class Smile:
                 await self.request(uri, method='put', data=data)
 
                 # All get_schema related items check domain_objects so update that
+                await asyncio.sleep(1)
                 await self.update_domain_objects()
 
         return True
 
-    async def set_preset(self, loc_id, loc_type, preset):
+    async def set_preset(self, loc_id, preset):
         """Sets the given location-preset on the relevant thermostat - from DOMAIN_OBJECTS."""
         #_LOGGER.debug("Changing preset for %s - %s to: %s", loc_id, loc_type, preset)
         await self.update_locations()
-        current_location = self._locations.find("location[@id='" + location_id + "']")
+        current_location = self._locations.find("location[@id='" + loc_id + "']")
         location_name = current_location.find('name').text
         location_type = current_location.find('type').text
 
-        uri = LOCATIONS + ";id=" + location_id
+        uri = "{};id={}".format(LOCATIONS,loc_id)
 
         data = "<locations>" \
             + '<location id="' \
-            + location_id \
+            + loc_id \
             + '">' \
             + "<name>" \
             + location_name \
@@ -602,13 +557,14 @@ class Smile:
         await self.request(uri, method='put', data=data)
 
         # All get_preset related items check domain_objects so update that
+        await asyncio.sleep(1)
         await self.update_domain_objects()
 
         return True
 
-    async def set_temperature(self, loc_id, loc_type, temperature):
+    async def set_temperature(self, loc_id, temperature):
         """Sends a temperature-set request to the relevant thermostat, connected to a location - from DOMAIN_OBJECTS."""
-        uri = self.__get_temperature_uri(loc_id, loc_type)
+        uri = self.__get_temperature_uri(loc_id)
         temperature = str(temperature)
         data="<thermostat_functionality><setpoint>" + temperature + "</setpoint></thermostat_functionality>"
 
@@ -629,7 +585,7 @@ class Smile:
 
         return True
 
-    def __get_temperature_uri(self, loc_id, loc_type):
+    def __get_temperature_uri(self, loc_id):
         """Determine the location-set_temperature uri - from DOMAIN_OBJECTS."""
         locator = (
         "location[@id='"
@@ -647,10 +603,6 @@ class Smile:
         )
 
         return temperature_uri
-
-
-
-
 
     @staticmethod
     def escape_illegal_xml_characters(xmldata):

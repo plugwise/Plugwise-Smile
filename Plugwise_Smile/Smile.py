@@ -366,13 +366,9 @@ class Smile:
                                     appl_dict['current_temp'] = temperature
                                 appl_list.append(appl_dict.copy())
 
-        # TODO: what is this???
-        # the if statement doesn't do anything
-        for dict in sorted(appl_list, key=lambda k: k['type'], reverse=True):
-            if dict['type'] == "zone_thermostat":
-                return dict
-            else:
-                return dict
+        rev_list = sorted(appl_list, key=lambda k: k['type'], reverse=True)
+        if rev_list != []:
+            return rev_list[0]
 
     # Smile P1 specific
     def get_power_tariff(self):

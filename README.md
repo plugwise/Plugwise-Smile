@@ -8,11 +8,11 @@ Module providing interfacing with Plugwise:
   - [x] Anna
   - [ ] Legacy Anna (see haanna for now)
   - [x] Adam
-  - [ ]  - Floor
+  - [x]  - Floor
   - [ ]  - Koen
-  - [ ]  - Lisa
-  - [ ]  - Plug
-  - [ ]  - Tom
+  - [x]  - Lisa
+  - [x]  - Plug (each plug must have its own, unique, location-name, otherwise it will not show up) 
+  - [x]  - Tom
   - [x] Smile (v3)
   - [ ]  - V2
   - [ ] [Home-Assistant](https://home-assistant.io) via 

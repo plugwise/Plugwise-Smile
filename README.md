@@ -11,7 +11,7 @@ Module providing interfacing with Plugwise:
   - [ ]  - Floor
   - [ ]  - Koen
   - [ ]  - Lisa
-  - [ ]  - Plug
+  - [x]  - Plug (each plug must have its own, unique, location-name, otherwise it will not show up) 
   - [ ]  - Tom
   - [x] Smile (v3)
   - [ ]  - V2

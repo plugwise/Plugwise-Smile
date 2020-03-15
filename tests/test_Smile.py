@@ -104,7 +104,7 @@ async def test_mock(aiohttp_client, loop):
 
 # Generic connect
 @pytest.mark.asyncio
-async def connect(smile_type='thermostat'):
+async def connect():
     global smile_setup
     if not smile_setup:
         return False
@@ -125,13 +125,15 @@ async def connect(smile_type='thermostat'):
     assert 'xml' in text
     assert '<vendor_name>Plugwise</vendor_name>' in text
 
-    smile = Smile( host=server.host, password='abcdefgh', port=server.port, websession=websession, smile_type=smile_type)
+    smile = Smile( host=server.host, password='abcdefgh', port=server.port, websession=websession)
     assert smile._timeout == 20
-    assert smile._domain_objects == None
+    assert smile._domain_objects is None
+    assert smile._smile_type is None
 
     """Connect to the smile"""
     connection = await smile.connect()
-    assert connection == True
+    assert connection is True
+    assert smile._smile_type is not None
     return server,smile,client
 
 
@@ -147,7 +149,7 @@ async def list_devices(server,smile):
         if dev['name'] == 'Home' and smile._smile_type == 'power':
             ctrl_id = dev['id']
 
-    assert ctrl_id != None
+    assert ctrl_id is not None
 
     for dev in devices:
         if dev['name'] != 'Controlled Device':
@@ -192,6 +194,7 @@ async def test_connect_anna_without_boiler():
     smile_setup = 'anna_without_boiler'
     server,smile,client = await connect()
     device_list = await list_devices(server,smile)
+    assert smile._smile_type == 'thermostat'
     #print(device_list)
     for dev_id,details in device_list.items():
         ctrl = details['ctrl']
@@ -240,6 +243,7 @@ async def test_connect_adam():
     smile_setup = 'adam_living_floor_plus_3_rooms'
     server,smile,client = await connect()
     device_list = await list_devices(server,smile)
+    #assert smile._smile_type == 'thermostat'
     print(device_list)
     #testdata dictionary with key ctrl_id_dev_id => keys:values
     testdata={}
@@ -278,6 +282,7 @@ async def test_connect_adam_plus_anna():
     smile_setup = 'adam_plus_anna'
     server,smile,client = await connect()
     device_list = await list_devices(server,smile)
+    assert smile._smile_type == 'thermostat'
     #print(device_list)
     for dev_id,details in device_list.items():
         data = smile.get_device_data(dev_id, details['ctrl'])
@@ -316,6 +321,8 @@ async def test_connect_adam_plus_anna():
     await smile.close_connection()
     await disconnect(server,client)
 
+
+# {'electricity_consumed_peak_point': 644.0, 'electricity_consumed_off_peak_point': 0.0, 'electricity_consumed_peak_cumulative': 7702167.0, 'electricity_consumed_off_peak_cumulative': 10263159.0, 'electricity_produced_off_peak_point': 0.0, 'electricity_produced_peak_cumulative': 0.0, 'electricity_produced_off_peak_cumulative': 0.0}
 # Actual test for directory 'P1 v3'
 @pytest.mark.asyncio
 async def test_connect_p1v3():
@@ -324,13 +331,15 @@ async def test_connect_p1v3():
         'a455b61e52394b2db5081ce025a430f3': {
                 'electricity_consumed_peak_point': 644.0,
                 'electricity_produced_peak_cumulative': 0.0,
+                'electricity_consumed_off_peak_cumulative': 10263159.0,
         }
     }
     global smile_setup
     smile_setup = 'p1v3'
-    server,smile,client = await connect(smile_type='power')
+    server,smile,client = await connect()
     device_list = await list_devices(server,smile)
 
+    assert smile._smile_type == 'power'
     for dev_id,details in device_list.items():
         data = smile.get_device_data(dev_id, details['ctrl'])
     ctrl = details['ctrl']

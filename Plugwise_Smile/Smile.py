@@ -46,10 +46,8 @@ class Smile:
     """Define the Plugwise object."""
     # pylint: disable=too-many-instance-attributes, too-many-public-methods
 
-    def __init__(
-                 self, host, password, username='smile', port=80,
-                 smile_type='thermostat', timeout=DEFAULT_TIMEOUT,
-                 websession=None):
+    def __init__(self, host, password, username='smile', port=80,
+                 timeout=DEFAULT_TIMEOUT, websession=None):
         """Set the constructor for this class."""
 
         if websession is None:
@@ -72,7 +70,9 @@ class Smile:
         self._modules = None
         self._power_tariff = None
         self._rules = None
-        self._smile_type = smile_type
+        self._smile_type = None
+        self._smile_subtype = None
+        self._platforms = ["climate","water_heater","sensor"]
 
     async def connect(self, retry=2):
         """Connect to Plugwise device."""
@@ -88,10 +88,30 @@ class Smile:
             return await self.connect(retry - 1)
 
         result = await resp.text()
+
         if '<vendor_name>Plugwise</vendor_name>' not in result:
             _LOGGER.error('Connected but expected text not returned, \
                           we got %s', result)
             return False
+
+        # Adam or Anna (non-legacy)
+        if "<vendor_model>ThermoExtension</vendor_model>" in result:
+            self._smile_type = 'thermostat'
+            self._smile_subtype = 'non_legacy'
+        # Adam and Anna case?
+        elif "<vendor_model>Adam</vendor_model>" in result:
+            self._smile_type = 'thermostat'
+            self._smile_subtype = 'non_legacy'
+        # Smile P1
+        elif "<electricity_cumulative_meter"in result:
+            self._smile_type = 'power'
+            self._smile_subtype = 'v3'
+            self._platforms = ["sensor"]
+
+        if self._smile_type is None:
+            _LOGGER.error('Unable to determine Adam/Anna/P1 - assuming thermostat')
+            self._smile_type = 'thermostat'
+            self._smile_subtype = 'unknown'
 
         # Update all endpoints on first connect
         await self.full_update_device()
@@ -397,7 +417,7 @@ class Smile:
             if self._power_tariff[tariff_structure] == 'double':
                 peak_list.append('nl_offpeak')
 
-            loc_string = ".//{}[type='{}']/period/measurement[@tariff='{}']"
+            loc_string = ".//{}[type='{}']/period/measurement[@tariff=\"{}\"]"
             for measurement in POWER_MEASUREMENTS:
                 for log_type in log_list:
                     for peak_select in peak_list:
@@ -405,9 +425,11 @@ class Smile:
                                                     peak_select)
                         if home_object.find(locator) is not None:
                             peak = peak_select.split('_')[1]
-                            log_type = log_type.split('_')[0]
+                            if peak == "offpeak":
+                                peak = "off_peak"
+                            log_found = log_type.split('_')[0]
                             key_string = '{}_{}_{}'.format(measurement,
-                                                           peak, log_type)
+                                                           peak, log_found)
                             val = float(home_object.find(locator).text)
                             direct_data[key_string] = val
 

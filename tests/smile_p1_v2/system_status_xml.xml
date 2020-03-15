@@ -19,7 +19,7 @@
 <hostname>smile000000</hostname>
 <type>LAN (cable)</type>
 <ip_address>127.0.0.1</ip_address>
-<mac_address>01:23:45:67:89:AB</mac_address>
+<mac_address>0123456789AB</mac_address>
 </network>
 </status>
 </body></html>

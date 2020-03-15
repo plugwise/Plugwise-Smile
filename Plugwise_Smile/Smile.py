@@ -321,8 +321,6 @@ class Smile:
     def get_appliance_from_loc_id(self, dev_id):
         """Obtains the appliance-data connected to a location -
            from APPLIANCES."""
-        # TODO: unusde variabe
-        # appliance_data = {}
         appliances = self._appliances.findall('.//appliance')
         appl_dict = {}
         appl_list = []

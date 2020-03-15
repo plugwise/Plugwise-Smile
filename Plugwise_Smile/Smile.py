@@ -221,8 +221,6 @@ class Smile:
 
         for loc_id, location in loc_dict.items():
             thermostat = []
-            # TODO: Unused statement????
-            # device = self.get_thermostat_from_id(loc_id)
             thermostat.append(location)
             thermostat.append(loc_id)
             if thermostat != []:
@@ -319,30 +317,6 @@ class Smile:
                 location_dictionary[location_id] = location_name
 
         return location_dictionary
-
-    def get_thermostat_from_id(self, dev_id):
-        """Obtains the main thermostat connected to the
-           location_id - from APPLIANCES."""
-        device_list = []
-        temp_list = []
-        appliances = self._appliances.findall('.//appliance')
-        for appliance in appliances:
-            appliance_type = appliance.find('type').text
-            # TODO: unused variable?
-            # appliance_id = appliance.attrib['id']
-            for location in appliance.iter('location'):
-                if location.attrib is not None:
-                    location_id = location.attrib['id']
-                if location_id == dev_id:
-                    temp_list.append(appliance_type)
-        if 'zone_thermostat' in temp_list:
-            device_list.append('zone_thermostat')
-        else:
-            if 'thermostatic_radiator_valve' in temp_list:
-                device_list = temp_list
-
-        if device_list != []:
-            return device_list
 
     def get_appliance_from_loc_id(self, dev_id):
         """Obtains the appliance-data connected to a location -

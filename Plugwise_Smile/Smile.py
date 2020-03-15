@@ -322,7 +322,6 @@ class Smile:
         """Obtains the appliance-data connected to a location -
            from APPLIANCES."""
         appliances = self._appliances.findall('.//appliance')
-        appl_dict = {}
         appl_list = []
         locator_string = ".//logs/point_log[type='{}']/period/measurement"
         thermostatic_types = ['zone_thermostat',
@@ -331,10 +330,16 @@ class Smile:
         for appliance in appliances:
             if appliance.find('type') is not None:
                 appliance_type = appliance.find('type').text
+            if appliance.find('description') is not None:
+                if 'smart plug' in str(appliance.find('description').text):
+                    appliance_type = 'plug'
+                    appliance_name = appliance.find('name').text
                 if "gateway" not in appliance_type:
                     if appliance.find('location') is not None:
                         appl_location = appliance.find('location').attrib['id']
                         if appl_location == dev_id:
+                            appl_dict = {}
+
                             if appliance_type in thermostatic_types:
                                 appl_dict['type'] = appliance_type
                                 locator = locator_string.format('battery')
@@ -356,6 +361,40 @@ class Smile:
                                     temperature = appliance.find(locator).text
                                     temperature = float(temperature)
                                     appl_dict['current_temp'] = temperature
+                                appl_list.append(appl_dict.copy())
+
+                            if appliance_type == 'plug':
+                                appl_dict['type'] = appliance_type
+                                appl_dict['name'] = appliance_name
+                                locator = locator_string.format('electricity_consumed')
+                                appl_dict['electricity_consumed'] = None
+                                if appliance.find(locator) is not None:
+                                    electricity_consumed = appliance.find(locator).text
+                                    electricity_consumed = '{:.1f}'.format(round(float(electricity_consumed), 1))
+                                    appl_dict['electricity_consumed'] = electricity_consumed
+                                locator = (".//logs/interval_log[type='electricity_consumed']/period/measurement")
+                                appl_dict['electricity_consumed_interval'] = None
+                                if appliance.find(locator) is not None:
+                                    electricity_consumed_interval = appliance.find(locator).text
+                                    electricity_consumed_interval = '{:.1f}'.format(round(float(electricity_consumed_interval), 1))
+                                    appl_dict['electricity_consumed_interval'] = electricity_consumed_interval
+                                locator = locator_string.format('electricity_produced')
+                                appl_dict['electricity_produced'] = None
+                                if appliance.find(locator) is not None:
+                                    electricity_produced = appliance.find(locator).text
+                                    electricity_produced = '{:.1f}'.format(round(float(electricity_produced), 1))
+                                    appl_dict['electricity_produced'] = electricity_produced
+                                locator = (".//logs/interval_log[type='electricity_produced']/period/measurement")
+                                appl_dict['electricity_produced_interval'] = None
+                                if appliance.find(locator) is not None:
+                                    electricity_produced_interval = appliance.find(locator).text
+                                    electricity_produced_interval = '{:.1f}'.format(round(float(electricity_produced_interval), 1))
+                                    appl_dict['electricity_produced_interval'] = electricity_produced_interval
+                                locator = locator_string.format('relay')
+                                appl_dict['relay'] = None
+                                if appliance.find(locator) is not None:
+                                    state = appliance.find(locator).text
+                                    appl_dict['relay'] = state
                                 appl_list.append(appl_dict.copy())
 
         rev_list = sorted(appl_list, key=lambda k: k['type'], reverse=True)

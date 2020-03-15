@@ -384,7 +384,6 @@ class Smile:
 
         return True
 
-    # Not specific for P1, but not used for Anna/Adam
     def get_direct_objects_from_ctrl_id(self, ctrl_id):
         """Obtains the appliance-data from appliances without a location
            - from DIRECT_OBJECTS."""
@@ -643,7 +642,6 @@ class Smile:
         """Sets the given location-preset on the relevant thermostat -
            from LOCATIONS."""
         # _LOGGER.debug("Changing preset for %s - %s to: %s", loc_id, loc_type, preset)
-        await self.update_locations()
         current_location = self._locations.find("location[@id='" + loc_id + "']")
         location_name = current_location.find('name').text
         location_type = current_location.find('type').text
@@ -676,7 +674,7 @@ class Smile:
 
     async def set_temperature(self, dev_id, temperature):
         """Sends a temperature-set request to the relevant thermostat,
-           connected to a location - from DOMAIN_OBJECTS."""
+           connected to a location."""
         uri = self.__get_temperature_uri(dev_id)
         temperature = str(temperature)
         data = "<thermostat_functionality><setpoint>" \

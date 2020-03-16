@@ -143,18 +143,26 @@ async def list_devices(server,smile):
     device_list={}
     devices = await smile.get_devices()
     ctrl_id = None
+    plug_id = None
+    #for dev in devices:
+    #    if dev['name'] == 'Controlled Device':
+    #        ctrl_id = dev['id']
+    #    if dev['name'] == 'Home' and smile._smile_type == 'power':
+    #        ctrl_id = dev['id']
+    print(devices)
     for dev in devices:
+        print(dev)
         if dev['name'] == 'Controlled Device':
             ctrl_id = dev['id']
-        if dev['name'] == 'Home' and smile._smile_type == 'power':
+        elif dev['name'] == 'Home' and smile._smile_type == 'power':
             ctrl_id = dev['id']
-
-    assert ctrl_id is not None
+        elif dev['type'] == 'plug':
+            plug_id = dev['id']
 
     for dev in devices:
         if dev['name'] != 'Controlled Device':
-            device_list[dev['id']]={'name': dev['name'], 'ctrl': ctrl_id}
-    #print(device_list)
+            device_list[dev['id']]={'name': dev['name'], 'ctrl': ctrl_id, 'plug': plug_id}
+    print(device_list)
     return device_list
 
 
@@ -195,10 +203,11 @@ async def test_connect_anna_without_boiler():
     server,smile,client = await connect()
     device_list = await list_devices(server,smile)
     assert smile._smile_type == 'thermostat'
-    #print(device_list)
+    print(device_list)
     for dev_id,details in device_list.items():
         ctrl = details['ctrl']
-        data = smile.get_device_data(dev_id, ctrl)
+        plug = details['plug']
+        data = smile.get_device_data(dev_id, ctrl, plug)
         test_id = '{}_{}'.format(ctrl,dev_id)
         #assert test_id in testdata
         if test_id not in testdata:
@@ -211,7 +220,8 @@ async def test_connect_anna_without_boiler():
             assert data[testkey] == testdata[test_id][testkey]
 
     ctrl = details['ctrl']
-    data = smile.get_device_data(None, ctrl)
+    plug = details['plug']
+    data = smile.get_device_data(None, ctrl, plug)
     print(data)
     assert ctrl in testdata
     for testkey in testdata[ctrl]:
@@ -263,7 +273,7 @@ async def test_connect_adam():
     #testdata dictionary with key ctrl_id_dev_id => keys:values
     testdata={}
     for dev_id,details in device_list.items():
-        data = smile.get_device_data(dev_id, details['ctrl'])
+        data = smile.get_device_data(dev_id, details['ctrl'], details['plug'])
         test_id = '{}_{}'.format(details['ctrl'],dev_id)
         #if test_id not in testdata:
         #    continue
@@ -301,7 +311,7 @@ async def test_connect_adam_plus_anna():
     assert smile._smile_type == 'thermostat'
     print(device_list)
     for dev_id,details in device_list.items():
-        data = smile.get_device_data(dev_id, details['ctrl'])
+        data = smile.get_device_data(dev_id, details['ctrl'], details['plug'])
         test_id = '{}_{}'.format(details['ctrl'],dev_id)
         # If test_id in testdata, check it, otherwise next
         if test_id not in testdata:
@@ -314,7 +324,8 @@ async def test_connect_adam_plus_anna():
             assert data[testkey] == testdata[test_id][testkey]
 
     ctrl = details['ctrl']
-    data = smile.get_device_data(None, ctrl)
+    plug = details['plug']
+    data = smile.get_device_data(None, ctrl, plug)
     print(data)
     assert ctrl in testdata
     for testkey in testdata[ctrl]:
@@ -367,10 +378,13 @@ async def test_connect_p1v3():
     device_list = await list_devices(server,smile)
 
     assert smile._smile_type == 'power'
+    ctrl = None
+    data = {}
     for dev_id,details in device_list.items():
-        data = smile.get_device_data(dev_id, details['ctrl'])
-    ctrl = details['ctrl']
-    data = smile.get_device_data(None, ctrl)
+        ctrl = details['ctrl']
+        print(ctrl)
+    data = smile.get_device_data(None, ctrl, None)
+    print(ctrl)
     print(data)
     for testkey in testdata[ctrl]:
         print('Controller asserting {}'.format(testkey))

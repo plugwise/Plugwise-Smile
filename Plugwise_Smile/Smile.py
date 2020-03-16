@@ -220,6 +220,7 @@ class Smile:
                 if thermostat != []:
                     thermostats.append(thermostat)
 
+        print(loc_list)
         for loc_dict in loc_list:
             thermostat = []
             thermostat.append(loc_dict['name'])
@@ -328,7 +329,7 @@ class Smile:
         return location_dictionary
 
 
-    def get_location_list(self,root):
+    def get_location_list(self):
         """Obtains the existing locations and connected applicance_id's - from LOCATIONS."""
         location_list = []
         for location in self._locations:
@@ -340,15 +341,43 @@ class Smile:
             #    location_dictionary[location_id] = location_name
             appliance_id = None
             location_type =  None
-            for elem in location.iter('appliance'):
-                if elem.attrib is not None:
-                    appliance_id = elem.attrib['id']
-            for elem in location.iter('relay_functionality'):
-                if elem.attrib is not None:
-                    location_type = 'plug'
-            for elem in location.iter('thermostat_functionality'):
-                if elem.attrib is not None:
-                    location_type = 'thermostat'
+            #for elem in location.iter('appliance'):
+            #    if elem.attrib is not None:
+            #        appliance_id = elem.attrib['id']
+            #        continue
+            # TODO This means thermostat 'wins' of a plug if both
+            # in the same location. Shouldn't we FAIL on that?
+            #for elem in location.iter('relay_functionality'):
+            #    if elem.attrib is not None:
+            #        location_type = 'plug'
+            #for elem in location.iter('thermostat_functionality'):
+            #    if elem.attrib is not None:
+            #        location_type = 'thermostat'
+            #print(location_type)
+            # TODO Suggestion (besides the continues above), instead of
+            # looping just find and set?
+
+            # Find appliances (if any)
+            appliance = location.find('.//appliances/appliance')
+            if appliance:
+                appliance_id = appliance.attrib['id']
+
+            # Determine location_type from functionality
+            print(location_name)
+
+            if location.find('.//actuator_functionalities/relay_functionality'):
+                location_type = 'plug'
+            elif location.find('.//actuator_functionalities/thermostat_functionality'):
+                location_type = 'thermostat'
+            else:
+                power_locator='.//logs/point_log[type="electricity_consumed"]'
+                if not appliance and location.find(power_locator):
+                    p1_ec_log = location.find(power_locator)
+                    meter_locator='.//electricity_point_meter'
+                    if p1_ec_log.find(meter_locator).get('id'):
+                        location_type = 'power'
+
+            print("Location type %s", location_type)
 
             if location_name != "Home":
                 if location_type == 'plug':
@@ -359,7 +388,12 @@ class Smile:
                     location_dict['name'] = location_name
                     location_dict['id'] = location_id
                     location_dict['type'] = location_type
-                    
+            # P1
+            elif location_type == 'power':
+                    location_dict['name'] = location_name
+                    location_dict['id'] = location_id
+                    location_dict['type'] = location_type
+
             if location_dict != {}:
                 location_list.append(location_dict)
 
@@ -779,7 +813,7 @@ class Smile:
 
         return temperature_uri
 
-    async def set_relay_state(self, appl_id, type, state)
+    async def set_relay_state(self, appl_id, type, state):
         """Switch the Plug to off/on."""
         locator = ("appliance[type='" + type + "']/actuator_functionalities/relay_functionality")
         relay_functionality_id = self._domain_objects.find(locator).attrib['id']
@@ -791,9 +825,7 @@ class Smile:
             + relay_functionality_id
         )
         state = str(state)
-        data = "<relay_functionality><state>" 
-                + state 
-                + "</state></relay_functionality>"
+        data = "<relay_functionality><state>{}</state></relay_functionality>".format(state)
 
         if uri is not None:
             await self.request(uri, method='put', data=data)

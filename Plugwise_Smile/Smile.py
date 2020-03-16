@@ -765,7 +765,7 @@ class Smile:
 
         return temperature_uri
 
-    async def set_relay_state(self, appl_id, type, state):
+    async def set_relay_state(self, appl_id, type, state)
         """Switch the Plug to off/on."""
         locator = ("appliance[type='" + type + "']/actuator_functionalities/relay_functionality")
         relay_functionality_id = self._domain_objects.find(locator).attrib['id']

@@ -777,9 +777,9 @@ class Smile:
             + relay_functionality_id
         )
         state = str(state)
-        data = "<relay_functionality><state>" 
-                + state 
-                + "</state></relay_functionality>"
+        data = "<relay_functionality><state>" \
+               + state \
+               + "</state></relay_functionality>"
 
         if uri is not None:
             await self.request(uri, method='put', data=data)

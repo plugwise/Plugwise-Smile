@@ -314,20 +314,6 @@ class Smile:
 
         return appliance_dictionary
 
-    def get_location_dictionary(self):
-        """Obtains the existing locations and connected
-           applicance_id's - from LOCATIONS."""
-        location_dictionary = {}
-        for location in self._locations:
-            location_name = location.find('name').text
-            location_id = location.attrib['id']
-            # For P1(v3) all about Home, Anna/Adam should skip home
-            if location_name != "Home" or self._smile_type != "thermostat":
-                location_dictionary[location_id] = location_name
-
-        return location_dictionary
-
-
     def get_location_list(self,root):
         """Obtains the existing locations and connected applicance_id's - from LOCATIONS."""
         location_list = []

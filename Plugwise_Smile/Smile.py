@@ -314,7 +314,7 @@ class Smile:
 
         return appliance_dictionary
 
-    def get_location_list(self):
+    def get_location_list(self,root):
         """Obtains the existing locations and connected applicance_id's - from LOCATIONS."""
         location_list = []
         for location in self._locations:

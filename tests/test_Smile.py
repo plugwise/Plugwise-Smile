@@ -243,7 +243,7 @@ async def test_connect_anna_without_boiler():
             continue
         if testdata[test_id]['type'] != 'thermostat':
             continue
-        print('Location: {}'.format(description))
+        print('Location: {}'.format(location_dict['name']))
         print(' - Adjusting temperature')
         temp_change = await smile.set_temperature(location_id, 20.0)
         assert temp_change == True
@@ -343,7 +343,7 @@ async def test_connect_adam_plus_anna():
             continue
         if testdata[test_id]['type'] != 'thermostat':
             continue
-        print('Location: {}'.format(description))
+        print('Location: {}'.format(location_dict['name']))
         print(' - Adjusting temperature')
         temp_change = await smile.set_temperature(location_id, 20.0)
         assert temp_change == True

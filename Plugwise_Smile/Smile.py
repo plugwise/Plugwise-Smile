@@ -371,7 +371,7 @@ class Smile:
                 location_type = 'thermostat'
             else:
                 power_locator='.//logs/point_log[type="electricity_consumed"]'
-                if not appliance and location.find(power_locator):
+                if (appliance is None) and location.find(power_locator):
                     p1_ec_log = location.find(power_locator)
                     meter_locator='.//electricity_point_meter'
                     if p1_ec_log.find(meter_locator).get('id'):

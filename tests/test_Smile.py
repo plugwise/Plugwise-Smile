@@ -228,9 +228,9 @@ async def test_connect_anna_without_boiler():
         print('Controller asserting {}'.format(testkey))
         assert data[testkey] == testdata[ctrl][testkey]
 
-    locations=smile.get_location_dictionary()
-    for location_id,description in locations.items():
-        test_id = '{}_{}'.format(details['ctrl'],location_id)
+    locations=smile.get_location_list()
+    for location_dict in locations:
+        test_id = '{}_{}'.format(details['ctrl'],location_dict['id'])
         # TODO: And plug?
         # See also below, but we should make these test routines more
         # generic and just call 'change_parameters) and call with '20.0, asleep,...'
@@ -332,10 +332,10 @@ async def test_connect_adam_plus_anna():
         print('Controller asserting {}'.format(testkey))
         assert data[testkey] == testdata[ctrl][testkey]
 
-    locations=smile.get_location_dictionary()
+    locations=smile.get_location_list()
     print(locations)
-    for location_id,description in locations.items():
-        test_id = '{}_{}'.format(details['ctrl'],location_id)
+    for location_dict in locations:
+        test_id = '{}_{}'.format(details['ctrl'],location_dict['id'])
         # TODO: And plug?
         if test_id not in testdata:
             continue

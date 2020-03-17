@@ -209,13 +209,14 @@ class Smile:
         appl_dict = self.get_appliance_dictionary()
         loc_list = self.get_location_list()
 
-        keys = ['name', 'id']
+        keys = ['name', 'id', 'type']
         thermostats = []
         for appl_id, type in appl_dict.items():
             thermostat = []
             if ('heater_central' in type):
                 thermostat.append('Controlled Device')
                 thermostat.append(appl_id)
+                thermostat.append(type)
                 if thermostat != []:
                     thermostats.append(thermostat)
 
@@ -227,10 +228,11 @@ class Smile:
             thermostat.append(loc_dict['type'])
             if thermostat != []:
                 thermostats.append(thermostat)
+
         data = [{k: v for k, v in zip(keys, n)} for n in thermostats]
         return data
 
-    def get_device_data(self, dev_id, ctrl_id):
+    def get_device_data(self, dev_id, ctrl_id, plug_id):
         """Provides the device-data, based on location_id, from APPLIANCES."""
 
         # Exception for Smile P1(v3) as it has only a ctrl device
@@ -239,9 +241,14 @@ class Smile:
             device_data = self.get_direct_objects_from_ctrl_id(ctrl_id)
         # Anna/Adam
         else:
+            controller_data = {}
+            plug_data = {}
+            device_data = {}
             if ctrl_id:
                 controller_data = self.get_appliance_from_appl_id(ctrl_id)
-            device_data = {}
+            if plug_id:
+                plug_data = self.get_appliance_from_appl_id(plug_id) #new
+                device_data = plug_data
             if dev_id:
                 device_data = self.get_appliance_from_loc_id(dev_id)
                 preset = self.get_preset_from_id(dev_id)
@@ -273,24 +280,25 @@ class Smile:
                 # Only fetch on controller, not device
                 outdoor_temp = self.get_outdoor_temperature()
                 illuminance = self.get_illuminance()
-
-                device_data['type'] = 'heater_central'
-                if 'boiler_temp' in controller_data:
-                    device_data.update({'boiler_temp':
-                                       controller_data['boiler_temp']})
-                if 'water_pressure' in controller_data:
-                    device_data.update({'water_pressure':
-                                       controller_data['water_pressure']})
-                device_data.update({'outdoor_temp': outdoor_temp})
-                device_data.update({'illuminance': illuminance})
-                device_data.update({'boiler_state':
-                                   controller_data['boiler_state']})
-                device_data.update({'central_heating_state':
-                                   controller_data['central_heating_state']})
-                device_data.update({'cooling_state':
-                                   controller_data['cooling_state']})
-                device_data.update({'dhw_state':
-                                   controller_data['dhw_state']})
+                if 'type' in controller_data:
+                    if controller_data['type'] == 'heater_central':
+                        device_data['type'] = controller_data['type']
+                        if 'boiler_temp' in controller_data:
+                            device_data.update({'boiler_temp':
+                                            controller_data['boiler_temp']})
+                        if 'water_pressure' in controller_data:
+                            device_data.update({'water_pressure':
+                                            controller_data['water_pressure']})
+                        device_data.update({'outdoor_temp': outdoor_temp})
+                        device_data.update({'illuminance': illuminance})
+                        device_data.update({'boiler_state':
+                                        controller_data['boiler_state']})
+                        device_data.update({'central_heating_state':
+                                        controller_data['central_heating_state']})
+                        device_data.update({'cooling_state':
+                                        controller_data['cooling_state']})
+                        device_data.update({'dhw_state':
+                                        controller_data['dhw_state']})
 
         return device_data
 
@@ -422,40 +430,6 @@ class Smile:
                                     appl_dict['current_temp'] = temperature
                                 appl_list.append(appl_dict.copy())
 
-                            if appliance_type == 'plug':
-                                appl_dict['type'] = appliance_type
-                                appl_dict['name'] = appliance_name
-                                locator = locator_string.format('electricity_consumed')
-                                appl_dict['electricity_consumed'] = None
-                                if appliance.find(locator) is not None:
-                                    electricity_consumed = appliance.find(locator).text
-                                    electricity_consumed = '{:.1f}'.format(round(float(electricity_consumed), 1))
-                                    appl_dict['electricity_consumed'] = electricity_consumed
-                                locator = (".//logs/interval_log[type='electricity_consumed']/period/measurement")
-                                appl_dict['electricity_consumed_interval'] = None
-                                if appliance.find(locator) is not None:
-                                    electricity_consumed_interval = appliance.find(locator).text
-                                    electricity_consumed_interval = '{:.1f}'.format(round(float(electricity_consumed_interval), 1))
-                                    appl_dict['electricity_consumed_interval'] = electricity_consumed_interval
-                                locator = locator_string.format('electricity_produced')
-                                appl_dict['electricity_produced'] = None
-                                if appliance.find(locator) is not None:
-                                    electricity_produced = appliance.find(locator).text
-                                    electricity_produced = '{:.1f}'.format(round(float(electricity_produced), 1))
-                                    appl_dict['electricity_produced'] = electricity_produced
-                                locator = (".//logs/interval_log[type='electricity_produced']/period/measurement")
-                                appl_dict['electricity_produced_interval'] = None
-                                if appliance.find(locator) is not None:
-                                    electricity_produced_interval = appliance.find(locator).text
-                                    electricity_produced_interval = '{:.1f}'.format(round(float(electricity_produced_interval), 1))
-                                    appl_dict['electricity_produced_interval'] = electricity_produced_interval
-                                locator = locator_string.format('relay')
-                                appl_dict['relay'] = None
-                                if appliance.find(locator) is not None:
-                                    state = appliance.find(locator).text
-                                    appl_dict['relay'] = state
-                                appl_list.append(appl_dict.copy())
-
         rev_list = sorted(appl_list, key=lambda k: k['type'], reverse=True)
         if rev_list != []:
             return rev_list[0]
@@ -524,35 +498,70 @@ class Smile:
                         measurement = appliance.find(loc).text
                         value = float(measurement)
                         boiler_temperature = '{:.1f}'.format(round(value, 1))
-                        appl_data['boiler_temp'] = boiler_temperature
+                        if boiler_temperature:
+                            appl_data['boiler_temp'] = boiler_temperature
                     water_pressure = None
                     loc = loc_string.format('central_heater_water_pressure')
                     if appliance.find(loc) is not None:
                         measurement = appliance.find(loc).text
                         value = float(measurement)
                         water_pressure = '{:.1f}'.format(round(value, 1))
-                        appl_data['water_pressure'] = water_pressure
-                    direct_objects = self._direct_objects
-                    appl_data['boiler_state'] = None
-                    loc = loc_string.format('boiler_state')
-                    if direct_objects.find(loc) is not None:
-                        boiler_state = (direct_objects.find(loc).text == "on")
-                        appl_data['boiler_state'] = boiler_state
-                    appl_data['central_heating_state'] = None
-                    loc = loc_string.format('central_heating_state')
-                    if direct_objects.find(loc) is not None:
-                        chs = (direct_objects.find(loc).text == "on")
-                        appl_data['central_heating_state'] = chs
-                    appl_data['cooling_state'] = None
-                    loc = loc_string.format('cooling_state')
-                    if direct_objects.find(loc) is not None:
-                        cooling_state = (direct_objects.find(loc).text == "on")
-                        appl_data['cooling_state'] = cooling_state
-                    appl_data['dhw_state'] = None
-                    loc = loc_string.format('domestic_hot_water_state')
-                    if direct_objects.find(loc) is not None:
-                        dhw_state = (direct_objects.find(loc).text == "on")
-                        appl_data['dhw_state'] = dhw_state
+                        if water_pressure:
+                            appl_data['water_pressure'] = water_pressure
+                    if appliance_type == 'heater_central':
+                        direct_objects = self._direct_objects
+                        appl_data['boiler_state'] = None
+                        loc = loc_string.format('boiler_state')
+                        if direct_objects.find(loc) is not None:
+                            boiler_state = (direct_objects.find(loc).text == "on")
+                            appl_data['boiler_state'] = boiler_state
+                        appl_data['central_heating_state'] = None
+                        loc = loc_string.format('central_heating_state')
+                        if direct_objects.find(loc) is not None:
+                            chs = (direct_objects.find(loc).text == "on")
+                            appl_data['central_heating_state'] = chs
+                        appl_data['cooling_state'] = None
+                        loc = loc_string.format('cooling_state')
+                        if direct_objects.find(loc) is not None:
+                            cooling_state = (direct_objects.find(loc).text == "on")
+                            appl_data['cooling_state'] = cooling_state
+                        appl_data['dhw_state'] = None
+                        loc = loc_string.format('domestic_hot_water_state')
+                        if direct_objects.find(loc) is not None:
+                            dhw_state = (direct_objects.find(loc).text == "on")
+                            appl_data['dhw_state'] = dhw_state
+                    else:
+                        appl_data['type'] = appliance_type
+                        appl_data['name'] = appliance_name
+                        locator = (".//logs/point_log[type='electricity_consumed']/period/measurement")
+                        appl_data['electricity_consumed'] = None
+                        if appliance.find(locator) is not None:
+                            electricity_consumed = appliance.find(locator).text
+                            electricity_consumed = '{:.1f}'.format(round(float(electricity_consumed), 1))
+                            appl_data['electricity_consumed'] = electricity_consumed
+                        locator = (".//logs/interval_log[type='electricity_consumed']/period/measurement")
+                        appl_data['electricity_consumed_interval'] = None
+                        if appliance.find(locator) is not None:
+                            electricity_consumed_interval = appliance.find(locator).text
+                            electricity_consumed_interval = '{:.1f}'.format(round(float(electricity_consumed_interval), 1))
+                            appl_data['electricity_consumed_interval'] = electricity_consumed_interval
+                        locator = (".//logs/point_log[type='electricity_produced']/period/measurement")
+                        appl_data['electricity_produced'] = None
+                        if appliance.find(locator) is not None:
+                            electricity_produced = appliance.find(locator).text
+                            electricity_produced = '{:.1f}'.format(round(float(electricity_produced), 1))
+                            appl_data['electricity_produced'] = electricity_produced
+                        locator = (".//logs/interval_log[type='electricity_produced']/period/measurement")
+                        appl_data['electricity_produced_interval'] = None
+                        if appliance.find(locator) is not None:
+                            electricity_produced_interval = appliance.find(locator).text
+                            electricity_produced_interval = '{:.1f}'.format(round(float(electricity_produced_interval), 1))
+                            appl_data['electricity_produced_interval'] = electricity_produced_interval
+                        locator = (".//logs/point_log[type='relay']/period/measurement")
+                        appl_data['relay'] = None
+                        if appliance.find(locator) is not None:
+                            state = appliance.find(locator).text
+                            appl_data['relay'] = state
 
         if appl_data != {}:
             return appl_data

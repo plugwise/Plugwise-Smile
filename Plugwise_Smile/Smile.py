@@ -207,7 +207,7 @@ class Smile:
         # await self.update_locations()
 
         appl_dict = self.get_appliance_dictionary()
-        loc_dict = self.get_location_dictionary()
+        loc_list = self.get_location_list()
 
         keys = ['name', 'id']
         thermostats = []

@@ -220,7 +220,6 @@ class Smile:
                 if thermostat != []:
                     thermostats.append(thermostat)
 
-        print(loc_list)
         for loc_dict in loc_list:
             thermostat = []
             thermostat.append(loc_dict['name'])
@@ -349,8 +348,6 @@ class Smile:
                 appliance_id = appliance.attrib['id']
 
             # Determine location_type from functionality
-            print(location_name)
-
             if location.find('.//actuator_functionalities/relay_functionality'):
                 location_type = 'plug'
             elif location.find('.//actuator_functionalities/thermostat_functionality'):
@@ -362,8 +359,6 @@ class Smile:
                     meter_locator='.//electricity_point_meter'
                     if p1_ec_log.find(meter_locator).get('id'):
                         location_type = 'power'
-
-            print("Location type %s", location_type)
 
             if location_name != "Home":
                 if location_type == 'plug':

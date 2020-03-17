@@ -220,10 +220,11 @@ class Smile:
                     thermostats.append(thermostat)
 
         print(loc_list)
-        for loc_dict in loc_list"
+        for loc_dict in loc_list:
             thermostat = []
-            thermostat.append(location)
-            thermostat.append(loc_id)
+            thermostat.append(loc_dict['name'])
+            thermostat.append(loc_dict['id'])
+            thermostat.append(loc_dict['type'])
             if thermostat != []:
                 thermostats.append(thermostat)
         data = [{k: v for k, v in zip(keys, n)} for n in thermostats]

@@ -359,7 +359,7 @@ class Smile:
 
             # Find appliances (if any)
             appliance = location.find('.//appliances/appliance')
-            if appliance:
+            if appliance is not None:
                 appliance_id = appliance.attrib['id']
 
             # Determine location_type from functionality

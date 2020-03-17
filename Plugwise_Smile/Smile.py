@@ -219,10 +219,12 @@ class Smile:
                 if thermostat != []:
                     thermostats.append(thermostat)
 
-        for loc_id, location in loc_dict.items():
+        print(loc_list)
+        for loc_dict in loc_list:
             thermostat = []
-            thermostat.append(location)
-            thermostat.append(loc_id)
+            thermostat.append(loc_dict['name'])
+            thermostat.append(loc_dict['id'])
+            thermostat.append(loc_dict['type'])
             if thermostat != []:
                 thermostats.append(thermostat)
         data = [{k: v for k, v in zip(keys, n)} for n in thermostats]
@@ -305,18 +307,75 @@ class Smile:
 
         return appliance_dictionary
 
-    def get_location_dictionary(self):
-        """Obtains the existing locations and connected
-           applicance_id's - from LOCATIONS."""
-        location_dictionary = {}
+    def get_location_list(self):
+        """Obtains the existing locations and connected applicance_id's - from LOCATIONS."""
+        location_list = []
         for location in self._locations:
+            location_dict = {}
             location_name = location.find('name').text
             location_id = location.attrib['id']
             # For P1(v3) all about Home, Anna/Adam should skip home
-            if location_name != "Home" or self._smile_type != "thermostat":
-                location_dictionary[location_id] = location_name
+            #if location_name != "Home" or self._smile_type != "thermostat":
+            #    location_dictionary[location_id] = location_name
+            appliance_id = None
+            location_type =  None
+            #for elem in location.iter('appliance'):
+            #    if elem.attrib is not None:
+            #        appliance_id = elem.attrib['id']
+            #        continue
+            # TODO This means thermostat 'wins' of a plug if both
+            # in the same location. Shouldn't we FAIL on that?
+            #for elem in location.iter('relay_functionality'):
+            #    if elem.attrib is not None:
+            #        location_type = 'plug'
+            #for elem in location.iter('thermostat_functionality'):
+            #    if elem.attrib is not None:
+            #        location_type = 'thermostat'
+            #print(location_type)
+            # TODO Suggestion (besides the continues above), instead of
+            # looping just find and set?
 
-        return location_dictionary
+            # Find appliances (if any)
+            appliance = location.find('.//appliances/appliance')
+            if appliance is not None:
+                appliance_id = appliance.attrib['id']
+
+            # Determine location_type from functionality
+            print(location_name)
+
+            if location.find('.//actuator_functionalities/relay_functionality'):
+                location_type = 'plug'
+            elif location.find('.//actuator_functionalities/thermostat_functionality'):
+                location_type = 'thermostat'
+            else:
+                power_locator='.//logs/point_log[type="electricity_consumed"]'
+                if (appliance is None) and location.find(power_locator):
+                    p1_ec_log = location.find(power_locator)
+                    meter_locator='.//electricity_point_meter'
+                    if p1_ec_log.find(meter_locator).get('id'):
+                        location_type = 'power'
+
+            print("Location type %s", location_type)
+
+            if location_name != "Home":
+                if location_type == 'plug':
+                    location_dict['name'] = location_name
+                    location_dict['id'] = appliance_id
+                    location_dict['type'] = location_type
+                if location_type == 'thermostat':
+                    location_dict['name'] = location_name
+                    location_dict['id'] = location_id
+                    location_dict['type'] = location_type
+            # P1
+            elif location_type == 'power':
+                    location_dict['name'] = location_name
+                    location_dict['id'] = location_id
+                    location_dict['type'] = location_type
+
+            if location_dict != {}:
+                location_list.append(location_dict)
+
+        return location_list
 
     def get_appliance_from_loc_id(self, dev_id):
         """Obtains the appliance-data connected to a location -
@@ -730,6 +789,32 @@ class Smile:
         temperature_uri = (LOCATIONS + ";id=" + dev_id + "/thermostat;id=" + thermostat_functionality_id)
 
         return temperature_uri
+
+    async def set_relay_state(self, appl_id, type, state):
+        """Switch the Plug to off/on."""
+        locator = ("appliance[type='" + type + "']/actuator_functionalities/relay_functionality")
+        relay_functionality_id = self._domain_objects.find(locator).attrib['id']
+        uri = (
+            APPLIANCES
+            + ";id="
+            + appl_id
+            + "/relay;id="
+            + relay_functionality_id
+        )
+        state = str(state)
+        data = "<relay_functionality><state>{}</state></relay_functionality>".format(state)
+
+        if uri is not None:
+            await self.request(uri, method='put', data=data)
+
+        else:
+            CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
+            return False
+
+        await asyncio.sleep(1)
+        await self.update_appliances()
+
+        return True
 
     @staticmethod
     def escape_illegal_xml_characters(xmldata):

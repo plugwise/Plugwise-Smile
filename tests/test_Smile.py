@@ -218,9 +218,9 @@ async def test_connect_anna_without_boiler():
         print('Controller asserting {}'.format(testkey))
         assert data[testkey] == testdata[ctrl][testkey]
 
-    locations=smile.get_location_dictionary()
-    for location_id,description in locations.items():
-        test_id = '{}_{}'.format(details['ctrl'],location_id)
+    locations=smile.get_location_list()
+    for location_dict in locations:
+        test_id = '{}_{}'.format(details['ctrl'],location_dict['id'])
         # TODO: And plug?
         # See also below, but we should make these test routines more
         # generic and just call 'change_parameters) and call with '20.0, asleep,...'
@@ -233,17 +233,17 @@ async def test_connect_anna_without_boiler():
             continue
         if testdata[test_id]['type'] != 'thermostat':
             continue
-        print('Location: {}'.format(description))
+        print('Location: {}'.format(location_dict['name']))
         print(' - Adjusting temperature')
-        temp_change = await smile.set_temperature(location_id, 20.0)
+        temp_change = await smile.set_temperature(location_dict['id'], 20.0)
         assert temp_change == True
         print(' - Adjusting preset')
-        sched_change = await smile.set_preset(location_id, 'asleep')
+        sched_change = await smile.set_preset(location_dict['id'], 'asleep')
         assert sched_change == True
         print(' - Adjusting schedule')
-        schema_change = await smile.set_schedule_state(location_id, 'Test', 'auto')
+        schema_change = await smile.set_schedule_state(location_dict['id'], 'Test', 'auto')
         assert schema_change == True
-        schema_change = await smile.set_schedule_state(location_id, 'NoSuchSchema', 'auto')
+        schema_change = await smile.set_schedule_state(location_dict['id'], 'NoSuchSchema', 'auto')
         assert schema_change == False
 
     await smile.close_connection()
@@ -321,10 +321,10 @@ async def test_connect_adam_plus_anna():
         print('Controller asserting {}'.format(testkey))
         assert data[testkey] == testdata[ctrl][testkey]
 
-    locations=smile.get_location_dictionary()
+    locations=smile.get_location_list()
     print(locations)
-    for location_id,description in locations.items():
-        test_id = '{}_{}'.format(details['ctrl'],location_id)
+    for location_dict in locations:
+        test_id = '{}_{}'.format(details['ctrl'],location_dict['id'])
         # TODO: And plug?
         if test_id not in testdata:
             continue
@@ -332,17 +332,17 @@ async def test_connect_adam_plus_anna():
             continue
         if testdata[test_id]['type'] != 'thermostat':
             continue
-        print('Location: {}'.format(description))
+        print('Location: {}'.format(location_dict['name']))
         print(' - Adjusting temperature')
-        temp_change = await smile.set_temperature(location_id, 20.0)
+        temp_change = await smile.set_temperature(location_dict['id'], 20.0)
         assert temp_change == True
         print(' - Adjusting preset')
-        sched_change = await smile.set_preset(location_id, 'asleep')
+        sched_change = await smile.set_preset(location_dict['id'], 'asleep')
         assert sched_change == True
         print(' - Adjusting schedule')
-        schema_change = await smile.set_schedule_state(location_id, 'Weekschema', 'auto')
+        schema_change = await smile.set_schedule_state(location_dict['id'], 'Weekschema', 'auto')
         assert schema_change == True
-        schema_change = await smile.set_schedule_state(location_id, 'NoSuchSchema', 'auto')
+        schema_change = await smile.set_schedule_state(location_dict['id'], 'NoSuchSchema', 'auto')
         assert schema_change == False
 
     await smile.close_connection()

@@ -149,7 +149,7 @@ async def list_devices(server,smile):
     #        ctrl_id = dev['id']
     #    if dev['name'] == 'Home' and smile._smile_type == 'power':
     #        ctrl_id = dev['id']
-    print(devices)
+    print("Devices %s",devices)
     for dev in devices:
         print(dev)
         if dev['name'] == 'Controlled Device':

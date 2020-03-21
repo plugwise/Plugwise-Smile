@@ -202,10 +202,6 @@ class Smile:
         return True
 
     async def get_devices(self):
-        # self.sync_update_device()
-        # await self.update_appliances()
-        # await self.update_locations()
-
         appl_dict = self.get_appliance_dictionary()
         loc_list = self.get_location_list()
 
@@ -321,26 +317,9 @@ class Smile:
             location_dict = {}
             location_name = location.find('name').text
             location_id = location.attrib['id']
-            # For P1(v3) all about Home, Anna/Adam should skip home
-            #if location_name != "Home" or self._smile_type != "thermostat":
-            #    location_dictionary[location_id] = location_name
+
             appliance_id = None
             location_type =  None
-            #for elem in location.iter('appliance'):
-            #    if elem.attrib is not None:
-            #        appliance_id = elem.attrib['id']
-            #        continue
-            # TODO This means thermostat 'wins' of a plug if both
-            # in the same location. Shouldn't we FAIL on that?
-            #for elem in location.iter('relay_functionality'):
-            #    if elem.attrib is not None:
-            #        location_type = 'plug'
-            #for elem in location.iter('thermostat_functionality'):
-            #    if elem.attrib is not None:
-            #        location_type = 'thermostat'
-            #print(location_type)
-            # TODO Suggestion (besides the continues above), instead of
-            # looping just find and set?
 
             # Find appliances (if any)
             appliance = location.find('.//appliances/appliance')
@@ -348,17 +327,24 @@ class Smile:
                 appliance_id = appliance.attrib['id']
 
             # Determine location_type from functionality
+            # TODO This means thermostat 'wins' of a plug if both
+            # in the same location. Shouldn't we FAIL on that?
             if location.find('.//actuator_functionalities/relay_functionality'):
                 location_type = 'plug'
             elif location.find('.//actuator_functionalities/thermostat_functionality'):
                 location_type = 'thermostat'
             else:
-                power_locator='.//logs/point_log[type="electricity_consumed"]'
-                if (appliance is None) and location.find(power_locator):
-                    p1_ec_log = location.find(power_locator)
-                    meter_locator='.//electricity_point_meter'
-                    if p1_ec_log.find(meter_locator).get('id'):
-                        location_type = 'power'
+                for measure in POWER_MEASUREMENTS:
+                    power_locator='.//logs/point_log[type="{}"]'.format(measure)
+                    # Find powermeasures within location
+                    if (appliance is None) and location.find(power_locator):
+                        p1_ec_log = location.find(power_locator)
+                        meter_locator='.//electricity_point_meter'
+                        # Find meter in locattion
+                        if p1_ec_log.find(meter_locator) is not None:
+                            # Safeguard even then finding none (20200321/Discord)
+                            if p1_ec_log.find(meter_locator).get('id'):
+                                location_type = 'power'
 
             if location_name != "Home":
                 if location_type == 'plug':

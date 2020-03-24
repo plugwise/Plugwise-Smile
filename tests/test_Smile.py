@@ -1,9 +1,9 @@
 """Plugwise Home Assistant module."""
 
-import time
 import pytest
 import pytest_asyncio
 import pytest_aiohttp
+from pprint import PrettyPrinter
 
 import asyncio
 import aiohttp
@@ -13,6 +13,8 @@ import os
 from lxml import etree
 
 from Plugwise_Smile.Smile import Smile
+
+pp = PrettyPrinter(indent=8)
 
 # Prepare aiohttp app routes
 # taking smile_setup (i.e. directory name under tests/{smile_app}/
@@ -30,6 +32,7 @@ async def setup_app():
 
     app.router.add_route('PUT', '/core/locations{tail:.*}', smile_set_temp_or_preset)
     app.router.add_route('PUT', '/core/rules{tail:.*}', smile_set_schedule)
+    app.router.add_route('PUT', '/core/appliances{tail:.*}', smile_set_relay)
     return app
 
 # Wrapper for appliances uri
@@ -73,6 +76,10 @@ async def smile_set_temp_or_preset(request):
     raise aiohttp.web.HTTPAccepted(text=text)
 
 async def smile_set_schedule(request):
+    text="<xml />"
+    raise aiohttp.web.HTTPAccepted(text=text)
+
+async def smile_set_relay(request):
     text="<xml />"
     raise aiohttp.web.HTTPAccepted(text=text)
 
@@ -125,7 +132,7 @@ async def connect():
     assert 'xml' in text
     assert '<vendor_name>Plugwise</vendor_name>' in text
 
-    smile = Smile( host=server.host, password='abcdefgh', port=server.port, websession=websession)
+    smile = Smile( host=server.host, password='abcdefgh', port=server.port, websession=websession, sleeptime=0)
     assert smile._timeout == 20
     assert smile._domain_objects is None
     assert smile._smile_type is None
@@ -139,40 +146,124 @@ async def connect():
 
 # GEneric list_devices
 @pytest.mark.asyncio
-async def list_devices(server,smile):
+async def list_devices(server, smile):
     device_list={}
-    devices = await smile.get_devices()
+    devices = await smile.get_all_devices()
+    return devices
     ctrl_id = None
     plug_id = None
-    #for dev in devices:
-    #    if dev['name'] == 'Controlled Device':
-    #        ctrl_id = dev['id']
-    #    if dev['name'] == 'Home' and smile._smile_type == 'power':
-    #        ctrl_id = dev['id']
-    print("Devices %s",devices)
-    for dev in devices:
-        print(dev)
-        if dev['name'] == 'Controlled Device':
-            ctrl_id = dev['id']
-        elif dev['name'] == 'Home' and smile._smile_type == 'power':
-            ctrl_id = dev['id']
-        elif dev['type'] == 'plug':
-            plug_id = dev['id']
+    ##for dev in devices:
+    ##    if dev['name'] == 'Controlled Device':
+    ##        ctrl_id = dev['id']
+    ##    if dev['name'] == 'Home' and smile._smile_type == 'power':
+    ##        ctrl_id = dev['id']
+    for device, details in devices.items():
+        # Detect home
+        if 'home' in details['type']:
+            ctrl_id = device
+        elif 'plug' in details['type']:
+            plug_id = device
 
-    for dev in devices:
-        if dev['name'] != 'Controlled Device':
-            device_list[dev['id']]={'name': dev['name'], 'ctrl': ctrl_id, 'plug': plug_id}
-    print(device_list)
+        device_list[device]={'name': details['name'], 'type': details['type'], 'ctrl': ctrl_id, 'plug': plug_id, 'location': details['location']}
+
     return device_list
 
 
 # Generic disconnect
 @pytest.mark.asyncio
-async def disconnect(server,client):
+async def disconnect(server, client):
     if not server:
         return False
     await client.session.close()
     await server.close()
+
+def show_setup(location_list, device_list):
+    print("This smile looks like:")
+    for loc_id, loc_info in location_list.items():
+        pp = PrettyPrinter(indent=4)
+        print("  --> Location: {} ({})".format(loc_info['name'],loc_id))
+        for dev_id, dev_info in device_list.items():
+            if dev_info['location'] == loc_id:
+                print("      + Device: {} ({})".format(dev_info['name'],dev_id))
+
+@pytest.mark.asyncio
+async def test_device(smile = Smile, testdata = {}):
+    global smile_setup
+    if testdata == {}:
+        return False
+
+    print("Asserting testdata:")
+    device_list = smile.get_all_devices()
+    location_list, home = smile.match_locations()
+
+    show_setup(location_list,device_list)
+    if True:
+        print("Device list: %s",device_list)
+        for dev_id,details in device_list.items():
+            data = smile.get_device_data(dev_id)
+            print("Device {} / {} data: {}".format(dev_id, details, data))
+
+
+    for testdevice, measurements in testdata.items():
+        for dev_id, details in device_list.items():
+            if testdevice == dev_id:
+                data = smile.get_device_data(dev_id)
+                print('- Testing data for device {} ({})'.format(details['name'], dev_id))
+                for measure_key, measure_assert in measurements.items():
+                    print('  + Testing {} (should be {})'.format(measure_key, measure_assert))
+                    assert data[measure_key] == measure_assert
+
+@pytest.mark.asyncio
+async def tinker_relay(smile, dev_ids=[]):
+    global smile_setup
+    if not smile_setup:
+        return False
+
+    print("Asserting modifying settings for relay devices:")
+    for dev_id in dev_ids:
+        print("- Devices ({}):".format(dev_id))
+        for new_state in ['off','on','off']:
+            print('- Switching {}'.format(new_state))
+            relay_change = await smile.set_relay_state(dev_id, new_state)
+            assert relay_change == True
+
+@pytest.mark.asyncio
+async def tinker_thermostat(smile, loc_id, good_schemas=['Weekschema']):
+    global smile_setup
+    if not smile_setup:
+        return False
+
+    print("Asserting modifying settings in location ({}):".format(loc_id))
+    for new_temp in [20.0,22.9]:
+        print('- Adjusting temperature to {}'.format(new_temp))
+        temp_change = await smile.set_temperature(loc_id, new_temp)
+        assert temp_change == True
+
+    for new_preset in ['asleep','home','!bogus']:
+        assert_state = True
+        warning = ''
+        if new_preset[0] == '!':
+            assert_state = False
+            warning = ' Negative test'
+            new_preset=new_preset[1:]
+        print('- Adjusting preset to {}{}'.format(new_preset, warning))
+        preset_change = await smile.set_preset(loc_id, new_preset)
+        assert preset_change == assert_state
+
+    if good_schemas is not []:
+        good_schemas.append('!VeryBogusSchemaNameThatNobodyEverUsesOrShouldUse')
+        for new_schema in good_schemas:
+            assert_state = True
+            warning = ''
+            if new_schema[0] == '!':
+                assert_state = False
+                warning = ' Negative test'
+                new_schema=new_schema[1:]
+            print('- Adjusting schedule to {}{}'.format(new_schema, warning))
+            schema_change = await smile.set_schedule_state(loc_id, new_schema, 'auto')
+            assert schema_change == assert_state
+    else:
+        print('- Skipping schema adjustments')
 
 # Actual test for directory 'Anna' without a boiler
 @pytest.mark.asyncio
@@ -183,81 +274,33 @@ async def test_connect_anna_without_boiler():
     #             'ctrl_id:dev_id': { 'type': 'thermostat', 'battery': None, }
     #         }
     testdata={
-        "c46b4794d28149699eacf053deedd003": {
-                'type': 'heater_central',
-                'outdoor_temp': 10.8,
-                'illuminance': 35.0,
-        },
-        "c46b4794d28149699eacf053deedd003_c34c6864216446528e95d88985e714cc": {
-                'type': 'thermostat',
-                'setpoint_temp': 16.0,
-                'current_temp': 20.62,
+        # Anna
+        "7ffbb3ab4b6c4ab2915d7510f7bf8fe9": {
                 'selected_schedule': 'Normal',
-                'last_used': 'Test',
-                'boiler_state': None,
-                'battery': None,
-            }
-        }
+                'illuminance': 35.0,
+                'active_preset': 'away',
+        },
+        # Gateway
+        "a270735e4ccd45239424badc0578a2b1": {
+                'outdoor_temperature': 10.8,
+        },
+        # Central-heater
+        "c46b4794d28149699eacf053deedd003": {
+                'central_heating_state': 'off'
+        },
+    }
     global smile_setup
     smile_setup = 'anna_without_boiler'
     server,smile,client = await connect()
-    device_list = await list_devices(server,smile)
     assert smile._smile_type == 'thermostat'
-    print(device_list)
-    for dev_id,details in device_list.items():
-        ctrl = details['ctrl']
-        plug = details['plug']
-        data = smile.get_device_data(dev_id, ctrl, plug)
-        test_id = '{}_{}'.format(ctrl,dev_id)
-        #assert test_id in testdata
-        if test_id not in testdata:
-            continue
-        #for item,value in data.items():
-        #    print(item)
-        #    print(value)
-        for testkey in testdata[test_id]:
-            print('Device asserting {}'.format(testkey))
-            assert data[testkey] == testdata[test_id][testkey]
-
-    ctrl = details['ctrl']
-    plug = details['plug']
-    data = smile.get_device_data(None, ctrl, plug)
-    print(data)
-    assert ctrl in testdata
-    for testkey in testdata[ctrl]:
-        print('Controller asserting {}'.format(testkey))
-        assert data[testkey] == testdata[ctrl][testkey]
-
-    locations=smile.get_location_list()
-    for location_dict in locations:
-        test_id = '{}_{}'.format(details['ctrl'],location_dict['id'])
-        # TODO: And plug?
-        # See also below, but we should make these test routines more
-        # generic and just call 'change_parameters) and call with '20.0, asleep,...'
-        # that way we can be more sure
-        # below statements (and in next TODO are for the Anna+Adam situation
-        # but this will explode fast :)
-        if test_id not in testdata:
-            continue
-        if 'type' not in testdata[test_id]:
-            continue
-        if testdata[test_id]['type'] != 'thermostat':
-            continue
-        print('Location: {}'.format(location_dict['name']))
-        print(' - Adjusting temperature')
-        temp_change = await smile.set_temperature(location_dict['id'], 20.0)
-        assert temp_change == True
-        print(' - Adjusting preset')
-        sched_change = await smile.set_preset(location_dict['id'], 'asleep')
-        assert sched_change == True
-        print(' - Adjusting schedule')
-        schema_change = await smile.set_schedule_state(location_dict['id'], 'Test', 'auto')
-        assert schema_change == True
-        schema_change = await smile.set_schedule_state(location_dict['id'], 'NoSuchSchema', 'auto')
-        assert schema_change == False
-
+    assert smile._smile_version[0] == '3.1.11'
+    assert smile._smile_legacy == False
+    await test_device(smile, testdata)
+    await tinker_thermostat(smile, 'c34c6864216446528e95d88985e714cc', good_schemas=['Test','Normal'])
     await smile.close_connection()
     await disconnect(server,client)
+
+"""
 
 # Actual test for directory 'Adam'
 # living room floor radiator valve and separate zone thermostat
@@ -282,82 +325,132 @@ async def test_connect_adam():
     await smile.close_connection()
     await disconnect(server,client)
 
+"""
+
 # Actual test for directory 'Adam + Anna'
 @pytest.mark.asyncio
 async def test_connect_adam_plus_anna():
     #testdata dictionary with key ctrl_id_dev_id => keys:values
     testdata={
-        '2743216f626f43948deec1f7ab3b3d70': {
-                'type': 'heater_central',
-                'outdoor_temp': 11.9,
-                'illuminance': None,
-        },
-        '2743216f626f43948deec1f7ab3b3d70_009490cc2f674ce6b576863fbb64f867': {
-                'type': 'thermostat',
-                'setpoint_temp': 20.5,
-                'current_temp': 20.46,
-                'active_preset': 'home',
+        # Anna
+        "ee62cad889f94e8ca3d09021f03a660b": {
                 'selected_schedule': 'Weekschema',
                 'last_used': 'Weekschema',
-                'boiler_state': None,
-                'battery': None,
-                'dhw_state': False,
-            }
-        }
+                'illuminance': None,
+                'active_preset': 'home',
+                'thermostat': 20.5,         # HA setpoint_temp
+                'temperature': 20.46,       # HA current_temp
+        },
+        # Gateway
+        "b128b4bbbd1f47e9bf4d756e8fb5ee94": {
+                'outdoor_temperature': 11.9,
+        },
+        # Central-heater
+        "2743216f626f43948deec1f7ab3b3d70": {
+                'central_heating_state': 'off',
+                'central_heater_water_pressure': 6.0,
+        },
+        # Plug MediaCenter
+        "aa6b0002df0a46e1b1eb94beb61eddfe": {
+                'electricity_consumed': 10.31,
+                'relay': 'on',
+        },
+    }
     global smile_setup
     smile_setup = 'adam_plus_anna'
     server,smile,client = await connect()
-    device_list = await list_devices(server,smile)
     assert smile._smile_type == 'thermostat'
-    print(device_list)
-    for dev_id,details in device_list.items():
-        data = smile.get_device_data(dev_id, details['ctrl'], details['plug'])
-        test_id = '{}_{}'.format(details['ctrl'],dev_id)
-        # If test_id in testdata, check it, otherwise next
-        if test_id not in testdata:
-            continue
-        #for item,value in data.items():
-        #    print(item)
-        #    print(value)
-        for testkey in testdata[test_id]:
-            print('Asserting {}'.format(testkey))
-            assert data[testkey] == testdata[test_id][testkey]
-
-    ctrl = details['ctrl']
-    plug = details['plug']
-    data = smile.get_device_data(None, ctrl, plug)
-    print(data)
-    assert ctrl in testdata
-    for testkey in testdata[ctrl]:
-        print('Controller asserting {}'.format(testkey))
-        assert data[testkey] == testdata[ctrl][testkey]
-
-    locations=smile.get_location_list()
-    print(locations)
-    for location_dict in locations:
-        test_id = '{}_{}'.format(details['ctrl'],location_dict['id'])
-        # TODO: And plug?
-        if test_id not in testdata:
-            continue
-        if 'type' not in testdata[test_id]:
-            continue
-        if testdata[test_id]['type'] != 'thermostat':
-            continue
-        print('Location: {}'.format(location_dict['name']))
-        print(' - Adjusting temperature')
-        temp_change = await smile.set_temperature(location_dict['id'], 20.0)
-        assert temp_change == True
-        print(' - Adjusting preset')
-        sched_change = await smile.set_preset(location_dict['id'], 'asleep')
-        assert sched_change == True
-        print(' - Adjusting schedule')
-        schema_change = await smile.set_schedule_state(location_dict['id'], 'Weekschema', 'auto')
-        assert schema_change == True
-        schema_change = await smile.set_schedule_state(location_dict['id'], 'NoSuchSchema', 'auto')
-        assert schema_change == False
+    assert smile._smile_version[0] == '3.0.15'
+    assert smile._smile_legacy == False
+    await test_device(smile, testdata)
+    await tinker_thermostat(smile, '009490cc2f674ce6b576863fbb64f867', good_schemas=['Weekschema'])
+    await tinker_relay(smile, ['aa6b0002df0a46e1b1eb94beb61eddfe'])
+    await smile.close_connection()
+    await disconnect(server,client)
 
     await smile.close_connection()
     await disconnect(server,client)
+
+# Actual test for directory 'Adam + Anna'
+@pytest.mark.asyncio
+async def test_connect_adam_zone_per_device():
+    #testdata dictionary with key ctrl_id_dev_id => keys:values
+    testdata={
+        # Lisa WK
+        "b59bcebaf94b499ea7d46e4a66fb62d8": {
+                'thermostat': 21.5,
+                'temperature': 21.1,
+                'battery': 0.34,
+        },
+        # Floor WK
+        "b310b72a0e354bfab43089919b9a88bf": {
+                'thermostat': 21.5,
+                'temperature': 26.22,
+                'valve_position': 1.0,
+        },
+        # CV pomp
+        "78d1126fc4c743db81b61c20e88342a7": {
+                'electricity_consumed': 35.81,
+                'relay': 'on',
+        },
+        # Lisa Bios
+        "df4a4a8169904cdb9c03d61a21f42140": {
+                'thermostat': 13.0,
+                'temperature': 16.5,
+                'battery': 0.67,
+        },
+        # Gateway
+        "fe799307f1624099878210aa0b9f1475": {
+                'outdoor_temperature': 7.7,
+        },
+        # Central-heater
+        "90986d591dcd426cae3ec3e8111ff730": {
+                'central_heating_state': 'on',
+        },
+        # Modem
+        "675416a629f343c495449970e2ca37b5": {
+                'electricity_consumed': 12.19,
+                'relay': 'on',
+        },
+    }
+    global smile_setup
+    smile_setup = 'adam_zone_per_device'
+    server,smile,client = await connect()
+    assert smile._smile_type == 'thermostat'
+    assert smile._smile_version[0] == '3.0.15'
+    assert smile._smile_legacy == False
+    await test_device(smile, testdata)
+    await test_device(smile, testdata)
+    await tinker_thermostat(smile, 'c50f167537524366a5af7aa3942feb1e', good_schemas=['GF7  Woonkamer'])
+    await tinker_thermostat(smile, '82fa13f017d240daa0d0ea1775420f24', good_schemas=['CV Jessie'])
+    await tinker_relay(smile, ['675416a629f343c495449970e2ca37b5'])
+    await smile.close_connection()
+    await disconnect(server,client)
+
+    await smile.close_connection()
+    await disconnect(server,client)
+
+# Actual test for directory 'Adam + Anna'
+@pytest.mark.asyncio
+
+# {'electricity_consumed_peak_point': 644.0, 'electricity_consumed_off_peak_point': 0.0, 'electricity_consumed_peak_cumulative': 7702167.0, 'electricity_consumed_off_peak_cumulative': 10263159.0, 'electricity_produced_off_peak_point': 0.0, 'electricity_produced_peak_cumulative': 0.0, 'electricity_produced_off_peak_cumulative': 0.0}
+# Actual test for directory 'Adam + Anna'
+@pytest.mark.asyncio
+async def test_connect_adam_multiple_devices_per_zone():
+    global smile_setup
+    smile_setup = 'adam_multiple_devices_per_zone'
+    server,smile,client = await connect()
+    device_list = smile.get_all_devices()
+    location_list, home = smile.match_locations()
+    for loc_id, loc_info in location_list.items():
+        print("  --> Location: {} ({}) - {}".format(loc_info['name'],loc_id,loc_info))
+        for dev_id, dev_info in device_list.items():
+            if dev_info['location'] == loc_id:
+                print("      + Device: {} ({}) - {}".format(dev_info['name'],dev_id,dev_info))
+    print("Device list: %s",device_list)
+    for dev_id,details in device_list.items():
+        data = smile.get_device_data(dev_id)
+        print("Device {} / {} data: {}".format(dev_id, details, data))
 
 
 # {'electricity_consumed_peak_point': 644.0, 'electricity_consumed_off_peak_point': 0.0, 'electricity_consumed_peak_cumulative': 7702167.0, 'electricity_consumed_off_peak_cumulative': 10263159.0, 'electricity_produced_off_peak_point': 0.0, 'electricity_produced_peak_cumulative': 0.0, 'electricity_produced_off_peak_cumulative': 0.0}
@@ -366,7 +459,8 @@ async def test_connect_adam_plus_anna():
 async def test_connect_p1v3():
     #testdata dictionary with key ctrl_id_dev_id => keys:values
     testdata={
-        'a455b61e52394b2db5081ce025a430f3': {
+        # Gateway / P1 itself
+        'ba4de7613517478da82dd9b6abea36af': {
                 'electricity_consumed_peak_point': 644.0,
                 'electricity_produced_peak_cumulative': 0.0,
                 'electricity_consumed_off_peak_cumulative': 10263159.0,
@@ -375,20 +469,13 @@ async def test_connect_p1v3():
     global smile_setup
     smile_setup = 'p1v3'
     server,smile,client = await connect()
-    device_list = await list_devices(server,smile)
-
     assert smile._smile_type == 'power'
-    ctrl = None
-    data = {}
-    for dev_id,details in device_list.items():
-        ctrl = details['ctrl']
-        print(ctrl)
-    data = smile.get_device_data(None, ctrl, None)
-    print(ctrl)
-    print(data)
-    for testkey in testdata[ctrl]:
-        print('Controller asserting {}'.format(testkey))
-        assert data[testkey] == testdata[ctrl][testkey]
+    assert smile._smile_version[0] == '3.3.6'
+    assert smile._smile_legacy == False
+    await test_device(smile, testdata)
+    await test_device(smile, testdata)
+    await smile.close_connection()
+    await disconnect(server,client)
 
     await smile.close_connection()
     await disconnect(server,client)

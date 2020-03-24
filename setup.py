@@ -6,7 +6,7 @@ def readme():
 
 setup(
     name='Plugwise_Smile',
-    version='0.0.26',
+    version='0.0.27',
     description='Plugwise_Smile (Anna/Adam/P1) API to use in conjunction with Home Assistant.',
     long_description='Plugwise Smile API to use in conjunction with Home Assistant, but it can also be used without Home Assistant.',
     keywords='HomeAssistant HA Home Assistant Anna Adam P1 Smile Plugwise',
@@ -15,7 +15,7 @@ setup(
     author_email='info@compa.nl',
     license='MIT',
     packages=['Plugwise_Smile'],
-    install_requires=['asyncio','aiohttp','async_timeout','datetime','pytz','python-dateutil'],
+    install_requires=['asyncio','aiohttp','async_timeout','datetime','pytz','python-dateutil','semver'],
     zip_safe=False
 )
 

@@ -3,6 +3,8 @@
 import asyncio
 import logging
 from lxml import etree
+# Version detection
+import semver
 # Time related
 import datetime as dt
 import pytz
@@ -24,10 +26,31 @@ DEFAULT_TIMEOUT = 20
 
 _LOGGER = logging.getLogger(__name__)
 
-POWER_MEASUREMENTS = [
+HOME_MEASUREMENTS = {
+    'electricity_consumed': 'power',
+    'electricity_produced': 'power',
+    'gas_consumed': 'gas',
+    'outdoor_temperature': 'temperature',
+    }
+
+# Excluded:
+# zone_thermosstat 'temperature_offset'
+# radiator_valve 'uncorrected_temperature', 'temperature_offset'
+DEVICE_MEASUREMENTS = [
+    'thermostat',       # HA setpoint
+    'temperature',      # HA current_temperature
+    'battery',
+    'valve_position',
+    'temperature_difference',
     'electricity_consumed',
     'electricity_produced',
-    'gas_consumed',
+    'relay',
+    'outdoor_temperature',
+    'boiler_state',
+    'central_heating_state',
+    'central_heater_water_pressure',
+    'cooling_state',
+    'dhw_state',
     ]
 
 TARIFF_MEASUREMENTS = [
@@ -42,12 +65,53 @@ TARIFF_MEASUREMENTS = [
     ]
 
 
+SMILES = {
+    'smile_open_therm_v30' : {
+        "type": "thermostat",
+        "friendly_name": "Adam",
+    },
+    'smile_open_therm_v23' : {
+        "type": "thermostat",
+        "friendly_name": "Adam",
+    },
+    'smile_thermo_v31' : {
+        "type": "thermostat",
+        "friendly_name": "Smile (Anna)",
+    },
+    'smile_thermo_v18' : {
+        "type": "thermostat",
+        "friendly_name": "Smile (Anna)",
+        "legacy": True,
+    },
+    'smile_v33' : {
+        "type": "power",
+        "friendly_name": "Smile P1",
+    },
+    'smile_v25' : {
+        "type": "power",
+        "friendly_name": "Smile P1",
+        "legacy": True,
+    },
+}
+
+# Appliances with location WITHOUT id=
+# p1v3 = gateway
+# anna = gateway, heater_central
+# leg_anna = heater_central !!! has no gateway
+# adam = gateway,heater_central,open_therm_gateway
+# older adam = gateway,heater_central,open_therm_gateway
+# p1v2 has no applianace
+
+CENTRAL_COMPONENTS = [
+    'heater_central', 'gateway', 'open_therm_gateway',
+]
+
 class Smile:
     """Define the Plugwise object."""
     # pylint: disable=too-many-instance-attributes, too-many-public-methods
 
     def __init__(self, host, password, username='smile', port=80,
-                 timeout=DEFAULT_TIMEOUT, websession=None):
+                 timeout=DEFAULT_TIMEOUT, websession=None, sleeptime=1):
         """Set the constructor for this class."""
 
         if websession is None:
@@ -62,6 +126,7 @@ class Smile:
         self._auth = aiohttp.BasicAuth(username, password=password)
 
         self._timeout = timeout
+        self._sleeptime = sleeptime
         self._endpoint = "http://" + host + ":" + str(port)
         self._appliances = None
         self._direct_objects = None
@@ -72,12 +137,15 @@ class Smile:
         self._rules = None
         self._smile_type = None
         self._smile_subtype = None
+        self._smile_version = ()
+        self._smile_legacy = False
+        self._home_location = None
         self._platforms = ["climate","water_heater","sensor"]
 
     async def connect(self, retry=2):
         """Connect to Plugwise device."""
         # pylint: disable=too-many-return-statements
-        url = self._endpoint + MODULES
+        url = self._endpoint + DOMAIN_OBJECTS
         try:
             with async_timeout.timeout(self._timeout):
                 resp = await self.websession.get(url, auth=self._auth)
@@ -94,24 +162,41 @@ class Smile:
                           we got %s', result)
             return False
 
-        # Adam or Anna (non-legacy)
-        if "<vendor_model>ThermoExtension</vendor_model>" in result:
-            self._smile_type = 'thermostat'
-            self._smile_subtype = 'non_legacy'
-        # Adam and Anna case?
-        elif "<vendor_model>Adam</vendor_model>" in result:
-            self._smile_type = 'thermostat'
-            self._smile_subtype = 'non_legacy'
-        # Smile P1
-        elif "<electricity_cumulative_meter"in result:
-            self._smile_type = 'power'
-            self._smile_subtype = 'v3'
-            self._platforms = ["sensor"]
+        # TODO creat this as another function NOT part of connect!
+        # just using request to parse the data
+        do_xml = etree.XML(self.escape_illegal_xml_characters(result).encode())
+        gateway = do_xml.find('.//gateway')
 
-        if self._smile_type is None:
-            _LOGGER.error('Unable to determine Adam/Anna/P1 - assuming thermostat')
-            self._smile_type = 'thermostat'
-            self._smile_subtype = 'unknown'
+        if gateway is None:
+            # TODO: handle legacy here
+            _LOGGER.error('Connected but no gateway device information found')
+            return False
+
+        # TODO create if no gateway found ,rescan for system_status_xml
+        smile_model = do_xml.find('.//gateway/vendor_model').text
+        smile_version = do_xml.find('.//gateway/firmware_version').text
+
+        if smile_model is None or smile_version is None:
+           _LOGGER.error('Unable to find model or version information')
+           return False
+
+        _LOGGER.debug("Plugwise model %s version %s", smile_model, smile_version)
+
+        ver = semver.parse(smile_version)
+        target_smile = "{}_v{}{}".format(smile_model,ver['major'],ver['minor'])
+        if target_smile not in SMILES:
+           _LOGGER.error('Your version Smile type "{}" with version "{}" \
+                          seems unsupported by our plugin, please create \
+                          an issue on github.com/plugwise/Plugwise-Smile!\
+                          '.format(smile_model,smile_version))
+           return False
+
+        self._smile_type = SMILES[target_smile]['type']
+        self._smile_name = SMILES[target_smile]['friendly_name']
+        self._smile_version = ( smile_version, ver )
+
+        if "legacy" in SMILES[target_smile]:
+            self._smile_legacy = SMILES[target_smile]['legacy']
 
         # Update all endpoints on first connect
         await self.full_update_device()
@@ -193,6 +278,7 @@ class Smile:
         if new_data is not None:
             self._locations = new_data
 
+    # Retrieve all XMLs
     async def full_update_device(self):
         """Update device."""
         await self.update_appliances()
@@ -201,219 +287,203 @@ class Smile:
         await self.update_locations()
         return True
 
-    async def get_devices(self):
-        appl_dict = self.get_appliance_dictionary()
-        loc_list = self.get_location_list()
+    # Helper function detecting power types used in multiple routines
+    def _types_finder(self, data):
+        types = set([])
+        # Plug measurements detection - same as P1 in get_all_locations
+        for measure,measure_type in HOME_MEASUREMENTS.items():
+            locator='.//logs/point_log[type="{}"]'.format(measure)
+            # Find powermeasures within data
+            if data.find(locator):
+                log = data.find(locator)
 
-        keys = ['name', 'id', 'type']
-        thermostats = []
-        for appl_id, type in appl_dict.items():
-            thermostat = []
-            if ('heater_central' in type):
-                thermostat.append('Controlled Device')
-                thermostat.append(appl_id)
-                thermostat.append(type)
-                if thermostat != []:
-                    thermostats.append(thermostat)
+                # outdoor_temperature found
+                if measure == 'outdoor_temperature':
+                    types.add(measure_type)
 
-        for loc_dict in loc_list:
-            thermostat = []
-            thermostat.append(loc_dict['name'])
-            thermostat.append(loc_dict['id'])
-            thermostat.append(loc_dict['type'])
-            if thermostat != []:
-                thermostats.append(thermostat)
+                # TODO, build gas locator for P1
 
-        data = [{k: v for k, v in zip(keys, n)} for n in thermostats]
-        return data
+                # Find electra meter in locattion
+                p_locator='.//electricity_point_meter'
+                if log.find(p_locator) is not None:
+                    if log.find(p_locator).get('id'):
+                            types.add(measure_type)
+        return types
 
-    def get_device_data(self, dev_id, ctrl_id, plug_id):
-        """Provides the device-data, based on location_id, from APPLIANCES."""
+    # Return list of all appliances, type and location
+    def get_all_appliances(self):
+        appliances = {}
+        locations, home_location = self.get_all_locations()
 
-        # Exception for Smile P1(v3) as it has only a ctrl device
-        if self._smile_type == 'power':
-            self.get_power_tariff()
-            device_data = self.get_direct_objects_from_ctrl_id(ctrl_id)
-        # Anna/Adam
-        else:
-            controller_data = {}
-            plug_data = {}
-            device_data = {}
-            if ctrl_id:
-                controller_data = self.get_appliance_from_appl_id(ctrl_id)
-            if plug_id:
-                plug_data = self.get_appliance_from_appl_id(plug_id) #new
-                device_data = plug_data
-            if dev_id:
-                device_data = self.get_appliance_from_loc_id(dev_id)
-                preset = self.get_preset_from_id(dev_id)
-                presets = self.get_presets_from_id(dev_id)
-                schemas = self.get_schema_names_from_id(dev_id)
-                last_used = self.get_last_active_schema_name_from_id(dev_id)
-                a_sch = []
-                l_sch = None
-                s_sch = None
-                if schemas:
-                    for a, b in schemas.items():
-                        a_sch.append(a)
-                        if b:
-                            s_sch = a
-                if last_used:
-                    l_sch = last_used
-                if device_data is not None:
-                    device_data.update({'active_preset': preset})
-                    device_data.update({'presets':  presets})
-                    device_data.update({'available_schedules': a_sch})
-                    device_data.update({'selected_schedule': s_sch})
-                    device_data.update({'last_used': l_sch})
-                    if controller_data is not None:
-                        device_data.update({'boiler_state': controller_data['boiler_state']})
-                        device_data.update({'central_heating_state': controller_data['central_heating_state']})
-                        device_data.update({'cooling_state': controller_data['cooling_state']})
-                        device_data.update({'dhw_state': controller_data['dhw_state']})
+        # TODO: add locations with members as appliance as well
+        # example 'electricity consumed/produced and relay' on Adam
+        # Basically walk locations for 'members' not set[] and
+        # scan for the same functionality
+
+        for appliance in self._appliances:
+            appliance_location = None
+            appliance_types = set([])
+
+            appliance_name = appliance.find('name').text
+            appliance_id = appliance.attrib['id']
+            appliance_class = appliance.find('type').text
+
+            # Appliance with location (i.e. a device)
+            if appliance.find('location') is not None:
+                appliance_location = appliance.find('location').attrib['id']
+                for appl_type in self._types_finder(appliance):
+                    appliance_types.add(appl_type)
             else:
-                # Only fetch on controller, not device
-                outdoor_temp = self.get_outdoor_temperature()
-                illuminance = self.get_illuminance()
-                if 'type' in controller_data:
-                    if controller_data['type'] == 'heater_central':
-                        device_data['type'] = controller_data['type']
-                        if 'boiler_temp' in controller_data:
-                            device_data.update({'boiler_temp':
-                                            controller_data['boiler_temp']})
-                        if 'water_pressure' in controller_data:
-                            device_data.update({'water_pressure':
-                                            controller_data['water_pressure']})
-                        device_data.update({'outdoor_temp': outdoor_temp})
-                        device_data.update({'illuminance': illuminance})
-                        device_data.update({'boiler_state':
-                                        controller_data['boiler_state']})
-                        device_data.update({'central_heating_state':
-                                        controller_data['central_heating_state']})
-                        device_data.update({'cooling_state':
-                                        controller_data['cooling_state']})
-                        device_data.update({'dhw_state':
-                                        controller_data['dhw_state']})
+                # Return all types applicable to home
+                appliance_types = locations[home_location]['types']
+
+            # Determine appliance_type from funcitonality
+            if appliance.find('.//actuator_functionalities/relay_functionality'):
+                appliance_types.add('plug')
+            elif appliance.find('.//actuator_functionalities/thermostat_functionality'):
+                appliance_types.add('thermostat')
+
+            appliances[appliance_id] = {
+                                        'name': appliance_name,
+                                        'types': appliance_types,
+                                        'class': appliance_class,
+                                        'location': appliance_location,
+                                       }
+        return appliances
+
+    # Return aavailable locations (unmapped, see match_locations)
+    def get_all_locations(self):
+        home_location = None
+        locations = {}
+        for location in self._locations:
+            location_name = location.find('name').text
+            location_id = location.attrib['id']
+            location_types = set([])
+            location_members = set([])
+
+            # Group of appliances
+            locator='.//appliances/appliance'
+            if location.find(locator) is not None:
+                for member in location.findall(locator):
+                    location_members.add(member.attrib['id'])
+
+            if location_name == 'Home':
+                home_location = location_id
+                location_types.add('home')
+
+                for location_type in self._types_finder(location):
+                    location_types.add(location_type)
+
+            locations[location_id] = {
+                                      'name': location_name,
+                                      'types': location_types,
+                                      'members': location_members,
+                                     }
+
+        self._home_location = home_location
+        return locations, home_location
+
+    def match_locations(self):
+        match_locations = {}
+
+        locations, home_location = self.get_all_locations()
+        appliances = self.get_all_appliances()
+
+        for location_id, location_details in locations.items():
+            for appliance_id, appliance_details in appliances.items():
+                if appliance_details['location'] == location_id:
+                    for appl_type in appliance_details['types']:
+                        location_details['types'].add(appl_type)
+
+            match_locations[location_id] = location_details
+
+        return match_locations, home_location
+
+    # Replacement function for deprecated get_devices
+    def get_all_devices(self):
+        devices = {}
+
+        locations, home_location = self.get_all_locations()
+        appliances = self.get_all_appliances()
+
+        for appliance, details in appliances.items():
+            if details['location'] is None:
+                details['location'] = home_location
+            devices[appliance] = details
+        return devices
+
+    def get_device_data(self, dev_id):
+        """Provides the device-data, based on location_id, from APPLIANCES."""
+        details = self.get_all_devices()[dev_id]
+        device_data = self.get_appliance_data(dev_id)
+
+        # Anna, Lisa
+        if details['class'] in ['thermostat','zone_thermostat']:
+            device_data['active_preset'] = self.get_preset(details['location'])
+            device_data['presets'] = self.get_presets(details['location'])
+
+            avail_schemas, sel_schema = self.get_schemas(details['location'])
+            device_data['available_schedules'] = avail_schemas
+            device_data['selected_schedule'] = sel_schema
+
+        # Anna specific
+        if details['class'] in ['thermostat']:
+            device_data['illuminance'] = self.get_object_value('appliance',dev_id,'illuminance')
+            device_data['last_used'] = self.get_last_active_schema(details['location'])
+
+        # Generic
+        if details['class'] == 'gateway':
+
+            # Try to get P1 data
+            self.get_power_tariff()
+            power_data = self.get_direct_objects_from_location(details['location'])
+            if power_data is not None:
+                device_data.update(power_data)
+
+            outdoor_temperature = self.get_object_value('location',self._home_location,'outdoor_temperature')
+            if outdoor_temperature:
+                device_data['outdoor_temperature'] = outdoor_temperature
 
         return device_data
 
-    def get_appliance_dictionary(self):
-        """Obtains the existing appliance types and ids - from APPLIANCES."""
-        appliance_dictionary = {}
-        for appliance in self._appliances:
-            appliance_name = appliance.find('name').text
-            if "Gateway" not in appliance_name:
-                appliance_id = appliance.attrib['id']
-                appliance_type = appliance.find('type').text
-                if appliance_type == 'heater_central':
-                    appliance_dictionary[appliance_id] = appliance_type
 
-        return appliance_dictionary
 
-    def get_location_list(self):
-        """Obtains the existing locations and connected applicance_id's - from LOCATIONS."""
-        location_list = []
-        for location in self._locations:
-            location_dict = {}
-            location_name = location.find('name').text
-            location_id = location.attrib['id']
-
-            appliance_id = None
-            location_type =  None
-
-            # Find appliances (if any)
-            appliance = location.find('.//appliances/appliance')
-            if appliance is not None:
-                appliance_id = appliance.attrib['id']
-
-            # Determine location_type from functionality
-            # TODO This means thermostat 'wins' of a plug if both
-            # in the same location. Shouldn't we FAIL on that?
-            if location.find('.//actuator_functionalities/relay_functionality'):
-                location_type = 'plug'
-            elif location.find('.//actuator_functionalities/thermostat_functionality'):
-                location_type = 'thermostat'
-            else:
-                for measure in POWER_MEASUREMENTS:
-                    power_locator='.//logs/point_log[type="{}"]'.format(measure)
-                    # Find powermeasures within location
-                    if (appliance is None) and location.find(power_locator):
-                        p1_ec_log = location.find(power_locator)
-                        meter_locator='.//electricity_point_meter'
-                        # Find meter in locattion
-                        if p1_ec_log.find(meter_locator) is not None:
-                            # Safeguard even then finding none (20200321/Discord)
-                            if p1_ec_log.find(meter_locator).get('id'):
-                                location_type = 'power'
-
-            if location_name != "Home":
-                if location_type == 'plug':
-                    location_dict['name'] = location_name
-                    location_dict['id'] = appliance_id
-                    location_dict['type'] = location_type
-                if location_type == 'thermostat':
-                    location_dict['name'] = location_name
-                    location_dict['id'] = location_id
-                    location_dict['type'] = location_type
-            # P1
-            elif location_type == 'power':
-                    location_dict['name'] = location_name
-                    location_dict['id'] = location_id
-                    location_dict['type'] = location_type
-
-            if location_dict != {}:
-                location_list.append(location_dict)
-
-        return location_list
-
-    def get_appliance_from_loc_id(self, dev_id):
+    def get_appliance_data(self, dev_id):
         """Obtains the appliance-data connected to a location -
            from APPLIANCES."""
-        appliances = self._appliances.findall('.//appliance')
-        appl_list = []
+        data={}
+        appliances = self._appliances.findall('.//appliance[@id="{}"]'.format(dev_id))
+        #point_log = ".//logs/point_log[type='{}']"
         locator_string = ".//logs/point_log[type='{}']/period/measurement"
-        thermostatic_types = ['zone_thermostat',
-                              'thermostatic_radiator_valve',
-                              'thermostat']
+        #thermostatic_types = ['zone_thermostat',
+        #                      'thermostatic_radiator_valve',
+        #                      'thermostat']
+
         for appliance in appliances:
-            if appliance.find('type') is not None:
-                appliance_type = appliance.find('type').text
-            if appliance.find('description') is not None:
-                if 'smart plug' in str(appliance.find('description').text):
-                    appliance_type = 'plug'
-                    appliance_name = appliance.find('name').text
-                if "gateway" not in appliance_type:
-                    if appliance.find('location') is not None:
-                        appl_location = appliance.find('location').attrib['id']
-                        if appl_location == dev_id:
-                            appl_dict = {}
+            for measurement in DEVICE_MEASUREMENTS:
+                meter_id = None
+                appliance_name = appliance.find('name').text
+                #log_types = point_log.format(measurement)
+                pl_value = locator_string.format(measurement)
+                if appliance.find(pl_value) is not None:
+                    measure = appliance.find(pl_value).text
+                    #for item in appliance.find(log_types):
+                    #    if '_meter' in item.tag or item.tag == measure:
+                    #        meter_id = item.attrib['id']
+                    try:
+                        measure = int(measure)
+                    except ValueError:
+                        pass
+                    try:
+                        measure = float(measure)
+                    except ValueError:
+                        pass
+                    if type(measure) == 'float':
+                        measure = '{:.2f}'.format(round(measure, 2))
+                    data[measurement] = measure
 
-                            if appliance_type in thermostatic_types:
-                                appl_dict['type'] = appliance_type
-                                locator = locator_string.format('battery')
-                                appl_dict['battery'] = None
-                                if appliance.find(locator) is not None:
-                                    battery = appliance.find(locator).text
-                                    value = float(battery)
-                                    battery = '{:.2f}'.format(round(value, 2))
-                                    appl_dict['battery'] = battery
-                                locator = locator_string.format('thermostat')
-                                appl_dict['setpoint_temp'] = None
-                                if appliance.find(locator) is not None:
-                                    thermostat = appliance.find(locator).text
-                                    thermostat = float(thermostat)
-                                    appl_dict['setpoint_temp'] = thermostat
-                                locator = locator_string.format('temperature')
-                                appl_dict['current_temp'] = None
-                                if appliance.find(locator) is not None:
-                                    temperature = appliance.find(locator).text
-                                    temperature = float(temperature)
-                                    appl_dict['current_temp'] = temperature
-                                appl_list.append(appl_dict.copy())
 
-        rev_list = sorted(appl_list, key=lambda k: k['type'], reverse=True)
-        if rev_list != []:
-            return rev_list[0]
+        return data
 
     # Smile P1 specific
     def get_power_tariff(self):
@@ -425,17 +495,13 @@ class Smile:
 
         return True
 
-    def get_direct_objects_from_ctrl_id(self, ctrl_id):
+    def get_direct_objects_from_location(self, loc_id):
         """Obtains the appliance-data from appliances without a location
            - from DIRECT_OBJECTS."""
         direct_data = {}
-        home_object = None
-        for direct_object in self._direct_objects:
-            direct_object_name = direct_object.find('name').text
-            if "Home" in direct_object_name:
-                home_object = direct_object.find('logs')
+        loc_logs = self._direct_objects.find(".//location[@id='{}']/logs".format(loc_id))
 
-        if home_object is not None and self._power_tariff is not None:
+        if loc_logs is not None and self._power_tariff is not None:
             log_list = ['point_log', 'cumulative_log']
             peak_list = ['nl_peak']
             tariff_structure = 'electricity_consumption_tariff_structure'
@@ -443,256 +509,154 @@ class Smile:
                 peak_list.append('nl_offpeak')
 
             loc_string = ".//{}[type='{}']/period/measurement[@tariff=\"{}\"]"
-            for measurement in POWER_MEASUREMENTS:
+            #meter_string = ".//{}[type='{}']/"
+            for measurement in HOME_MEASUREMENTS:
                 for log_type in log_list:
+                    #meter_id = None
+                    #meter = meter_string.format(log_type, measurement)
                     for peak_select in peak_list:
                         locator = loc_string.format(log_type, measurement,
                                                     peak_select)
-                        if home_object.find(locator) is not None:
+                        if loc_logs.find(locator) is not None:
+                            #for item in loc_logs.findall(meter):
+                            #    if '_meter' in item.tag or item.tag == measurement:
+                            #        meter_id = item.attrib['id']
                             peak = peak_select.split('_')[1]
                             if peak == "offpeak":
                                 peak = "off_peak"
                             log_found = log_type.split('_')[0]
                             key_string = '{}_{}_{}'.format(measurement,
                                                            peak, log_found)
-                            val = float(home_object.find(locator).text)
+                            val = float(loc_logs.find(locator).text)
                             direct_data[key_string] = val
 
         if direct_data != {}:
             return direct_data
 
-    def get_appliance_from_appl_id(self, dev_id):
-        """Obtains the appliance-data from appliances without a location -
-           from APPLIANCES."""
-        appl_data = {}
-        loc_string = ".//logs/point_log[type='{}']/period/measurement"
-        for appliance in self._appliances:
-            appliance_name = appliance.find('name').text
-            if "Gateway" not in appliance_name:
-                appliance_id = appliance.attrib['id']
-                if appliance_id == dev_id:
-                    appliance_type = appliance.find('type').text
-                    appl_data['type'] = appliance_type
-                    boiler_temperature = None
-                    loc = loc_string.format('boiler_temperature')
-                    if appliance.find(loc) is not None:
-                        measurement = appliance.find(loc).text
-                        value = float(measurement)
-                        boiler_temperature = '{:.1f}'.format(round(value, 1))
-                        if boiler_temperature:
-                            appl_data['boiler_temp'] = boiler_temperature
-                    water_pressure = None
-                    loc = loc_string.format('central_heater_water_pressure')
-                    if appliance.find(loc) is not None:
-                        measurement = appliance.find(loc).text
-                        value = float(measurement)
-                        water_pressure = '{:.1f}'.format(round(value, 1))
-                        if water_pressure:
-                            appl_data['water_pressure'] = water_pressure
-                    if appliance_type == 'heater_central':
-                        direct_objects = self._direct_objects
-                        appl_data['boiler_state'] = None
-                        loc = loc_string.format('boiler_state')
-                        if direct_objects.find(loc) is not None:
-                            boiler_state = (direct_objects.find(loc).text == "on")
-                            appl_data['boiler_state'] = boiler_state
-                        appl_data['central_heating_state'] = None
-                        loc = loc_string.format('central_heating_state')
-                        if direct_objects.find(loc) is not None:
-                            chs = (direct_objects.find(loc).text == "on")
-                            appl_data['central_heating_state'] = chs
-                        appl_data['cooling_state'] = None
-                        loc = loc_string.format('cooling_state')
-                        if direct_objects.find(loc) is not None:
-                            cooling_state = (direct_objects.find(loc).text == "on")
-                            appl_data['cooling_state'] = cooling_state
-                        appl_data['dhw_state'] = None
-                        loc = loc_string.format('domestic_hot_water_state')
-                        if direct_objects.find(loc) is not None:
-                            dhw_state = (direct_objects.find(loc).text == "on")
-                            appl_data['dhw_state'] = dhw_state
-                    else:
-                        appl_data['type'] = appliance_type
-                        appl_data['name'] = appliance_name
-                        locator = (".//logs/point_log[type='electricity_consumed']/period/measurement")
-                        appl_data['electricity_consumed'] = None
-                        if appliance.find(locator) is not None:
-                            electricity_consumed = appliance.find(locator).text
-                            electricity_consumed = '{:.1f}'.format(round(float(electricity_consumed), 1))
-                            appl_data['electricity_consumed'] = electricity_consumed
-                        locator = (".//logs/interval_log[type='electricity_consumed']/period/measurement")
-                        appl_data['electricity_consumed_interval'] = None
-                        if appliance.find(locator) is not None:
-                            electricity_consumed_interval = appliance.find(locator).text
-                            electricity_consumed_interval = '{:.1f}'.format(round(float(electricity_consumed_interval), 1))
-                            appl_data['electricity_consumed_interval'] = electricity_consumed_interval
-                        locator = (".//logs/point_log[type='electricity_produced']/period/measurement")
-                        appl_data['electricity_produced'] = None
-                        if appliance.find(locator) is not None:
-                            electricity_produced = appliance.find(locator).text
-                            electricity_produced = '{:.1f}'.format(round(float(electricity_produced), 1))
-                            appl_data['electricity_produced'] = electricity_produced
-                        locator = (".//logs/interval_log[type='electricity_produced']/period/measurement")
-                        appl_data['electricity_produced_interval'] = None
-                        if appliance.find(locator) is not None:
-                            electricity_produced_interval = appliance.find(locator).text
-                            electricity_produced_interval = '{:.1f}'.format(round(float(electricity_produced_interval), 1))
-                            appl_data['electricity_produced_interval'] = electricity_produced_interval
-                        locator = (".//logs/point_log[type='relay']/period/measurement")
-                        appl_data['relay'] = None
-                        if appliance.find(locator) is not None:
-                            state = appliance.find(locator).text
-                            appl_data['relay'] = state
-
-        if appl_data != {}:
-            return appl_data
-
-    def get_preset_from_id(self, dev_id):
+    def get_preset(self, loc_id):
         """Obtains the active preset based on the location_id -
            from DOMAIN_OBJECTS."""
-        for location in self._domain_objects:
-            location_id = location.attrib['id']
-            if location.find('preset') is not None:
-                preset = location.find('preset').text
-                if location_id == dev_id:
-                    return preset
+        locator=".//location[@id='{}']/preset".format(loc_id)
+        preset = self._domain_objects.find(locator)
+        if preset is not None:
+                return preset.text
 
-    def get_presets_from_id(self, dev_id):
+    def get_presets(self, loc_id):
         """Gets the presets from the thermostat based on location_id."""
-        rule_ids = {}
-        locator = 'zone_setpoint_and_state_based_on_preset'
+        presets = {}
+        tag = 'zone_setpoint_and_state_based_on_preset'
+
         # _LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
-        rule_ids = self.get_rule_id_and_zone_location_by_template_tag_with_id(locator, dev_id)
+        rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
         if rule_ids is None:
-            rule_ids = self.get_rule_id_and_zone_location_by_name_with_id('Thermostat presets', dev_id)
+            rule_ids = self.get_rule_ids_by_name('Thermostat presets', loc_id)
             if rule_ids is None:
                 return None
 
-        presets = {}
-        for key, val in rule_ids.items():
-            if val == dev_id:
-                presets = self.get_preset_dictionary(key)
+        for rule_id in rule_ids:
+            directives = self._domain_objects.find(
+                "rule[@id='{}']/directives".format(rule_id)
+            )
+
+            for directive in directives:
+                preset = directive.find("then").attrib
+                keys, values = zip(*preset.items())
+                if str(keys[0]) == 'setpoint':
+                    presets[directive.attrib["preset"]] = [float(preset["setpoint"]), 0]
+                else:
+                    presets[directive.attrib["preset"]] = [float(preset["heating_setpoint"]), float(preset["cooling_setpoint"])]
+
         return presets
 
-    def get_schema_names_from_id(self, dev_id):
+    def get_schemas(self, loc_id):
         """Obtains the available schemas or schedules based on the
            location_id."""
         rule_ids = {}
-        locator = 'zone_preset_based_on_time_and_presence_with_override'
-        # _LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
-        rule_ids = self.get_rule_id_and_zone_location_by_template_tag_with_id(locator, dev_id)
         schemas = {}
-        l_schemas = {}
-        if rule_ids:
-            for key, val in rule_ids.items():
-                if val == dev_id:
-                    name = self._domain_objects.find("rule[@id='" + key + "']/name").text
+        available = []
+        selected = None
+
+        tag = 'zone_preset_based_on_time_and_presence_with_override'
+
+        rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
+        if rule_ids is not None:
+            for rule_id, location_id in rule_ids.items():
+                if location_id == loc_id:
                     active = False
-                    if self._domain_objects.find("rule[@id='" + key + "']/active").text == 'true':
+
+                    name = self._domain_objects.find("rule[@id='{}']/name".format(rule_id)).text
+                    if self._domain_objects.find("rule[@id='{}']/active".format(rule_id)).text == 'true':
                         active = True
                     schemas[name] = active
-        if schemas != {}:
-            return schemas
 
-    def get_last_active_schema_name_from_id(self, dev_id):
+            for a, b in schemas.items():
+                available.append(a)
+                if b:
+                    selected = a
+
+        return available, selected
+
+    def get_last_active_schema(self, loc_id):
         """Determine the last active schema."""
         epoch = dt.datetime(1970, 1, 1, tzinfo=pytz.utc)
         rule_ids = {}
-        locator = 'zone_preset_based_on_time_and_presence_with_override'
-        # _LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
-        rule_ids = self.get_rule_id_and_zone_location_by_template_tag_with_id(locator, dev_id)
         schemas = {}
-        if rule_ids:
-            for key, val in rule_ids.items():
-                if val == dev_id:
-                    schema_name = self._domain_objects.find("rule[@id='" + key + "']/name").text
-                    schema_date = self._domain_objects.find("rule[@id='" + key + "']/modified_date").text
+        last_modified = None
+
+        tag = 'zone_preset_based_on_time_and_presence_with_override'
+
+        rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
+        if rule_ids is not None:
+            for rule_id, location_id in rule_ids.items():
+                if location_id == loc_id:
+                    schema_name = self._domain_objects.find("rule[@id='{}']/name".format(rule_id)).text
+                    schema_date = self._domain_objects.find("rule[@id='{}']/modified_date".format(rule_id)).text
                     schema_time = parse(schema_date)
                     schemas[schema_name] = (schema_time - epoch).total_seconds()
-                last_modified = sorted(schemas.items(), key=lambda kv: kv[1])[-1][0]
-                return last_modified
 
-    def get_rule_id_and_zone_location_by_template_tag_with_id(self, rule_name, dev_id):
+            last_modified = sorted(schemas.items(), key=lambda kv: kv[1])[-1][0]
+
+        return last_modified
+
+    # get_rule_id_and_zone_location_by_template_tag_with_id(self, rule_name, dev_id):
+    def get_rule_ids_by_tag(self, tag, loc_id):
         """Obtains the rule_id based on the given template_tag and
            location_id."""
         # _LOGGER.debug("Plugwise rule and id: %s -> %s",rule_name,dev_id)
         schema_ids = {}
         rules = self._domain_objects.findall('.//rule')
+        locator1 = './/template[@tag="{}"]'.format(tag)
+        locator2 = './/contexts/context/zone/location[@id="{}"]'.format(loc_id)
         for rule in rules:
-            try:
-                name = rule.find('template').attrib['tag']
-            except KeyError:
-                name = None
-            if (name == rule_name):
-                rule_id = rule.attrib['id']
-                for elem in rule.iter('location'):
-                    if elem.attrib is not None:
-                        location_id = elem.attrib['id']
-                        if location_id == dev_id:
-                            schema_ids[rule_id] = location_id
-        if schema_ids != {}:
-            return schema_ids
+            if rule.find(locator1) is not None and rule.find(locator2) is not None:
+                schema_ids[rule.attrib['id']] = loc_id
+        return schema_ids
 
-    def get_rule_id_and_zone_location_by_name_with_id(self, rule_name, dev_id):
-        """Obtains the rule_id and location_id based on the given name and location_id."""
+    def get_rule_ids_by_name(self, name, loc_id):
+        """Obtains the rule_id on the given name and location_id."""
         schema_ids = {}
-        rules = self._domain_objects.findall('.//rule')
+        rules = self._domain_objects.findall('.//rule[name="{}"]'.format(name))
+        locator = './/contexts/context/zone/location[@id="{}"]'.format(loc_id)
         for rule in rules:
-            try:
-                name = rule.find('name').text
-            except AttributeError:
-                name = None
-            if (name == rule_name):
-                rule_id = rule.attrib['id']
-                for elem in rule.iter('location'):
-                    if elem.attrib is not None:
-                        location_id = elem.attrib['id']
-                        if location_id == dev_id:
-                            schema_ids[rule_id] = location_id
+            if rule.find(locator) is not None:
+                schema_ids[rule.attrib['id']] = loc_id
+        return schema_ids
 
-        if schema_ids != {}:
-            return schema_ids
-
-    def get_outdoor_temperature(self):
-        """Obtains the outdoor_temperature from the thermostat."""
-        locator = (".//logs/point_log[type='outdoor_temperature']/period/measurement")
-        if self._domain_objects.find(locator) is not None:
-            measurement = self._domain_objects.find(locator).text
-            value = float(measurement)
-            value = float('{:.1f}'.format(round(value, 1)))
-            return value
-
-    def get_illuminance(self):
+    def get_object_value(self, obj_type, appl_id, measurement):
         """Obtain the illuminance value from the thermostat."""
-        locator = (".//logs/point_log[type='illuminance']/period/measurement")
-        if self._domain_objects.find(locator) is not None:
-            measurement = self._domain_objects.find(locator).text
-            value = float(measurement)
-            value = float('{:.1f}'.format(round(value, 1)))
-            return value
+        locator = ".//{}[@id='{}']/logs/point_log[type='{}']/period/measurement".format(obj_type, appl_id, measurement)
+        if self._direct_objects.find(locator) is not None:
+            data = self._direct_objects.find(locator).text
+            val = float(data)
+            val = float('{:.1f}'.format(round(val, 1)))
+            return val
 
-    def get_preset_dictionary(self, rule_id):
-        """Obtains the presets from a rule based on rule_id."""
-        preset_dictionary = {}
-        directives = self._domain_objects.find(
-            "rule[@id='" + rule_id + "']/directives"
-        )
-        for directive in directives:
-            preset = directive.find("then").attrib
-            keys, values = zip(*preset.items())
-            if str(keys[0]) == 'setpoint':
-                preset_dictionary[directive.attrib["preset"]] = [float(preset["setpoint"]), 0]
-            else:
-                preset_dictionary[directive.attrib["preset"]] = [float(preset["heating_setpoint"]), float(preset["cooling_setpoint"])]
-        if preset_dictionary != {}:
-            return preset_dictionary
 
     async def set_schedule_state(self, loc_id, name, state):
         """Sets the schedule, with the given name, connected to a location, to true or false - DOMAIN_OBJECTS."""
         # _LOGGER.debug("Changing schedule state to: %s", state)
-        schema_rule_ids = {}
-        schema_rule_ids = self.get_rule_id_and_zone_location_by_name_with_id(str(name), loc_id)
-        if not schema_rule_ids:
+        schema_rule_ids = self.get_rule_ids_by_name(str(name), loc_id)
+        if schema_rule_ids == {}:
             return False
         for schema_rule_id, location_id in schema_rule_ids.items():
             if location_id == loc_id:
@@ -711,7 +675,7 @@ class Smile:
                 await self.request(uri, method='put', data=data)
 
                 # All get_schema related items check domain_objects so update that
-                await asyncio.sleep(1)
+                await asyncio.sleep(self._sleeptime)
                 await self.update_domain_objects()
 
         return True
@@ -720,9 +684,12 @@ class Smile:
         """Sets the given location-preset on the relevant thermostat -
            from LOCATIONS."""
         # _LOGGER.debug("Changing preset for %s - %s to: %s", loc_id, loc_type, preset)
-        current_location = self._locations.find("location[@id='" + loc_id + "']")
+        current_location = self._locations.find("location[@id='{}']".format(loc_id))
         location_name = current_location.find('name').text
         location_type = current_location.find('type').text
+
+        if preset not in self.get_presets(loc_id):
+            return False
 
         uri = "{};id={}".format(LOCATIONS, loc_id)
 
@@ -745,15 +712,15 @@ class Smile:
         await self.request(uri, method='put', data=data)
 
         # All get_preset related items check domain_objects so update that
-        await asyncio.sleep(1)
+        await asyncio.sleep(self._sleeptime)
         await self.update_domain_objects()
 
         return True
 
-    async def set_temperature(self, dev_id, temperature):
+    async def set_temperature(self, loc_id, temperature):
         """Sends a temperature-set request to the relevant thermostat,
            connected to a location."""
-        uri = self.__get_temperature_uri(dev_id)
+        uri = self.__get_temperature_uri(loc_id)
         temperature = str(temperature)
         data = "<thermostat_functionality><setpoint>" \
                + temperature \
@@ -766,23 +733,23 @@ class Smile:
             CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
             return False
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(self._sleeptime)
         await self.update_appliances()
 
         return True
 
-    def __get_temperature_uri(self, dev_id):
+    def __get_temperature_uri(self, loc_id):
         """Determine the location-set_temperature uri - from LOCATIONS."""
-        locator = ("location[@id='{}']/actuator_functionalities/thermostat_functionality").format(dev_id)
+        locator = ("location[@id='{}']/actuator_functionalities/thermostat_functionality").format(loc_id)
         thermostat_functionality_id = self._locations.find(locator).attrib['id']
 
-        temperature_uri = (LOCATIONS + ";id=" + dev_id + "/thermostat;id=" + thermostat_functionality_id)
+        temperature_uri = (LOCATIONS + ";id=" + loc_id + "/thermostat;id=" + thermostat_functionality_id)
 
         return temperature_uri
 
-    async def set_relay_state(self, appl_id, type, state):
+    async def set_relay_state(self, appl_id, state):
         """Switch the Plug to off/on."""
-        locator = ("appliance[type='" + type + "']/actuator_functionalities/relay_functionality")
+        locator = "appliance[@id='{}']/actuator_functionalities/relay_functionality".format(appl_id)
         relay_functionality_id = self._domain_objects.find(locator).attrib['id']
         uri = (
             APPLIANCES
@@ -801,7 +768,7 @@ class Smile:
             CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
             return False
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(self._sleeptime)
         await self.update_appliances()
 
         return True
@@ -810,3 +777,4 @@ class Smile:
     def escape_illegal_xml_characters(xmldata):
         """Replace illegal &-characters."""
         return re.sub(r"&([^a-zA-Z#])", r"&amp;\1", xmldata)
+

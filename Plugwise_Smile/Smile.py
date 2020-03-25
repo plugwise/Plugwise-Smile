@@ -46,11 +46,12 @@ DEVICE_MEASUREMENTS = [
     'electricity_produced',
     'relay',
     'outdoor_temperature',
-    'boiler_state',
+    'domestic_hot_water_state',
+    'boiler_temperature',
     'central_heating_state',
     'central_heater_water_pressure',
-    'cooling_state',
-    'dhw_state',
+    'cooling_state',        # somebody confirmed he has this
+    'boiler_state',         # some Anna user had this ... lookup issues
     ]
 
 TARIFF_MEASUREMENTS = [
@@ -102,9 +103,7 @@ SMILES = {
 # older adam = gateway,heater_central,open_therm_gateway
 # p1v2 has no applianace
 
-CENTRAL_COMPONENTS = [
-    'heater_central', 'gateway', 'open_therm_gateway',
-]
+CENTRAL_COMPONENTS = ['heater_central', 'gateway', 'open_therm_gateway']
 
 class Smile:
     """Define the Plugwise object."""
@@ -140,6 +139,8 @@ class Smile:
         self._smile_version = ()
         self._smile_legacy = False
         self._home_location = None
+        self._gateway_id = None
+        self._gw_appl_ids = []
         self._platforms = ["climate","water_heater","sensor"]
 
     async def connect(self, retry=2):
@@ -320,13 +321,27 @@ class Smile:
         # Basically walk locations for 'members' not set[] and
         # scan for the same functionality
 
+        # Find gateway device as 'root'
+        for appliance in self._appliances:
+            if appliance.find('type').text == 'gateway':
+                self._gateway_id = appliance.attrib['id']
+                break
+
         for appliance in self._appliances:
             appliance_location = None
             appliance_types = set([])
 
-            appliance_name = appliance.find('name').text
             appliance_id = appliance.attrib['id']
             appliance_class = appliance.find('type').text
+            appliance_name = appliance.find('name').text
+
+            # Prevent registering global components
+            if appliance_class in CENTRAL_COMPONENTS:
+                if appliance_id not in self._gw_appl_ids:
+                    self._gw_appl_ids.append(appliance_id)
+                # If one component already there, skip
+                if appliance_id in appliances:
+                    continue
 
             # Appliance with location (i.e. a device)
             if appliance.find('location') is not None:
@@ -336,6 +351,9 @@ class Smile:
             else:
                 # Return all types applicable to home
                 appliance_types = locations[home_location]['types']
+                # Override registering to ensure gateway
+                appliance_name = self._smile_name
+                appliance_id = self._gateway_id
 
             # Determine appliance_type from funcitonality
             if appliance.find('.//actuator_functionalities/relay_functionality'):
@@ -415,36 +433,44 @@ class Smile:
     def get_device_data(self, dev_id):
         """Provides the device-data, based on location_id, from APPLIANCES."""
         details = self.get_all_devices()[dev_id]
-        device_data = self.get_appliance_data(dev_id)
+        merged_data = {}
+        if dev_id == self._gateway_id:
+            dev_ids = self._gw_appl_ids
+        else:
+            dev_ids = [dev_id]
+        for dev_id in dev_ids:
+            device_data = self.get_appliance_data(dev_id)
 
-        # Anna, Lisa
-        if details['class'] in ['thermostat','zone_thermostat']:
-            device_data['active_preset'] = self.get_preset(details['location'])
-            device_data['presets'] = self.get_presets(details['location'])
+            # Anna, Lisa
+            if details['class'] in ['thermostat','zone_thermostat']:
+                device_data['active_preset'] = self.get_preset(details['location'])
+                device_data['presets'] = self.get_presets(details['location'])
 
-            avail_schemas, sel_schema = self.get_schemas(details['location'])
-            device_data['available_schedules'] = avail_schemas
-            device_data['selected_schedule'] = sel_schema
+                avail_schemas, sel_schema = self.get_schemas(details['location'])
+                device_data['available_schedules'] = avail_schemas
+                device_data['selected_schedule'] = sel_schema
 
-        # Anna specific
-        if details['class'] in ['thermostat']:
-            device_data['illuminance'] = self.get_object_value('appliance',dev_id,'illuminance')
-            device_data['last_used'] = self.get_last_active_schema(details['location'])
+            # Anna specific
+            if details['class'] in ['thermostat']:
+                device_data['illuminance'] = self.get_object_value('appliance',dev_id,'illuminance')
+                device_data['last_used'] = self.get_last_active_schema(details['location'])
 
-        # Generic
-        if details['class'] == 'gateway':
+            # Generic
+            if details['class'] == 'gateway' or dev_id == self._gateway_id:
 
-            # Try to get P1 data
-            self.get_power_tariff()
-            power_data = self.get_direct_objects_from_location(details['location'])
-            if power_data is not None:
-                device_data.update(power_data)
+                # Try to get P1 data
+                self.get_power_tariff()
+                power_data = self.get_direct_objects_from_location(details['location'])
+                if power_data is not None:
+                    device_data.update(power_data)
 
-            outdoor_temperature = self.get_object_value('location',self._home_location,'outdoor_temperature')
-            if outdoor_temperature:
-                device_data['outdoor_temperature'] = outdoor_temperature
+                outdoor_temperature = self.get_object_value('location',self._home_location,'outdoor_temperature')
+                if outdoor_temperature:
+                    device_data['outdoor_temperature'] = outdoor_temperature
 
-        return device_data
+            merged_data.update(device_data)
+
+        return merged_data
 
 
 

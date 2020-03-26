@@ -701,8 +701,8 @@ class Smile:
                 await self.request(uri, method='put', data=data)
 
                 # All get_schema related items check domain_objects so update that
-                await asyncio.sleep(self._sleeptime)
-                await self.update_domain_objects()
+                #await asyncio.sleep(self._sleeptime)
+                #await self.update_domain_objects()
 
         return True
 
@@ -738,8 +738,8 @@ class Smile:
         await self.request(uri, method='put', data=data)
 
         # All get_preset related items check domain_objects so update that
-        await asyncio.sleep(self._sleeptime)
-        await self.update_domain_objects()
+        #await asyncio.sleep(self._sleeptime)
+        #await self.update_domain_objects()
 
         return True
 
@@ -759,8 +759,8 @@ class Smile:
             CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
             return False
 
-        await asyncio.sleep(self._sleeptime)
-        await self.update_appliances()
+        #await asyncio.sleep(self._sleeptime)
+        #await self.update_appliances()
 
         return True
 
@@ -794,8 +794,8 @@ class Smile:
             CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
             return False
 
-        await asyncio.sleep(self._sleeptime)
-        await self.update_appliances()
+        #await asyncio.sleep(self._sleeptime)
+        #await self.update_appliances()
 
         return True
 

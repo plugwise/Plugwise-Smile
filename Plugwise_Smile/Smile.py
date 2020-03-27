@@ -684,7 +684,7 @@ class Smile:
         """Sets the schedule, with the given name, connected to a location, to true or false - DOMAIN_OBJECTS."""
         # _LOGGER.debug("Changing schedule state to: %s", state)
         schema_rule_ids = self.get_rule_ids_by_name(str(name), loc_id)
-        if schema_rule_ids == {}:
+        if schema_rule_ids == {} or schema_rule_ids is None:
             return False
         for schema_rule_id, location_id in schema_rule_ids.items():
             if location_id == loc_id:

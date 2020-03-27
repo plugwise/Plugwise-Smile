@@ -667,7 +667,8 @@ class Smile:
         for rule in rules:
             if rule.find(locator) is not None:
                 schema_ids[rule.attrib['id']] = loc_id
-        return schema_ids
+        if schema_ids != {}:
+            return schema_ids
 
     def get_object_value(self, obj_type, appl_id, measurement):
         """Obtain the illuminance value from the thermostat."""

@@ -776,7 +776,7 @@ class Smile:
     async def set_relay_state(self, appl_id, state):
         """Switch the Plug to off/on."""
         locator = "appliance[@id='{}']/actuator_functionalities/relay_functionality".format(appl_id)
-        relay_functionality_id = self._domain_objects.find(locator).attrib['id']
+        relay_functionality_id = self._appliances.find(locator).attrib['id']
         uri = (
             APPLIANCES
             + ";id="

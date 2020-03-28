@@ -1,19 +1,22 @@
 """Plugwise Home Assistant module."""
 
 import asyncio
-import logging
-from lxml import etree
-# Version detection
-import semver
-# Time related
 import datetime as dt
-import pytz
-from dateutil.parser import parse
+import logging
+
 # For XML corrections
 import re
 
 import aiohttp
 import async_timeout
+
+# Time related
+import pytz
+
+# Version detection
+import semver
+from dateutil.parser import parse
+from lxml import etree
 
 APPLIANCES = "/core/appliances"
 DIRECT_OBJECTS = "/core/direct_objects"
@@ -27,72 +30,56 @@ DEFAULT_TIMEOUT = 20
 _LOGGER = logging.getLogger(__name__)
 
 HOME_MEASUREMENTS = {
-    'electricity_consumed': 'power',
-    'electricity_produced': 'power',
-    'gas_consumed': 'gas',
-    'outdoor_temperature': 'temperature',
-    }
+    "electricity_consumed": "power",
+    "electricity_produced": "power",
+    "gas_consumed": "gas",
+    "outdoor_temperature": "temperature",
+}
 
 # Excluded:
 # zone_thermosstat 'temperature_offset'
 # radiator_valve 'uncorrected_temperature', 'temperature_offset'
 DEVICE_MEASUREMENTS = [
-    'thermostat',       # HA setpoint
-    'temperature',      # HA current_temperature
-    'battery',
-    'valve_position',
-    'temperature_difference',
-    'electricity_consumed',
-    'electricity_produced',
-    'relay',
-    'outdoor_temperature',
-    'domestic_hot_water_state',
-    'boiler_temperature',
-    'central_heating_state',
-    'central_heater_water_pressure',
-    'cooling_state',        # somebody confirmed he has this
-    'boiler_state',         # some Anna user had this ... lookup issues
-    ]
+    "thermostat",  # HA setpoint
+    "temperature",  # HA current_temperature
+    "battery",
+    "valve_position",
+    "temperature_difference",
+    "electricity_consumed",
+    "electricity_produced",
+    "relay",
+    "outdoor_temperature",
+    "domestic_hot_water_state",
+    "boiler_temperature",
+    "central_heating_state",
+    "central_heater_water_pressure",
+    "cooling_state",  # somebody confirmed he has this
+    "boiler_state",  # some Anna user had this ... lookup issues
+]
 
 TARIFF_MEASUREMENTS = [
-    'electricity_consumption_tariff_structure',
-    'electricity_consumption_peak_tariff',
-    'electricity_consumption_off_peak_tariff',
-    'electricity_production_peak_tariff',
-    'electricity_production_off_peak_tariff',
-    'electricity_consumption_single_tariff',
-    'electricity_production_single_tariff',
-    'gas_consumption_tariff',
-    ]
+    "electricity_consumption_tariff_structure",
+    "electricity_consumption_peak_tariff",
+    "electricity_consumption_off_peak_tariff",
+    "electricity_production_peak_tariff",
+    "electricity_production_off_peak_tariff",
+    "electricity_consumption_single_tariff",
+    "electricity_production_single_tariff",
+    "gas_consumption_tariff",
+]
 
 
 SMILES = {
-    'smile_open_therm_v30' : {
-        "type": "thermostat",
-        "friendly_name": "Adam",
-    },
-    'smile_open_therm_v23' : {
-        "type": "thermostat",
-        "friendly_name": "Adam",
-    },
-    'smile_thermo_v31' : {
-        "type": "thermostat",
-        "friendly_name": "Smile (Anna)",
-    },
-    'smile_thermo_v18' : {
+    "smile_open_therm_v30": {"type": "thermostat", "friendly_name": "Adam",},
+    "smile_open_therm_v23": {"type": "thermostat", "friendly_name": "Adam",},
+    "smile_thermo_v31": {"type": "thermostat", "friendly_name": "Smile (Anna)",},
+    "smile_thermo_v18": {
         "type": "thermostat",
         "friendly_name": "Smile (Anna)",
         "legacy": True,
     },
-    'smile_v33' : {
-        "type": "power",
-        "friendly_name": "Smile P1",
-    },
-    'smile_v25' : {
-        "type": "power",
-        "friendly_name": "Smile P1",
-        "legacy": True,
-    },
+    "smile_v33": {"type": "power", "friendly_name": "Smile P1",},
+    "smile_v25": {"type": "power", "friendly_name": "Smile P1", "legacy": True,},
 }
 
 # Appliances with location WITHOUT id=
@@ -103,17 +90,28 @@ SMILES = {
 # older adam = gateway,heater_central,open_therm_gateway
 # p1v2 has no applianace
 
-CENTRAL_COMPONENTS = ['heater_central', 'gateway', 'open_therm_gateway']
+CENTRAL_COMPONENTS = ["heater_central", "gateway", "open_therm_gateway"]
+
 
 class Smile:
     """Define the Plugwise object."""
+
     # pylint: disable=too-many-instance-attributes, too-many-public-methods
 
-    def __init__(self, host, password, username='smile', port=80,
-                 timeout=DEFAULT_TIMEOUT, websession=None, sleeptime=1):
+    def __init__(
+        self,
+        host,
+        password,
+        username="smile",
+        port=80,
+        timeout=DEFAULT_TIMEOUT,
+        websession=None,
+        sleeptime=1,
+    ):
         """Set the constructor for this class."""
 
         if websession is None:
+
             async def _create_session():
                 return aiohttp.ClientSession()
 
@@ -141,7 +139,7 @@ class Smile:
         self._home_location = None
         self._gateway_id = None
         self._gw_appl_ids = []
-        self._platforms = ["climate","water_heater","sensor"]
+        self._platforms = ["climate", "water_heater", "sensor"]
 
     async def connect(self, retry=2):
         """Connect to Plugwise device."""
@@ -158,46 +156,53 @@ class Smile:
 
         result = await resp.text()
 
-        if '<vendor_name>Plugwise</vendor_name>' not in result:
-            _LOGGER.error('Connected but expected text not returned, \
-                          we got %s', result)
+        if "<vendor_name>Plugwise</vendor_name>" not in result:
+            _LOGGER.error(
+                "Connected but expected text not returned, \
+                          we got %s",
+                result,
+            )
             return False
 
         # TODO creat this as another function NOT part of connect!
         # just using request to parse the data
         do_xml = etree.XML(self.escape_illegal_xml_characters(result).encode())
-        gateway = do_xml.find('.//gateway')
+        gateway = do_xml.find(".//gateway")
 
         if gateway is None:
             # TODO: handle legacy here
-            _LOGGER.error('Connected but no gateway device information found')
+            _LOGGER.error("Connected but no gateway device information found")
             return False
 
         # TODO create if no gateway found ,rescan for system_status_xml
-        smile_model = do_xml.find('.//gateway/vendor_model').text
-        smile_version = do_xml.find('.//gateway/firmware_version').text
+        smile_model = do_xml.find(".//gateway/vendor_model").text
+        smile_version = do_xml.find(".//gateway/firmware_version").text
 
         if smile_model is None or smile_version is None:
-           _LOGGER.error('Unable to find model or version information')
-           return False
+            _LOGGER.error("Unable to find model or version information")
+            return False
 
         _LOGGER.debug("Plugwise model %s version %s", smile_model, smile_version)
 
         ver = semver.parse(smile_version)
-        target_smile = "{}_v{}{}".format(smile_model,ver['major'],ver['minor'])
+        target_smile = "{}_v{}{}".format(smile_model, ver["major"], ver["minor"])
         if target_smile not in SMILES:
-           _LOGGER.error('Your version Smile type "{}" with version "{}" \
+            _LOGGER.error(
+                'Your version Smile type "{}" with version "{}" \
                           seems unsupported by our plugin, please create \
                           an issue on github.com/plugwise/Plugwise-Smile!\
-                          '.format(smile_model,smile_version))
-           return False
+                          '.format(
+                    smile_model, smile_version
+                )
+            )
+            return False
 
-        self._smile_type = SMILES[target_smile]['type']
-        self._smile_name = SMILES[target_smile]['friendly_name']
-        self._smile_version = ( smile_version, ver )
+        self._smile_type = SMILES[target_smile]["type"]
+        self._smile_name = SMILES[target_smile]["friendly_name"]
+        self._smile_version = (smile_version, ver)
 
         if "legacy" in SMILES[target_smile]:
-            self._smile_legacy = SMILES[target_smile]['legacy']
+            self._smile_legacy = SMILES[target_smile]["legacy"]
 
         # Update all endpoints on first connect
         await self.full_update_device()
@@ -208,8 +213,14 @@ class Smile:
         """Close the Plugwise connection."""
         await self.websession.close()
 
-    async def request(self, command, retry=3, method='get', data={},
-                      headers={'Content-type': 'text/xml'}):
+    async def request(
+        self,
+        command,
+        retry=3,
+        method="get",
+        data={},
+        headers={"Content-type": "text/xml"},
+    ):
         """Request data."""
         # pylint: disable=too-many-return-statements
 
@@ -220,32 +231,36 @@ class Smile:
 
         try:
             with async_timeout.timeout(self._timeout):
-                if method == 'get':
+                if method == "get":
                     resp = await self.websession.get(url, auth=self._auth)
-                if method == 'put':
+                if method == "put":
                     # _LOGGER.debug("Sending: command/url %s with data %s
                     #               using headers %s", command, data, headers)
-                    resp = await self.websession.put(url, data=data,
-                                                     headers=headers,
-                                                     auth=self._auth)
+                    resp = await self.websession.put(
+                        url, data=data, headers=headers, auth=self._auth
+                    )
         except asyncio.TimeoutError:
             if retry < 1:
-                _LOGGER.error("Timed out sending command to Plugwise: %s",
-                              command)
+                _LOGGER.error("Timed out sending command to Plugwise: %s", command)
                 return None
             return await self.request(command, retry - 1)
         except aiohttp.ClientError:
-            _LOGGER.error("Error sending command to Plugwise: %s", command,
-                          exc_info=True)
+            _LOGGER.error(
+                "Error sending command to Plugwise: %s", command, exc_info=True
+            )
             return None
 
         result = await resp.text()
 
         # _LOGGER.debug(result)
-        _LOGGER.debug('Plugwise network traffic to %s- talking to Smile with \
-                      %s', self._endpoint, command)
+        _LOGGER.debug(
+            "Plugwise network traffic to %s- talking to Smile with \
+                      %s",
+            self._endpoint,
+            command,
+        )
 
-        if not result or 'error' in result:
+        if not result or "error" in result:
             return None
 
         # Encode to ensure utf8 parsing
@@ -292,23 +307,23 @@ class Smile:
     def _types_finder(self, data):
         types = set([])
         # Plug measurements detection - same as P1 in get_all_locations
-        for measure,measure_type in HOME_MEASUREMENTS.items():
-            locator='.//logs/point_log[type="{}"]'.format(measure)
+        for measure, measure_type in HOME_MEASUREMENTS.items():
+            locator = './/logs/point_log[type="{}"]'.format(measure)
             # Find powermeasures within data
             if data.find(locator):
                 log = data.find(locator)
 
                 # outdoor_temperature found
-                if measure == 'outdoor_temperature':
+                if measure == "outdoor_temperature":
                     types.add(measure_type)
 
                 # TODO, build gas locator for P1
 
                 # Find electra meter in locattion
-                p_locator='.//electricity_point_meter'
+                p_locator = ".//electricity_point_meter"
                 if log.find(p_locator) is not None:
-                    if log.find(p_locator).get('id'):
-                            types.add(measure_type)
+                    if log.find(p_locator).get("id"):
+                        types.add(measure_type)
         return types
 
     # Return list of all appliances, type and location
@@ -323,17 +338,17 @@ class Smile:
 
         # Find gateway device as 'root'
         for appliance in self._appliances:
-            if appliance.find('type').text == 'gateway':
-                self._gateway_id = appliance.attrib['id']
+            if appliance.find("type").text == "gateway":
+                self._gateway_id = appliance.attrib["id"]
                 break
 
         for appliance in self._appliances:
             appliance_location = None
             appliance_types = set([])
 
-            appliance_id = appliance.attrib['id']
-            appliance_class = appliance.find('type').text
-            appliance_name = appliance.find('name').text
+            appliance_id = appliance.attrib["id"]
+            appliance_class = appliance.find("type").text
+            appliance_name = appliance.find("name").text
 
             # Prevent registering global components
             if appliance_class in CENTRAL_COMPONENTS:
@@ -344,29 +359,29 @@ class Smile:
                     continue
 
             # Appliance with location (i.e. a device)
-            if appliance.find('location') is not None:
-                appliance_location = appliance.find('location').attrib['id']
+            if appliance.find("location") is not None:
+                appliance_location = appliance.find("location").attrib["id"]
                 for appl_type in self._types_finder(appliance):
                     appliance_types.add(appl_type)
             else:
                 # Return all types applicable to home
-                appliance_types = locations[home_location]['types']
+                appliance_types = locations[home_location]["types"]
                 # Override registering to ensure gateway
                 appliance_name = self._smile_name
                 appliance_id = self._gateway_id
 
             # Determine appliance_type from funcitonality
-            if appliance.find('.//actuator_functionalities/relay_functionality'):
-                appliance_types.add('plug')
-            elif appliance.find('.//actuator_functionalities/thermostat_functionality'):
-                appliance_types.add('thermostat')
+            if appliance.find(".//actuator_functionalities/relay_functionality"):
+                appliance_types.add("plug")
+            elif appliance.find(".//actuator_functionalities/thermostat_functionality"):
+                appliance_types.add("thermostat")
 
             appliances[appliance_id] = {
-                                        'name': appliance_name,
-                                        'types': appliance_types,
-                                        'class': appliance_class,
-                                        'location': appliance_location,
-                                       }
+                "name": appliance_name,
+                "types": appliance_types,
+                "class": appliance_class,
+                "location": appliance_location,
+            }
         return appliances
 
     # Return aavailable locations (unmapped, see match_locations)
@@ -374,29 +389,29 @@ class Smile:
         home_location = None
         locations = {}
         for location in self._locations:
-            location_name = location.find('name').text
-            location_id = location.attrib['id']
+            location_name = location.find("name").text
+            location_id = location.attrib["id"]
             location_types = set([])
             location_members = set([])
 
             # Group of appliances
-            locator='.//appliances/appliance'
+            locator = ".//appliances/appliance"
             if location.find(locator) is not None:
                 for member in location.findall(locator):
-                    location_members.add(member.attrib['id'])
+                    location_members.add(member.attrib["id"])
 
-            if location_name == 'Home':
+            if location_name == "Home":
                 home_location = location_id
-                location_types.add('home')
+                location_types.add("home")
 
                 for location_type in self._types_finder(location):
                     location_types.add(location_type)
 
             locations[location_id] = {
-                                      'name': location_name,
-                                      'types': location_types,
-                                      'members': location_members,
-                                     }
+                "name": location_name,
+                "types": location_types,
+                "members": location_members,
+            }
 
         self._home_location = home_location
         return locations, home_location
@@ -409,9 +424,9 @@ class Smile:
 
         for location_id, location_details in locations.items():
             for appliance_id, appliance_details in appliances.items():
-                if appliance_details['location'] == location_id:
-                    for appl_type in appliance_details['types']:
-                        location_details['types'].add(appl_type)
+                if appliance_details["location"] == location_id:
+                    for appl_type in appliance_details["types"]:
+                        location_details["types"].add(appl_type)
 
             match_locations[location_id] = location_details
 
@@ -425,8 +440,8 @@ class Smile:
         appliances = self.get_all_appliances()
 
         for appliance, details in appliances.items():
-            if details['location'] is None:
-                details['location'] = home_location
+            if details["location"] is None:
+                details["location"] = home_location
             devices[appliance] = details
         return devices
 
@@ -442,55 +457,59 @@ class Smile:
             device_data = self.get_appliance_data(dev_id)
 
             # Anna, Lisa
-            if details['class'] in ['thermostat','zone_thermostat']:
-                device_data['active_preset'] = self.get_preset(details['location'])
-                device_data['presets'] = self.get_presets(details['location'])
+            if details["class"] in ["thermostat", "zone_thermostat"]:
+                device_data["active_preset"] = self.get_preset(details["location"])
+                device_data["presets"] = self.get_presets(details["location"])
 
-                avail_schemas, sel_schema = self.get_schemas(details['location'])
-                device_data['available_schedules'] = avail_schemas
-                device_data['selected_schedule'] = sel_schema
+                avail_schemas, sel_schema = self.get_schemas(details["location"])
+                device_data["available_schedules"] = avail_schemas
+                device_data["selected_schedule"] = sel_schema
 
             # Anna specific
-            if details['class'] in ['thermostat']:
-                device_data['illuminance'] = self.get_object_value('appliance',dev_id,'illuminance')
-                device_data['last_used'] = self.get_last_active_schema(details['location'])
+            if details["class"] in ["thermostat"]:
+                device_data["illuminance"] = self.get_object_value(
+                    "appliance", dev_id, "illuminance"
+                )
+                device_data["last_used"] = self.get_last_active_schema(
+                    details["location"]
+                )
 
             # Generic
-            if details['class'] == 'gateway' or dev_id == self._gateway_id:
+            if details["class"] == "gateway" or dev_id == self._gateway_id:
 
                 # Try to get P1 data
                 self.get_power_tariff()
-                power_data = self.get_direct_objects_from_location(details['location'])
+                power_data = self.get_direct_objects_from_location(details["location"])
                 if power_data is not None:
                     device_data.update(power_data)
 
-                outdoor_temperature = self.get_object_value('location',self._home_location,'outdoor_temperature')
+                outdoor_temperature = self.get_object_value(
+                    "location", self._home_location, "outdoor_temperature"
+                )
                 if outdoor_temperature:
-                    device_data['outdoor_temperature'] = outdoor_temperature
+                    device_data["outdoor_temperature"] = outdoor_temperature
 
             merged_data.update(device_data)
 
         return merged_data
 
-
-
     def get_appliance_data(self, dev_id):
         """Obtains the appliance-data connected to a location -
            from APPLIANCES."""
-        data={}
+        data = {}
         appliances = self._appliances.findall('.//appliance[@id="{}"]'.format(dev_id))
-        #point_log = ".//logs/point_log[type='{}']"
+        # point_log = ".//logs/point_log[type='{}']"
         p_locator = ".//logs/point_log[type='{}']/period/measurement"
         i_locator = ".//logs/interval_log[type='{}']/period/measurement"
-        #thermostatic_types = ['zone_thermostat',
+        # thermostatic_types = ['zone_thermostat',
         #                      'thermostatic_radiator_valve',
         #                      'thermostat']
 
         for appliance in appliances:
             for measurement in DEVICE_MEASUREMENTS:
                 meter_id = None
-                appliance_name = appliance.find('name').text
-                #log_types = point_log.format(measurement)
+                appliance_name = appliance.find("name").text
+                # log_types = point_log.format(measurement)
                 pl_value = p_locator.format(measurement)
                 if appliance.find(pl_value) is not None:
                     measure = appliance.find(pl_value).text
@@ -499,7 +518,7 @@ class Smile:
 
                 il_value = i_locator.format(measurement)
                 if appliance.find(il_value) is not None:
-                    measurement = '{}_interval'.format(measurement)
+                    measurement = "{}_interval".format(measurement)
                     measure = appliance.find(il_value).text
 
                     data[measurement] = self._format_measure(measure)
@@ -507,7 +526,7 @@ class Smile:
         return data
 
     # format_measure
-    def _format_measure(self,measure):
+    def _format_measure(self, measure):
 
         try:
             measure = int(measure)
@@ -517,8 +536,8 @@ class Smile:
             measure = float(measure)
         except ValueError:
             pass
-        if type(measure) == 'float':
-            measure = '{:.2f}'.format(round(measure, 2))
+        if type(measure) == "float":
+            measure = "{:.2f}".format(round(measure, 2))
         return measure
 
     # Smile P1 specific
@@ -526,7 +545,7 @@ class Smile:
         """Obtains power tariff information from Smile"""
         self._power_tariff = {}
         for t in TARIFF_MEASUREMENTS:
-            locator = ("./gateway/gateway_environment/{}".format(t))
+            locator = "./gateway/gateway_environment/{}".format(t)
             self._power_tariff[t] = self._domain_objects.find(locator).text
 
         return True
@@ -535,47 +554,48 @@ class Smile:
         """Obtains the appliance-data from appliances without a location
            - from DIRECT_OBJECTS."""
         direct_data = {}
-        loc_logs = self._direct_objects.find(".//location[@id='{}']/logs".format(loc_id))
+        loc_logs = self._direct_objects.find(
+            ".//location[@id='{}']/logs".format(loc_id)
+        )
 
         # Dict for energy differential
         net_energy = {}
 
         if loc_logs is not None and self._power_tariff is not None:
-            log_list = ['point_log', 'cumulative_log']
-            peak_list = ['nl_peak']
-            tariff_structure = 'electricity_consumption_tariff_structure'
-            if self._power_tariff[tariff_structure] == 'double':
-                peak_list.append('nl_offpeak')
+            log_list = ["point_log", "cumulative_log"]
+            peak_list = ["nl_peak"]
+            tariff_structure = "electricity_consumption_tariff_structure"
+            if self._power_tariff[tariff_structure] == "double":
+                peak_list.append("nl_offpeak")
 
             loc_string = ".//{}[type='{}']/period/measurement[@tariff=\"{}\"]"
-            #meter_string = ".//{}[type='{}']/"
+            # meter_string = ".//{}[type='{}']/"
             for measurement in HOME_MEASUREMENTS:
                 for log_type in log_list:
-                    #meter_id = None
-                    #meter = meter_string.format(log_type, measurement)
+                    # meter_id = None
+                    # meter = meter_string.format(log_type, measurement)
                     for peak_select in peak_list:
-                        locator = loc_string.format(log_type, measurement,
-                                                    peak_select)
+                        locator = loc_string.format(log_type, measurement, peak_select)
                         if loc_logs.find(locator) is not None:
-                            #for item in loc_logs.findall(meter):
+                            # for item in loc_logs.findall(meter):
                             #    if '_meter' in item.tag or item.tag == measurement:
                             #        meter_id = item.attrib['id']
-                            peak = peak_select.split('_')[1]
+                            peak = peak_select.split("_")[1]
                             if peak == "offpeak":
                                 peak = "off_peak"
-                            log_found = log_type.split('_')[0]
-                            key_string = f'{measurement}_{peak}_{log_found}'
-                            net_string = f'net_electricity_{log_found}'
+                            log_found = log_type.split("_")[0]
+                            key_string = f"{measurement}_{peak}_{log_found}"
+                            net_string = f"net_electricity_{log_found}"
                             val = float(loc_logs.find(locator).text)
 
                             # Energy differential
-                            if 'electricity' in measurement:
+                            if "electricity" in measurement:
                                 diff = 1
-                                if 'produced' in measurement:
+                                if "produced" in measurement:
                                     diff = -1
                                 if net_string not in direct_data:
                                     direct_data[net_string] = float()
-                                direct_data[net_string] += float(val*diff)
+                                direct_data[net_string] += float(val * diff)
 
                             direct_data[key_string] = val
 
@@ -585,20 +605,20 @@ class Smile:
     def get_preset(self, loc_id):
         """Obtains the active preset based on the location_id -
            from DOMAIN_OBJECTS."""
-        locator=".//location[@id='{}']/preset".format(loc_id)
+        locator = ".//location[@id='{}']/preset".format(loc_id)
         preset = self._domain_objects.find(locator)
         if preset is not None:
-                return preset.text
+            return preset.text
 
     def get_presets(self, loc_id):
         """Gets the presets from the thermostat based on location_id."""
         presets = {}
-        tag = 'zone_setpoint_and_state_based_on_preset'
+        tag = "zone_setpoint_and_state_based_on_preset"
 
         # _LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
         rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
         if rule_ids is None:
-            rule_ids = self.get_rule_ids_by_name('Thermostat presets', loc_id)
+            rule_ids = self.get_rule_ids_by_name("Thermostat presets", loc_id)
             if rule_ids is None:
                 return None
 
@@ -610,10 +630,13 @@ class Smile:
             for directive in directives:
                 preset = directive.find("then").attrib
                 keys, values = zip(*preset.items())
-                if str(keys[0]) == 'setpoint':
+                if str(keys[0]) == "setpoint":
                     presets[directive.attrib["preset"]] = [float(preset["setpoint"]), 0]
                 else:
-                    presets[directive.attrib["preset"]] = [float(preset["heating_setpoint"]), float(preset["cooling_setpoint"])]
+                    presets[directive.attrib["preset"]] = [
+                        float(preset["heating_setpoint"]),
+                        float(preset["cooling_setpoint"]),
+                    ]
 
         return presets
 
@@ -625,7 +648,7 @@ class Smile:
         available = []
         selected = None
 
-        tag = 'zone_preset_based_on_time_and_presence_with_override'
+        tag = "zone_preset_based_on_time_and_presence_with_override"
 
         rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
         if rule_ids is not None:
@@ -633,8 +656,15 @@ class Smile:
                 if location_id == loc_id:
                     active = False
 
-                    name = self._domain_objects.find("rule[@id='{}']/name".format(rule_id)).text
-                    if self._domain_objects.find("rule[@id='{}']/active".format(rule_id)).text == 'true':
+                    name = self._domain_objects.find(
+                        "rule[@id='{}']/name".format(rule_id)
+                    ).text
+                    if (
+                        self._domain_objects.find(
+                            "rule[@id='{}']/active".format(rule_id)
+                        ).text
+                        == "true"
+                    ):
                         active = True
                     schemas[name] = active
 
@@ -652,14 +682,18 @@ class Smile:
         schemas = {}
         last_modified = None
 
-        tag = 'zone_preset_based_on_time_and_presence_with_override'
+        tag = "zone_preset_based_on_time_and_presence_with_override"
 
         rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
         if rule_ids is not None:
             for rule_id, location_id in rule_ids.items():
                 if location_id == loc_id:
-                    schema_name = self._domain_objects.find("rule[@id='{}']/name".format(rule_id)).text
-                    schema_date = self._domain_objects.find("rule[@id='{}']/modified_date".format(rule_id)).text
+                    schema_name = self._domain_objects.find(
+                        "rule[@id='{}']/name".format(rule_id)
+                    ).text
+                    schema_date = self._domain_objects.find(
+                        "rule[@id='{}']/modified_date".format(rule_id)
+                    ).text
                     schema_time = parse(schema_date)
                     schemas[schema_name] = (schema_time - epoch).total_seconds()
 
@@ -673,12 +707,12 @@ class Smile:
            location_id."""
         # _LOGGER.debug("Plugwise rule and id: %s -> %s",rule_name,dev_id)
         schema_ids = {}
-        rules = self._domain_objects.findall('.//rule')
+        rules = self._domain_objects.findall(".//rule")
         locator1 = './/template[@tag="{}"]'.format(tag)
         locator2 = './/contexts/context/zone/location[@id="{}"]'.format(loc_id)
         for rule in rules:
             if rule.find(locator1) is not None and rule.find(locator2) is not None:
-                schema_ids[rule.attrib['id']] = loc_id
+                schema_ids[rule.attrib["id"]] = loc_id
         if schema_ids != {}:
             return schema_ids
 
@@ -689,19 +723,20 @@ class Smile:
         locator = './/contexts/context/zone/location[@id="{}"]'.format(loc_id)
         for rule in rules:
             if rule.find(locator) is not None:
-                schema_ids[rule.attrib['id']] = loc_id
+                schema_ids[rule.attrib["id"]] = loc_id
         if schema_ids != {}:
             return schema_ids
 
     def get_object_value(self, obj_type, appl_id, measurement):
         """Obtain the illuminance value from the thermostat."""
-        locator = ".//{}[@id='{}']/logs/point_log[type='{}']/period/measurement".format(obj_type, appl_id, measurement)
+        locator = ".//{}[@id='{}']/logs/point_log[type='{}']/period/measurement".format(
+            obj_type, appl_id, measurement
+        )
         if self._direct_objects.find(locator) is not None:
             data = self._direct_objects.find(locator).text
             val = float(data)
-            val = float('{:.1f}'.format(round(val, 1)))
+            val = float("{:.1f}".format(round(val, 1)))
             return val
-
 
     async def set_schedule_state(self, loc_id, name, state):
         """Sets the schedule, with the given name, connected to a location, to true or false - DOMAIN_OBJECTS."""
@@ -711,23 +746,27 @@ class Smile:
             return False
         for schema_rule_id, location_id in schema_rule_ids.items():
             if location_id == loc_id:
-                templates = self._domain_objects.findall(".//*[@id='{}']/template".format(schema_rule_id))
+                templates = self._domain_objects.findall(
+                    ".//*[@id='{}']/template".format(schema_rule_id)
+                )
                 template_id = None
                 for rule in templates:
-                    template_id = rule.attrib['id']
+                    template_id = rule.attrib["id"]
 
-                uri = '{};id={}'.format(RULES, schema_rule_id)
+                uri = "{};id={}".format(RULES, schema_rule_id)
 
                 state = str(state)
-                data = '<rules><rule id="{}"><name><![CDATA[{}]]></name>' \
-                       '<template id="{}" /><active>{}</active></rule>' \
-                       '</rules>'.format(schema_rule_id, name, template_id, state)
+                data = (
+                    '<rules><rule id="{}"><name><![CDATA[{}]]></name>'
+                    '<template id="{}" /><active>{}</active></rule>'
+                    "</rules>".format(schema_rule_id, name, template_id, state)
+                )
 
-                await self.request(uri, method='put', data=data)
+                await self.request(uri, method="put", data=data)
 
                 # All get_schema related items check domain_objects so update that
-                #await asyncio.sleep(self._sleeptime)
-                #await self.update_domain_objects()
+                # await asyncio.sleep(self._sleeptime)
+                # await self.update_domain_objects()
 
         return True
 
@@ -736,35 +775,37 @@ class Smile:
            from LOCATIONS."""
         # _LOGGER.debug("Changing preset for %s - %s to: %s", loc_id, loc_type, preset)
         current_location = self._locations.find("location[@id='{}']".format(loc_id))
-        location_name = current_location.find('name').text
-        location_type = current_location.find('type').text
+        location_name = current_location.find("name").text
+        location_type = current_location.find("type").text
 
         if preset not in self.get_presets(loc_id):
             return False
 
         uri = "{};id={}".format(LOCATIONS, loc_id)
 
-        data = "<locations>" \
-            + '<location id="' \
-            + loc_id \
-            + '">' \
-            + "<name>" \
-            + location_name \
-            + "</name>" \
-            + "<type>" \
-            + location_type \
-            + "</type>" \
-            + "<preset>" \
-            + preset \
-            + "</preset>" \
-            + "</location>" \
+        data = (
+            "<locations>"
+            + '<location id="'
+            + loc_id
+            + '">'
+            + "<name>"
+            + location_name
+            + "</name>"
+            + "<type>"
+            + location_type
+            + "</type>"
+            + "<preset>"
+            + preset
+            + "</preset>"
+            + "</location>"
             + "</locations>"
+        )
 
-        await self.request(uri, method='put', data=data)
+        await self.request(uri, method="put", data=data)
 
         # All get_preset related items check domain_objects so update that
-        #await asyncio.sleep(self._sleeptime)
-        #await self.update_domain_objects()
+        # await asyncio.sleep(self._sleeptime)
+        # await self.update_domain_objects()
 
         return True
 
@@ -773,54 +814,62 @@ class Smile:
            connected to a location."""
         uri = self.__get_temperature_uri(loc_id)
         temperature = str(temperature)
-        data = "<thermostat_functionality><setpoint>" \
-               + temperature \
-               + "</setpoint></thermostat_functionality>"
+        data = (
+            "<thermostat_functionality><setpoint>"
+            + temperature
+            + "</setpoint></thermostat_functionality>"
+        )
 
         if uri is not None:
-            await self.request(uri, method='put', data=data)
+            await self.request(uri, method="put", data=data)
 
         else:
             CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
             return False
 
-        #await asyncio.sleep(self._sleeptime)
-        #await self.update_appliances()
+        # await asyncio.sleep(self._sleeptime)
+        # await self.update_appliances()
 
         return True
 
     def __get_temperature_uri(self, loc_id):
         """Determine the location-set_temperature uri - from LOCATIONS."""
-        locator = ("location[@id='{}']/actuator_functionalities/thermostat_functionality").format(loc_id)
-        thermostat_functionality_id = self._locations.find(locator).attrib['id']
+        locator = (
+            "location[@id='{}']/actuator_functionalities/thermostat_functionality"
+        ).format(loc_id)
+        thermostat_functionality_id = self._locations.find(locator).attrib["id"]
 
-        temperature_uri = (LOCATIONS + ";id=" + loc_id + "/thermostat;id=" + thermostat_functionality_id)
+        temperature_uri = (
+            LOCATIONS
+            + ";id="
+            + loc_id
+            + "/thermostat;id="
+            + thermostat_functionality_id
+        )
 
         return temperature_uri
 
     async def set_relay_state(self, appl_id, state):
         """Switch the Plug to off/on."""
-        locator = "appliance[@id='{}']/actuator_functionalities/relay_functionality".format(appl_id)
-        relay_functionality_id = self._appliances.find(locator).attrib['id']
-        uri = (
-            APPLIANCES
-            + ";id="
-            + appl_id
-            + "/relay;id="
-            + relay_functionality_id
+        locator = "appliance[@id='{}']/actuator_functionalities/relay_functionality".format(
+            appl_id
         )
+        relay_functionality_id = self._appliances.find(locator).attrib["id"]
+        uri = APPLIANCES + ";id=" + appl_id + "/relay;id=" + relay_functionality_id
         state = str(state)
-        data = "<relay_functionality><state>{}</state></relay_functionality>".format(state)
+        data = "<relay_functionality><state>{}</state></relay_functionality>".format(
+            state
+        )
 
         if uri is not None:
-            await self.request(uri, method='put', data=data)
+            await self.request(uri, method="put", data=data)
 
         else:
             CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
             return False
 
-        #await asyncio.sleep(self._sleeptime)
-        #await self.update_appliances()
+        # await asyncio.sleep(self._sleeptime)
+        # await self.update_appliances()
 
         return True
 
@@ -828,4 +877,3 @@ class Smile:
     def escape_illegal_xml_characters(xmldata):
         """Replace illegal &-characters."""
         return re.sub(r"&([^a-zA-Z#])", r"&amp;\1", xmldata)
-

@@ -537,6 +537,9 @@ class Smile:
         direct_data = {}
         loc_logs = self._direct_objects.find(".//location[@id='{}']/logs".format(loc_id))
 
+        # Dict for energy differential
+        net_energy = {}
+
         if loc_logs is not None and self._power_tariff is not None:
             log_list = ['point_log', 'cumulative_log']
             peak_list = ['nl_peak']
@@ -561,9 +564,19 @@ class Smile:
                             if peak == "offpeak":
                                 peak = "off_peak"
                             log_found = log_type.split('_')[0]
-                            key_string = '{}_{}_{}'.format(measurement,
-                                                           peak, log_found)
+                            key_string = f'{measurement}_{peak}_{log_found}'
+                            net_string = f'net_electricity_{log_found}'
                             val = float(loc_logs.find(locator).text)
+
+                            # Energy differential
+                            if 'electricity' in measurement:
+                                diff = 1
+                                if 'produced' in measurement:
+                                    diff = -1
+                                if net_string not in direct_data:
+                                    direct_data[net_string] = float()
+                                direct_data[net_string] += float(val*diff)
+
                             direct_data[key_string] = val
 
         if direct_data != {}:

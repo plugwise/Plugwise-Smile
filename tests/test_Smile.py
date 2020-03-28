@@ -479,3 +479,30 @@ async def test_connect_p1v3():
 
     await smile.close_connection()
     await disconnect(server,client)
+
+# Faked solar for differential, need actual p1v3 with solar data :)
+@pytest.mark.asyncio
+async def test_connect_p1v3solarfake():
+    #testdata dictionary with key ctrl_id_dev_id => keys:values
+    testdata={
+        # Gateway / P1 itself
+        'ba4de7613517478da82dd9b6abea36af': {
+                'electricity_consumed_peak_point': 644.0,
+                'electricity_produced_peak_cumulative': 20000.0,
+                'electricity_consumed_off_peak_cumulative': 10263159.0,
+                'net_electricity_point': 444.0,
+        }
+    }
+    global smile_setup
+    smile_setup = 'p1v3solarfake'
+    server,smile,client = await connect()
+    assert smile._smile_type == 'power'
+    assert smile._smile_version[0] == '3.3.6'
+    assert smile._smile_legacy == False
+    await test_device(smile, testdata)
+    await test_device(smile, testdata)
+    await smile.close_connection()
+    await disconnect(server,client)
+
+    await smile.close_connection()
+    await disconnect(server,client)

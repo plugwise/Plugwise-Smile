@@ -480,7 +480,8 @@ class Smile:
         data={}
         appliances = self._appliances.findall('.//appliance[@id="{}"]'.format(dev_id))
         #point_log = ".//logs/point_log[type='{}']"
-        locator_string = ".//logs/point_log[type='{}']/period/measurement"
+        p_locator = ".//logs/point_log[type='{}']/period/measurement"
+        i_locator = ".//logs/interval_log[type='{}']/period/measurement"
         #thermostatic_types = ['zone_thermostat',
         #                      'thermostatic_radiator_valve',
         #                      'thermostat']
@@ -490,26 +491,35 @@ class Smile:
                 meter_id = None
                 appliance_name = appliance.find('name').text
                 #log_types = point_log.format(measurement)
-                pl_value = locator_string.format(measurement)
+                pl_value = p_locator.format(measurement)
                 if appliance.find(pl_value) is not None:
                     measure = appliance.find(pl_value).text
-                    #for item in appliance.find(log_types):
-                    #    if '_meter' in item.tag or item.tag == measure:
-                    #        meter_id = item.attrib['id']
-                    try:
-                        measure = int(measure)
-                    except ValueError:
-                        pass
-                    try:
-                        measure = float(measure)
-                    except ValueError:
-                        pass
-                    if type(measure) == 'float':
-                        measure = '{:.2f}'.format(round(measure, 2))
-                    data[measurement] = measure
 
+                    data[measurement] = self._format_measure(measure)
+
+                il_value = i_locator.format(measurement)
+                if appliance.find(il_value) is not None:
+                    measurement = '{}_interval'.format(measurement)
+                    measure = appliance.find(il_value).text
+
+                    data[measurement] = self._format_measure(measure)
 
         return data
+
+    # format_measure
+    def _format_measure(self,measure):
+
+        try:
+            measure = int(measure)
+        except ValueError:
+            pass
+        try:
+            measure = float(measure)
+        except ValueError:
+            pass
+        if type(measure) == 'float':
+            measure = '{:.2f}'.format(round(measure, 2))
+        return measure
 
     # Smile P1 specific
     def get_power_tariff(self):

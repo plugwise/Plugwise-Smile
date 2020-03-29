@@ -157,12 +157,13 @@ class Smile:
         result = await resp.text()
 
         if "<vendor_name>Plugwise</vendor_name>" not in result:
-            _LOGGER.error(
-                "Connected but expected text not returned, \
-                          we got %s",
-                result,
-            )
-            return False
+            if "<dsmrmain id" not in result:
+                _LOGGER.error(
+                    "Connected but expected text not returned, \
+                              we got %s",
+                    result,
+                )
+                return False
 
         # TODO creat this as another function NOT part of connect!
         # just using request to parse the data
@@ -170,21 +171,38 @@ class Smile:
         gateway = do_xml.find(".//gateway")
 
         if gateway is None:
-            # TODO: handle legacy here
-            _LOGGER.error("Connected but no gateway device information found")
-            return False
+            # Assume legacy
+            self._smile_legacy = True
+            # Try if it is an Anna, assuming appliance thermostat
+            anna = do_xml.find('.//appliance[type="thermostat"]')
+            # Fake insert version assuming Anna
+            # couldn't find another way to identify as legacy Anna
+            smile_version = "1.8.0"
+            smile_model = "smile_thermo"
+            if anna is None:
+                # P1 legacy
+                if "<dsmrmain id" in result:
+                    # Fake insert version assuming P1
+                    # yes we could get this from system_status
+                    smile_version = "2.5.9"
+                    smile_model = "smile"
+                else:
+                    _LOGGER.error("Connected but no gateway device information found")
+                    return False
 
-        # TODO create if no gateway found ,rescan for system_status_xml
-        smile_model = do_xml.find(".//gateway/vendor_model").text
-        smile_version = do_xml.find(".//gateway/firmware_version").text
+            _LOGGER.info("Assuming legacy device")
+
+        if not self._smile_legacy:
+            smile_model = do_xml.find(".//gateway/vendor_model").text
+            smile_version = do_xml.find(".//gateway/firmware_version").text
 
         if smile_model is None or smile_version is None:
             _LOGGER.error("Unable to find model or version information")
             return False
 
         _LOGGER.debug("Plugwise model %s version %s", smile_model, smile_version)
-
         ver = semver.parse(smile_version)
+
         target_smile = "{}_v{}{}".format(smile_model, ver["major"], ver["minor"])
         if target_smile not in SMILES:
             _LOGGER.error(
@@ -269,6 +287,9 @@ class Smile:
     # Appliances
     async def update_appliances(self):
         """Request data."""
+        if self._smile_legacy and self._smile_type == "power":
+            return True
+
         new_data = await self.request(APPLIANCES)
         if new_data is not None:
             self._appliances = new_data
@@ -276,6 +297,9 @@ class Smile:
     # Direct objects
     async def update_direct_objects(self):
         """Request data."""
+        if self._smile_legacy and self._smile_type == "power":
+            return True
+
         new_data = await self.request(DIRECT_OBJECTS)
         if new_data is not None:
             self._direct_objects = new_data
@@ -297,9 +321,10 @@ class Smile:
     # Retrieve all XMLs
     async def full_update_device(self):
         """Update device."""
+        # P1 legacy has no appliances nor direct_objects
         await self.update_appliances()
-        await self.update_domain_objects()
         await self.update_direct_objects()
+        await self.update_domain_objects()
         await self.update_locations()
         return True
 
@@ -329,6 +354,19 @@ class Smile:
     # Return list of all appliances, type and location
     def get_all_appliances(self):
         appliances = {}
+
+        if self._smile_legacy and self._smile_type == "power":
+            # Injecting home location as dev id
+            # so get_appliance_data can use loc_id for dev_id
+            appliances[self._home_location] = {
+                "name": "Smile P1",
+                "types": set(["power", "home"]),
+                "class": "gateway",
+                "location": None,
+            }
+            return appliances
+            #    "location": self._home_location,
+
         locations, home_location = self.get_all_locations()
 
         # TODO: add locations with members as appliance as well
@@ -388,6 +426,16 @@ class Smile:
     def get_all_locations(self):
         home_location = None
         locations = {}
+        # Legacy Anna
+        if len(self._locations) == 0 and self._smile_legacy:
+            home_location = 0
+            locations[0] = {
+                "name": "Legacy",
+                "types": set(["temperature"]),
+                "members": None,
+            }
+            return locations, home_location
+
         for location in self._locations:
             location_name = location.find("name").text
             location_id = location.attrib["id"]
@@ -406,6 +454,16 @@ class Smile:
 
                 for location_type in self._types_finder(location):
                     location_types.add(location_type)
+
+            # Legacy P1 right location has 'services' filled
+            # test data has 5 for example
+            locator = ".//services"
+            if self._smile_legacy and len(location.find(locator)) > 0:
+                # Override location name found to match
+                location_name = "Home"
+                home_location = location_id
+                location_types.add("home")
+                location_types.add("power")
 
             locations[location_id] = {
                 "name": location_name,
@@ -495,21 +553,24 @@ class Smile:
 
     def get_appliance_data(self, dev_id):
         """Obtains the appliance-data connected to a location -
-           from APPLIANCES."""
+           from APPLIANCES or legacy DOMAIN_OBJECTS."""
         data = {}
-        appliances = self._appliances.findall('.//appliance[@id="{}"]'.format(dev_id))
-        # point_log = ".//logs/point_log[type='{}']"
+        search = self._appliances
+
+        if self._smile_legacy and self._smile_type == "power":
+            search = self._domain_objects
+
+        appliances = search.findall('.//appliance[@id="{}"]'.format(dev_id))
+
         p_locator = ".//logs/point_log[type='{}']/period/measurement"
         i_locator = ".//logs/interval_log[type='{}']/period/measurement"
-        # thermostatic_types = ['zone_thermostat',
-        #                      'thermostatic_radiator_valve',
-        #                      'thermostat']
+        c_locator = ".//logs/cumulative_log[type='{}']/period/measurement"
 
         for appliance in appliances:
             for measurement in DEVICE_MEASUREMENTS:
                 meter_id = None
                 appliance_name = appliance.find("name").text
-                # log_types = point_log.format(measurement)
+
                 pl_value = p_locator.format(measurement)
                 if appliance.find(pl_value) is not None:
                     measure = appliance.find(pl_value).text
@@ -520,6 +581,12 @@ class Smile:
                 if appliance.find(il_value) is not None:
                     measurement = "{}_interval".format(measurement)
                     measure = appliance.find(il_value).text
+
+                    data[measurement] = self._format_measure(measure)
+                cl_value = c_locator.format(measurement)
+                if appliance.find(cl_value) is not None:
+                    measurement = "{}_cumulative".format(measurement)
+                    measure = appliance.find(cl_value).text
 
                     data[measurement] = self._format_measure(measure)
 
@@ -546,7 +613,9 @@ class Smile:
         self._power_tariff = {}
         for t in TARIFF_MEASUREMENTS:
             locator = "./gateway/gateway_environment/{}".format(t)
-            self._power_tariff[t] = self._domain_objects.find(locator).text
+            tariff = self._domain_objects.find(locator)
+            if tariff is not None:
+                self._power_tariff[t] = tariff.text
 
         return True
 
@@ -554,32 +623,47 @@ class Smile:
         """Obtains the appliance-data from appliances without a location
            - from DIRECT_OBJECTS."""
         direct_data = {}
-        loc_logs = self._direct_objects.find(
-            ".//location[@id='{}']/logs".format(loc_id)
-        )
+        search = self._direct_objects
+        t_string = "tariff"
+
+        if self._smile_legacy and self._smile_type == "power":
+            search = self._domain_objects
+            t_string = "tariff_indicator"
+
+        loc_logs = search.find(".//location[@id='{}']/logs".format(loc_id))
 
         # Dict for energy differential
         net_energy = {}
 
         if loc_logs is not None and self._power_tariff is not None:
-            log_list = ["point_log", "cumulative_log"]
+            log_list = ["point_log", "cumulative_log", "interval_log"]
             peak_list = ["nl_peak"]
             tariff_structure = "electricity_consumption_tariff_structure"
-            if self._power_tariff[tariff_structure] == "double":
-                peak_list.append("nl_offpeak")
+            if tariff_structure in self._power_tariff:
+                if self._power_tariff[tariff_structure] == "double":
+                    peak_list.append("nl_offpeak")
 
-            loc_string = ".//{}[type='{}']/period/measurement[@tariff=\"{}\"]"
+            lt_string = ".//{}[type='{}']/period/measurement[@{}=\"{}\"]"
+            l_string = ".//{}[type='{}']/period/measurement"
             # meter_string = ".//{}[type='{}']/"
             for measurement in HOME_MEASUREMENTS:
                 for log_type in log_list:
                     # meter_id = None
                     # meter = meter_string.format(log_type, measurement)
                     for peak_select in peak_list:
-                        locator = loc_string.format(log_type, measurement, peak_select)
+                        locator = lt_string.format(
+                            log_type, measurement, t_string, peak_select
+                        )
+
+                        # Only once try to find P1 Legacy values
+                        if (
+                            loc_logs.find(locator) is None
+                            and self._smile_legacy
+                            and self._smile_type == "power"
+                        ):
+                            locator = l_string.format(log_type, measurement)
+
                         if loc_logs.find(locator) is not None:
-                            # for item in loc_logs.findall(meter):
-                            #    if '_meter' in item.tag or item.tag == measurement:
-                            #        meter_id = item.attrib['id']
                             peak = peak_select.split("_")[1]
                             if peak == "offpeak":
                                 peak = "off_peak"
@@ -729,11 +813,18 @@ class Smile:
 
     def get_object_value(self, obj_type, appl_id, measurement):
         """Obtain the illuminance value from the thermostat."""
+
+        search = self._direct_objects
+
+        if self._smile_legacy and self._smile_type == "power":
+            search = self._domain_objects
+
         locator = ".//{}[@id='{}']/logs/point_log[type='{}']/period/measurement".format(
             obj_type, appl_id, measurement
         )
-        if self._direct_objects.find(locator) is not None:
-            data = self._direct_objects.find(locator).text
+
+        if search.find(locator) is not None:
+            data = search.find(locator).text
             val = float(data)
             val = float("{:.1f}".format(round(val, 1)))
             return val
@@ -773,6 +864,10 @@ class Smile:
     async def set_preset(self, loc_id, preset):
         """Sets the given location-preset on the relevant thermostat -
            from LOCATIONS."""
+
+        if self._smile_legacy:
+            return await self.set_preset_legacy(preset)
+
         # _LOGGER.debug("Changing preset for %s - %s to: %s", loc_id, loc_type, preset)
         current_location = self._locations.find("location[@id='{}']".format(loc_id))
         location_name = current_location.find("name").text
@@ -803,10 +898,6 @@ class Smile:
 
         await self.request(uri, method="put", data=data)
 
-        # All get_preset related items check domain_objects so update that
-        # await asyncio.sleep(self._sleeptime)
-        # await self.update_domain_objects()
-
         return True
 
     async def set_temperature(self, loc_id, temperature):
@@ -827,13 +918,13 @@ class Smile:
             CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
             return False
 
-        # await asyncio.sleep(self._sleeptime)
-        # await self.update_appliances()
-
         return True
 
     def __get_temperature_uri(self, loc_id):
         """Determine the location-set_temperature uri - from LOCATIONS."""
+        if self._smile_legacy:
+            return self.__get_temperature_uri_legacy()
+
         locator = (
             "location[@id='{}']/actuator_functionalities/thermostat_functionality"
         ).format(loc_id)
@@ -868,12 +959,42 @@ class Smile:
             CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
             return False
 
-        # await asyncio.sleep(self._sleeptime)
-        # await self.update_appliances()
-
         return True
 
     @staticmethod
     def escape_illegal_xml_characters(xmldata):
         """Replace illegal &-characters."""
         return re.sub(r"&([^a-zA-Z#])", r"&amp;\1", xmldata)
+
+    # LEGACY Anna functions
+
+    async def set_preset_legacy(self, preset):
+        """Sets the given preset on the thermostat - from DOMAIN_OBJECTS."""
+        locator = "rule/directives/when/then[@icon='{}'].../.../...".format(preset)
+        rule = self._domain_objects.find(locator)
+        if rule is None:
+            return False
+
+        uri = "{}".format(RULES)
+
+        data = (
+            "<rules>"
+            + '<rule id="'
+            + rule.attrib["id"]
+            + '">'
+            + "<active>true</active>"
+            + "</rule>"
+            + "</rules>"
+        )
+
+        await self.request(uri, method="put", data=data)
+
+        return True
+
+    def __get_temperature_uri_legacy(self):
+        """Determine the location-set_temperature uri - from APPLIANCES."""
+        locator = ".//appliance[type='thermostat']"
+        appliance_id = self._appliances.find(locator).attrib["id"]
+        return APPLIANCES + ";id=" + appliance_id + "/thermostat"
+
+    # LEGACY P1 functions

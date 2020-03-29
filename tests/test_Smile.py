@@ -140,7 +140,12 @@ async def connect():
     assert resp.status == 200
     text = await resp.text()
     assert "xml" in text
-    assert "<vendor_name>Plugwise</vendor_name>" in text
+    try:
+        assert "<vendor_name>Plugwise</vendor_name>" in text
+    except:
+        # P1 v2 exception handling
+        assert "<dsmrmain id" in text
+        pass
 
     smile = Smile(
         host=server.host,
@@ -295,6 +300,70 @@ async def tinker_thermostat(smile, loc_id, good_schemas=["Weekschema"]):
             assert schema_change == assert_state
     else:
         print("- Skipping schema adjustments")
+
+
+# Actual test for directory 'Anna' legacy
+@pytest.mark.asyncio
+async def test_connect_legacy_anna():
+    # testdata is a dictionary with key ctrl_id_dev_id => keys:values
+    # testdata={
+    #             'ctrl_id': { 'outdoor+temp': 20.0, }
+    #             'ctrl_id:dev_id': { 'type': 'thermostat', 'battery': None, }
+    #         }
+    testdata = {
+        # Anna
+        "7ffbb3ab4b6c4ab2915d7510f7bf8fe9": {
+            "selected_schedule": "Normal",
+            "illuminance": 35.0,
+            "active_preset": "away",
+        },
+        # Gateway
+        "a270735e4ccd45239424badc0578a2b1": {"outdoor_temperature": 10.8,},
+        # Central-heater
+        "c46b4794d28149699eacf053deedd003": {"central_heating_state": "off"},
+    }
+    global smile_setup
+    smile_setup = "legacy_anna"
+    server, smile, client = await connect()
+    assert smile._smile_type == "thermostat"
+    assert smile._smile_version[0] == "1.8.0"
+    assert smile._smile_legacy == True
+    await test_device(smile, testdata)
+    # TODO looks like 'legacy_anna' has no schemas defined
+    # check and/or create new test data from one that has
+    await tinker_thermostat(
+        smile, "c34c6864216446528e95d88985e714cc", good_schemas=[],
+    )
+    await smile.close_connection()
+    await disconnect(server, client)
+
+
+# Actual test for directory 'P1' v2
+@pytest.mark.asyncio
+async def test_connect_smile_p1_v2():
+    # testdata dictionary with key ctrl_id_dev_id => keys:values
+    testdata = {
+        # Gateway / P1 itself
+        "938696c4bcdb4b8a9a595cb38ed43913": {
+            "electricity_consumed_peak_point": 458.0,
+            "net_electricity_point": 458.0,
+            "gas_consumed_peak_cumulative": 584.433,
+            "electricity_produced_peak_cumulative": 1296136.0,
+        }
+    }
+    global smile_setup
+    smile_setup = "smile_p1_v2"
+    server, smile, client = await connect()
+    assert smile._smile_type == "power"
+    assert smile._smile_version[0] == "2.5.9"
+    assert smile._smile_legacy == True
+    await test_device(smile, testdata)
+    await test_device(smile, testdata)
+    await smile.close_connection()
+    await disconnect(server, client)
+
+    await smile.close_connection()
+    await disconnect(server, client)
 
 
 # Actual test for directory 'Anna' without a boiler

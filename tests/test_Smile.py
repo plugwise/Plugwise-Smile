@@ -349,10 +349,38 @@ async def test_connect_smile_p1_v2():
             "net_electricity_point": 458.0,
             "gas_consumed_peak_cumulative": 584.433,
             "electricity_produced_peak_cumulative": 1296136.0,
+            "electricity_produced_off_peak_cumulative": 482598.0,
         }
     }
     global smile_setup
     smile_setup = "smile_p1_v2"
+    server, smile, client = await connect()
+    assert smile._smile_type == "power"
+    assert smile._smile_version[0] == "2.5.9"
+    assert smile._smile_legacy == True
+    await test_device(smile, testdata)
+    await test_device(smile, testdata)
+    await smile.close_connection()
+    await disconnect(server, client)
+
+    await smile.close_connection()
+    await disconnect(server, client)
+
+# Actual test for directory 'P1' v2 2nd version
+@pytest.mark.asyncio
+async def test_connect_smile_p1_v2_2():
+    # testdata dictionary with key ctrl_id_dev_id => keys:values
+    testdata = {
+        # Gateway / P1 itself
+        "199aa40f126840f392983d171374ab0b": {
+            "electricity_consumed_peak_point": 368.0,
+            "net_electricity_point": 368.0,
+            "gas_consumed_peak_cumulative": 2637.993,
+            "electricity_produced_peak_cumulative": 0.0,
+        }
+    }
+    global smile_setup
+    smile_setup = "smile_p1_v2_2"
     server, smile, client = await connect()
     assert smile._smile_type == "power"
     assert smile._smile_version[0] == "2.5.9"

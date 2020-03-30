@@ -638,9 +638,14 @@ class Smile:
         if loc_logs is not None and self._power_tariff is not None:
             log_list = ["point_log", "cumulative_log", "interval_log"]
             peak_list = ["nl_peak"]
+
             tariff_structure = "electricity_consumption_tariff_structure"
             if tariff_structure in self._power_tariff:
                 if self._power_tariff[tariff_structure] == "double":
+                    peak_list.append("nl_offpeak")
+
+            # Always run double tariff for P1 legacy
+            if self._smile_legacy and self._smile_type == "power":
                     peak_list.append("nl_offpeak")
 
             lt_string = ".//{}[type='{}']/period/measurement[@{}=\"{}\"]"
@@ -662,6 +667,10 @@ class Smile:
                             and self._smile_type == "power"
                         ):
                             locator = l_string.format(log_type, measurement)
+
+                            # Skip peak if not split (P1 Legacy)
+                            if peak_select == "nl_offpeak":
+                                continue
 
                         if loc_logs.find(locator) is not None:
                             peak = peak_select.split("_")[1]

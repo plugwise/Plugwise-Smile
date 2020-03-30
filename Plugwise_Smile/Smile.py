@@ -52,6 +52,7 @@ DEVICE_MEASUREMENTS = [
     "domestic_hot_water_state",
     "boiler_temperature",
     "central_heating_state",
+    "central_heater_water_pressure",
     "cooling_state",  # somebody confirmed he has this
     "boiler_state",  # some Anna user had this ... lookup issues
 ]

@@ -496,9 +496,6 @@ async def test_connect_adam_plus_anna():
     await smile.close_connection()
     await disconnect(server, client)
 
-    await smile.close_connection()
-    await disconnect(server, client)
-
 
 # Actual test for directory 'Adam + Anna'
 @pytest.mark.asyncio
@@ -556,9 +553,6 @@ async def test_connect_adam_zone_per_device():
     await smile.close_connection()
     await disconnect(server, client)
 
-    await smile.close_connection()
-    await disconnect(server, client)
-
 
 # Actual test for directory 'Adam + Anna'
 @pytest.mark.asyncio
@@ -611,8 +605,6 @@ async def test_connect_p1v3():
     await smile.close_connection()
     await disconnect(server, client)
 
-    await smile.close_connection()
-    await disconnect(server, client)
 
 
 # Faked solar for differential, need actual p1v3 with solar data :)
@@ -639,5 +631,3 @@ async def test_connect_p1v3solarfake():
     await smile.close_connection()
     await disconnect(server, client)
 
-    await smile.close_connection()
-    await disconnect(server, client)

@@ -139,6 +139,7 @@ class Smile:
         self._home_location = None
         self._gateway_id = None
         self._gw_appl_ids = []
+        self._thermo_master_id = None
         self._platforms = ["climate", "water_heater", "sensor"]
 
     async def connect(self, retry=2):
@@ -474,6 +475,85 @@ class Smile:
         self._home_location = home_location
         return locations, home_location
 
+    # Using match_locations build up a list
+    # of master thermostat for each zone
+    # and a list of slaves not to become thermostat
+    def scan_thermostats(self,debug_text="missing text"):
+        locations, home_location = self.match_locations()
+        appliances = self.get_all_appliances()
+
+        # Best thermostat mapping
+        thermo_matching = {
+                            'thermostat': 3,
+                            'zone_thermostat': 2,
+                            'thermostatic_radiator_valve': 1,
+                          }
+
+        _LOGGER.debug("---------",debug_text,"--------")
+        # Found thermostat yet?
+        high_prio = 0
+        # All locations have a device?
+        all_locations = True
+        # Walk locations
+        for loc_id, location_details in locations.items():
+            # Rebuild locations in new table
+            locations[loc_id] = location_details
+
+            # Only process if thermostat present
+            if 'thermostat' in location_details['types'] and loc_id != home_location:
+                locations[loc_id].update({ 'master': None, 'master_prio': 0, 'slaves': set([])})
+            else:
+                _LOGGER.debug("skipping ",location_details['name']," types ",location_details['types'])
+                continue
+
+            winner_name = None # throw away, just for printing
+            slavenames = '' # throw away, just for printing
+            for appliance_id, appliance_details in appliances.items():
+
+                # tore appliance class, DRY
+                a_class = appliance_details["class"]
+                if loc_id == appliance_details["location"]:
+                    if a_class in thermo_matching:
+
+                        # Pre-elect new master
+                        if thermo_matching[a_class] > locations[loc_id]['master_prio']:
+
+                            # Demote former master
+                            if locations[loc_id]['master'] is not None:
+                                locations[loc_id]['slaves'].add(locations[loc_id]['master'])
+                                slavenames=f"{slavenames} - {winner_name}" # throw away, just for printing
+
+                            # Crown master
+                            locations[loc_id]['master_prio'] = thermo_matching[a_class]
+                            locations[loc_id]['master'] = appliance_id
+
+                            winner_name = appliance_details['name'] # throw away, just for printing
+                        else:
+
+                            # Designate slave
+                            locations[loc_id]['slaves'].add(appliance_id)
+                            slavenames=f"{slavenames} - {appliance_details['name']}" # throw away, just for printing
+
+                # Find highest ranking thermostat
+                if a_class in thermo_matching:
+                    if thermo_matching[a_class] > high_prio:
+                        high_prio = thermo_matching[a_class]
+                        self._thermo_master_id = appliance_id
+
+            if locations[loc_id]['master'] is not None:
+                _LOGGER.debug("Location ",location_details['name']," won by '",winner_name ,"' with prio ",locations[loc_id]['master_prio']," slaves ",slavenames)
+            else:
+                _LOGGER.debug("Location TROUBLE ",location_details['name']," no winners")
+                all_locations = False
+
+        # Return location including slaves
+        _LOGGER.debug("We have ",all_locations," all locations - highest prio is ",high_prio)
+        _LOGGER.debug("Locations looks like ",locations)
+        _LOGGER.debug("---------",debug_text,"--------")
+        return locations, home_location
+
+    # Build a list of locations and what
+    # kind of types of equipment they have (power, thermo, etc.)
     def match_locations(self):
         match_locations = {}
 
@@ -506,16 +586,27 @@ class Smile:
     def get_device_data(self, dev_id):
         """Provides the device-data, based on location_id, from APPLIANCES."""
         details = self.get_all_devices()[dev_id]
+        thermo_locations, home_location = self.scan_thermostats()
+
         merged_data = {}
+        thermostat_classes = [ "thermostat", "zone_thermostat", "thermostatic_radiator_valve"]
+
         if dev_id == self._gateway_id:
             dev_ids = self._gw_appl_ids
         else:
             dev_ids = [dev_id]
         for dev_id in dev_ids:
             device_data = self.get_appliance_data(dev_id)
+            loc_id = details["location"]
+
+            # Override slave thermostat class
+            if loc_id in thermo_locations:
+                if 'slaves' in thermo_locations[loc_id]:
+                    if dev_id in thermo_locations[loc_id]["slaves"]:
+                        device_data["class"] = "thermo_sensor"
 
             # Anna, Lisa
-            if details["class"] in ["thermostat", "zone_thermostat"]:
+            if details["class"] in thermostat_classes:
                 device_data["active_preset"] = self.get_preset(details["location"])
                 device_data["presets"] = self.get_presets(details["location"])
 

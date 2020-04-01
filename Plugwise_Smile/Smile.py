@@ -610,7 +610,7 @@ class Smile:
         for dev_id in dev_ids:
             device_data = self.get_appliance_data(dev_id)
 
-            # Anna, Lisa
+            # Anna, Lisa, Tom/Floor
             if details["class"] in thermostat_classes:
                 device_data["active_preset"] = self.get_preset(details["location"])
                 device_data["presets"] = self.get_presets(details["location"])
@@ -618,14 +618,14 @@ class Smile:
                 avail_schemas, sel_schema = self.get_schemas(details["location"])
                 device_data["available_schedules"] = avail_schemas
                 device_data["selected_schedule"] = sel_schema
+                device_data["last_used"] = self.get_last_active_schema(
+                    details["location"]
+                )
 
             # Anna specific
             if details["class"] in ["thermostat"]:
                 device_data["illuminance"] = self.get_object_value(
                     "appliance", dev_id, "illuminance"
-                )
-                device_data["last_used"] = self.get_last_active_schema(
-                    details["location"]
                 )
 
             # Generic

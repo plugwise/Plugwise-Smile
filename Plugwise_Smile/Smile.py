@@ -574,19 +574,31 @@ class Smile:
     def get_all_devices(self):
         devices = {}
 
-        locations, home_location = self.get_all_locations()
         appliances = self.get_all_appliances()
+        #locations, home_location = self.get_all_locations()
+        thermo_locations, home_location = self.scan_thermostats()
 
         for appliance, details in appliances.items():
-            if details["location"] is None:
+            loc_id = details["location"]
+            if loc_id is None:
                 details["location"] = home_location
+
+            # Override slave thermostat class
+            if loc_id in thermo_locations:
+                if 'slaves' in thermo_locations[loc_id]:
+                    if appliance in thermo_locations[loc_id]["slaves"]:
+                        details["class"] = "thermo_sensor"
+
             devices[appliance] = details
         return devices
 
     def get_device_data(self, dev_id):
         """Provides the device-data, based on location_id, from APPLIANCES."""
-        details = self.get_all_devices()[dev_id]
-        thermo_locations, home_location = self.scan_thermostats()
+        devices = self.get_all_devices()
+        if dev_id in devices:
+            details = devices[dev_id]
+        else:
+            return False
 
         merged_data = {}
         thermostat_classes = [ "thermostat", "zone_thermostat", "thermostatic_radiator_valve"]
@@ -597,13 +609,6 @@ class Smile:
             dev_ids = [dev_id]
         for dev_id in dev_ids:
             device_data = self.get_appliance_data(dev_id)
-            loc_id = details["location"]
-
-            # Override slave thermostat class
-            if loc_id in thermo_locations:
-                if 'slaves' in thermo_locations[loc_id]:
-                    if dev_id in thermo_locations[loc_id]["slaves"]:
-                        device_data["class"] = "thermo_sensor"
 
             # Anna, Lisa
             if details["class"] in thermostat_classes:

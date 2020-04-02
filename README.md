@@ -1,20 +1,48 @@
 # Plugwise Smile python module
 
+Our main usage for this module is supporting [Home Assistant](https://www.home-assistant.io) / [home-assistant](http://github.com/home-assistant/core/)
+
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/plugwise)
 [![Build Status](https://travis-ci.org/plugwise/Plugwise-Smile.svg?branch=master)](https://travis-ci.org/plugwise/Plugwise-Smile)
 [![codecov](https://codecov.io/gh/plugwise/Plugwise-Smile/branch/master/graph/badge.svg)](https://codecov.io/gh/plugwise/Plugwise-Smile)
+[![PyPI version fury.io](https://badge.fury.io/py/Plugwise-Smile.svg)](https://pypi.python.org/pypi/Plugwise-Smile/)
+
+
+## Integration
+
+### Home-Assistant module (beta)
+
+(use at your own risk)
+
+[![Generic badge](https://img.shields.io/github/v/release/plugwise/plugwise-beta)](https://github.com/plugwise/plugwise-beta)
+[![Generic badge](https://img.shields.io/badge/HA%20custom_component-yes-green.svg)](https://github.com/plugwise/plugwise-beta)
+[![Generic badge](https://img.shields.io/badge/HACS-add%20our%20repo-yellow.svg)](https://github.com/plugwise/plugwise-beta)
+
+### Home-Assitant code (stable)
+
+(maintained through Home-Assistant)
+
+[![Generic badge](https://img.shields.io/badge/HA%20core-no-red.svg)](https://github.com/home-assistant/core/tree/dev/homeassistant/components/plugwise)
+
+Note we currently have a `plugwise` [component](https://github.com/home-assistant/core/tree/dev/homeassistant/components/plugwise) in core that will be replaced (eventually, then continously) with stable releases from this project
+
+## Project support status
 
 Module providing interfacing with Plugwise:
 
-  - [x] Anna
-  - [ ] Legacy Anna (see haanna for now)
   - [x] Adam
   - [x]  - Floor
   - [ ]  - Koen
   - [x]  - Lisa
   - [x]  - Plug (each plug must have its own, unique, location-name, otherwise it will not show up) 
   - [x]  - Tom
-  - [x] Smile (v3)
-  - [ ]  - V2
+  - [x] Anna
+  - [x]  - v4.0
+  - [x]  - v3.1
+  - [x]  - v1.8 
+  - [x] Smile P1
+  - [x]  - v3.3
+  - [x]  - v2.5
   - [ ] [Home-Assistant](https://home-assistant.io) via 
   - [ ]  - Native -> 20200311 for now as 'plugwise' but using haanna
   - [x]  - `custom_component` [Plugwise-HA](https://github.com/plugwise/Plugwise-HA)
@@ -31,3 +59,4 @@ Modified and adjusted by @CoMPaTech and @bouwew in his repository but in 2020 cl
 
 On behalf of @CoMPaTech and @bouwew (as well as @riemers) we'd like to thank @TANE from [HAshop](https://hashop.nl) for his support and development devices
 
+Also thanks to our numerous testers willing to take the plunge and supply us with actual data from their devices to test and develop from.

@@ -222,10 +222,10 @@ async def test_device(smile=Smile, testdata={}):
         return False
 
     print("Asserting testdata:")
-    print("Gateway id = ",smile._gateway_id)
     device_list = smile.get_all_devices()
     location_list, home = smile.scan_thermostats()
 
+    print("Gateway id = ",smile._gateway_id)
     show_setup(location_list, device_list)
     if True:
         print("Device list: {}".format(device_list))

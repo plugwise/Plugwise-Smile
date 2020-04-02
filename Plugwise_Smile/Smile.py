@@ -431,13 +431,19 @@ class Smile:
     def get_all_locations(self):
         home_location = None
         locations = {}
-        # Legacy Anna
+        # Legacy Anna has no locations, create one containing all appliances
         if len(self._locations) == 0 and self._smile_legacy:
+            appliances = set([])
             home_location = 0
+            
+            # Add Anna appliances
+            for appliance in self._appliances:
+                appliances.add(appliance.attrib["id"])
+                
             locations[0] = {
                 "name": "Legacy",
                 "types": set(["temperature"]),
-                "members": None,
+                "members": appliances,
             }
             return locations, home_location
 
@@ -505,6 +511,8 @@ class Smile:
 
             # Only process if thermostat present
             if 'thermostat' in location_details['types'] and loc_id != home_location:
+                locations[loc_id].update({ 'master': None, 'master_prio': 0, 'slaves': set([])})
+            elif loc_id == 0 and self._smile_legacy:
                 locations[loc_id].update({ 'master': None, 'master_prio': 0, 'slaves': set([])})
             else:
                 _LOGGER.debug("skipping ",location_details['name']," types ",location_details['types'])
@@ -808,6 +816,9 @@ class Smile:
         presets = {}
         tag = "zone_setpoint_and_state_based_on_preset"
 
+        if self._smile_legacy:
+            return self.__get_presets_legacy()
+        
         # _LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
         rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
         if rule_ids is None:
@@ -1076,6 +1087,17 @@ class Smile:
         return re.sub(r"&([^a-zA-Z#])", r"&amp;\1", xmldata)
 
     # LEGACY Anna functions
+    
+    def __get_presets_legacy(self):
+        preset_dictionary = {}
+        directives = self._domain_objects.findall("rule/directives/when/then")
+        for directive in directives:
+            if directive is not None and "icon" in directive.keys():
+                preset_dictionary[directive.attrib["icon"]] = float(
+                    directive.attrib["temperature"]
+                )
+        return preset_dictionary
+
 
     async def set_preset_legacy(self, preset):
         """Sets the given preset on the thermostat - from DOMAIN_OBJECTS."""

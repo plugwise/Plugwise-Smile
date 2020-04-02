@@ -316,7 +316,14 @@ async def test_connect_legacy_anna():
     #             'ctrl_id:dev_id': { 'type': 'thermostat', 'battery': None, }
     #         }
     testdata = {
+      
         # Anna
+        "0d266432d64443e283b5d708ae98b455": {
+            "thermostat": 20.5,
+            "temperature": 20.4,
+            "illuminance": 0.8,
+        },
+        # Central
         "04e4cbfe7f4340f090f85ec3b9e6a950": {
             "domestic_hot_water_state": "off",
             "boiler_temperature": 23.59,

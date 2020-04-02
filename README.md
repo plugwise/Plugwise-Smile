@@ -7,16 +7,24 @@ Our main usage for this module is supporting [Home Assistant](https://www.home-a
 [![codecov](https://codecov.io/gh/plugwise/Plugwise-Smile/branch/master/graph/badge.svg)](https://codecov.io/gh/plugwise/Plugwise-Smile)
 [![PyPI version fury.io](https://badge.fury.io/py/Plugwise-Smile.svg)](https://pypi.python.org/pypi/Plugwise-Smile/)
 
-Beta: (use at your own risk)
 
+# Home-Assistant module (beta)
+
+(use at your own risk)
+
+[![Generic badge](https://img.shields.io/github/v/release/plugwise/plugwise-beta)](https://github.com/plugwise/plugwise-beta)
 [![Generic badge](https://img.shields.io/badge/HA%20custom_component-yes-green.svg)](https://github.com/plugwise/plugwise-beta)
 [![Generic badge](https://img.shields.io/badge/HACS-add%20our%20repo-yellow.svg)](https://github.com/plugwise/plugwise-beta)
 
-Core: (maintained through Home-Assistant)
+# Home-Assitant code (stable)
+
+(maintained through Home-Assistant)
 
 [![Generic badge](https://img.shields.io/badge/HA%20core-no-red.svg)](https://github.com/home-assistant/core/tree/dev/homeassistant/components/plugwise)
+
 Note we currently have a `plugwise` [component](https://github.com/home-assistant/core/tree/dev/homeassistant/components/plugwise) in core that will be replaced (eventually, then continously) with stable releases from this project
 
+# Project support status
 
 Module providing interfacing with Plugwise:
 
@@ -38,7 +46,7 @@ Module providing interfacing with Plugwise:
   - [x]  - `custom_component` [Plugwise-HA](https://github.com/plugwise/Plugwise-HA)
   - [ ]  - `HACS` [Plugwise-HA](https://github.com/plugwise/Plugwise-HA)
 
-## License, origins and contributors
+# License, origins and contributors
 
 Original (and therefor, license) by [haanna](https://github.com/laetificat/haanna) by Kevin Heruer
 
@@ -49,3 +57,4 @@ Modified and adjusted by @CoMPaTech and @bouwew in his repository but in 2020 cl
 
 On behalf of @CoMPaTech and @bouwew (as well as @riemers) we'd like to thank @TANE from [HAshop](https://hashop.nl) for his support and development devices
 
+Also thanks to our numerous testers willing to take the plunge and supply us with actual data from their devices to test and develop from.

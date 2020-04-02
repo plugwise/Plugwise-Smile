@@ -376,9 +376,14 @@ class Smile:
         # Basically walk locations for 'members' not set[] and
         # scan for the same functionality
 
-        # Find gateway device as 'root'
+
+        # Find gateway device as 'root', for legacy without gateway use heater
+        root_device = "gateway"
+        if self._smile_legacy and self._smile_type == "thermostat":
+            root_device = "heater_central"
+            
         for appliance in self._appliances:
-            if appliance.find("type").text == "gateway":
+            if appliance.find("type").text == root_device:
                 self._gateway_id = appliance.attrib["id"]
                 break
 
@@ -410,7 +415,7 @@ class Smile:
                 appliance_name = self._smile_name
                 # Legacy_anna has no gw id
                 # TODO evaluate if we should add 'is thermo is legacy' too
-                if self._gateway_id is not None:
+                if not self._smile_legacy:
                     appliance_id = self._gateway_id
 
             # Determine appliance_type from funcitonality

@@ -223,16 +223,21 @@ async def test_device(smile=Smile, testdata={}):
 
     print("Asserting testdata:")
     device_list = smile.get_all_devices()
-    location_list, home = smile.match_locations()
+    location_list, home = smile.scan_thermostats()
 
     show_setup(location_list, device_list)
     if True:
-        print("Device list: %s", device_list)
+        print("Device list: {}".format(device_list))
         for dev_id, details in device_list.items():
             data = smile.get_device_data(dev_id)
             print("Device {} / {} data: {}".format(dev_id, details, data))
 
     for testdevice, measurements in testdata.items():
+        assert testdevice in device_list
+        #if testdevice not in device_list:
+        #    print("Device {} to test against {} not found in device_list for {}".format(testdevice,measurements,smile_setup))
+        #else:
+        #    print("Device {} to test found in {}".format(testdevice,device_list))
         for dev_id, details in device_list.items():
             if testdevice == dev_id:
                 data = smile.get_device_data(dev_id)
@@ -312,15 +317,13 @@ async def test_connect_legacy_anna():
     #         }
     testdata = {
         # Anna
-        "7ffbb3ab4b6c4ab2915d7510f7bf8fe9": {
-            "selected_schedule": "Normal",
-            "illuminance": 35.0,
-            "active_preset": "away",
+        "04e4cbfe7f4340f090f85ec3b9e6a950": {
+            "domestic_hot_water_state": "off",
+            "boiler_temperature": 23.59,
+            "central_heating_state": "on",
+            "central_heater_water_pressure": 1.2,
+            "boiler_state": "off",
         },
-        # Gateway
-        "a270735e4ccd45239424badc0578a2b1": {"outdoor_temperature": 10.8,},
-        # Central-heater
-        "c46b4794d28149699eacf053deedd003": {"central_heating_state": "off"},
     }
     global smile_setup
     smile_setup = "legacy_anna"
@@ -336,7 +339,6 @@ async def test_connect_legacy_anna():
     )
     await smile.close_connection()
     await disconnect(server, client)
-
 
 # Actual test for directory 'P1' v2
 @pytest.mark.asyncio
@@ -358,7 +360,6 @@ async def test_connect_smile_p1_v2():
     assert smile._smile_type == "power"
     assert smile._smile_version[0] == "2.5.9"
     assert smile._smile_legacy == True
-    await test_device(smile, testdata)
     await test_device(smile, testdata)
     await smile.close_connection()
     await disconnect(server, client)
@@ -386,13 +387,48 @@ async def test_connect_smile_p1_v2_2():
     assert smile._smile_version[0] == "2.5.9"
     assert smile._smile_legacy == True
     await test_device(smile, testdata)
+    await smile.close_connection()
+    await disconnect(server, client)
+
+    await smile.close_connection()
+    await disconnect(server, client)
+
+
+# Actual test for directory 'Anna' without a boiler
+@pytest.mark.asyncio
+async def test_connect_anna_v4():
+    # testdata is a dictionary with key ctrl_id_dev_id => keys:values
+    # testdata={
+    #             'ctrl_id': { 'outdoor+temp': 20.0, }
+    #             'ctrl_id:dev_id': { 'type': 'thermostat', 'battery': None, }
+    #         }
+    testdata = {
+        # Anna
+        "01b85360fdd243d0aaad4d6ac2a5ba7e": {
+            "selected_schedule": None,
+            "illuminance": 60.0,
+            "active_preset": "home",
+        },
+        # Central
+        "0466eae8520144c78afb29628384edeb": {
+            "outdoor_temperature": 7.4,
+            "central_heating_state": "on",
+            "central_heater_water_pressure": 2.1,
+            "boiler_temperature": 52.0,
+        },
+    }
+    global smile_setup
+    smile_setup = "anna_v4"
+    server, smile, client = await connect()
+    assert smile._smile_type == "thermostat"
+    assert smile._smile_version[0] == "4.0.15"
+    assert smile._smile_legacy == False
     await test_device(smile, testdata)
+    await tinker_thermostat(
+        smile, "eb5309212bf5407bb143e5bfa3b18aee", good_schemas=["Standaard", "Thuiswerken"]
+    )
     await smile.close_connection()
     await disconnect(server, client)
-
-    await smile.close_connection()
-    await disconnect(server, client)
-
 
 # Actual test for directory 'Anna' without a boiler
 @pytest.mark.asyncio
@@ -409,10 +445,11 @@ async def test_connect_anna_without_boiler():
             "illuminance": 35.0,
             "active_preset": "away",
         },
-        # Gateway
-        "a270735e4ccd45239424badc0578a2b1": {"outdoor_temperature": 10.8,},
-        # Central-heater
-        "c46b4794d28149699eacf053deedd003": {"central_heating_state": "off"},
+        # Central
+        "a270735e4ccd45239424badc0578a2b1": {
+            "outdoor_temperature": 10.8,
+            "central_heating_state": "off",
+        },
     }
     global smile_setup
     smile_setup = "anna_without_boiler"
@@ -469,11 +506,10 @@ async def test_connect_adam_plus_anna():
             "thermostat": 20.5,  # HA setpoint_temp
             "temperature": 20.46,  # HA current_temp
         },
-        # Gateway
-        "b128b4bbbd1f47e9bf4d756e8fb5ee94": {"outdoor_temperature": 11.9,},
-        # Central-heater
-        "2743216f626f43948deec1f7ab3b3d70": {
+        # Central
+        "b128b4bbbd1f47e9bf4d756e8fb5ee94": {
             "central_heating_state": "off",
+            "outdoor_temperature": 11.9,
             "central_heater_water_pressure": 6.0,
         },
         # Plug MediaCenter
@@ -525,10 +561,11 @@ async def test_connect_adam_zone_per_device():
             "temperature": 16.5,
             "battery": 0.67,
         },
-        # Gateway
-        "fe799307f1624099878210aa0b9f1475": {"outdoor_temperature": 7.7,},
-        # Central-heater
-        "90986d591dcd426cae3ec3e8111ff730": {"central_heating_state": "on",},
+        # Adam
+        "fe799307f1624099878210aa0b9f1475": {
+            "outdoor_temperature": 7.7,
+            "central_heating_state": "on",
+        },
         # Modem
         "675416a629f343c495449970e2ca37b5": {
             "electricity_consumed": 12.19,
@@ -541,7 +578,6 @@ async def test_connect_adam_zone_per_device():
     assert smile._smile_type == "thermostat"
     assert smile._smile_version[0] == "3.0.15"
     assert smile._smile_legacy == False
-    await test_device(smile, testdata)
     await test_device(smile, testdata)
     await tinker_thermostat(
         smile, "c50f167537524366a5af7aa3942feb1e", good_schemas=["GF7  Woonkamer"]
@@ -575,7 +611,6 @@ async def test_connect_adam_multiple_devices_per_zone():
                         dev_info["name"], dev_id, dev_info
                     )
                 )
-    print("Device list: %s", device_list)
     for dev_id, details in device_list.items():
         data = smile.get_device_data(dev_id)
         print("Device {} / {} data: {}".format(dev_id, details, data))
@@ -601,7 +636,6 @@ async def test_connect_p1v3():
     assert smile._smile_version[0] == "3.3.6"
     assert smile._smile_legacy == False
     await test_device(smile, testdata)
-    await test_device(smile, testdata)
     await smile.close_connection()
     await disconnect(server, client)
 
@@ -626,7 +660,6 @@ async def test_connect_p1v3solarfake():
     assert smile._smile_type == "power"
     assert smile._smile_version[0] == "3.3.6"
     assert smile._smile_legacy == False
-    await test_device(smile, testdata)
     await test_device(smile, testdata)
     await smile.close_connection()
     await disconnect(server, client)

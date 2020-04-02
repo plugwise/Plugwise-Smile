@@ -225,7 +225,7 @@ async def test_device(smile=Smile, testdata={}):
     device_list = smile.get_all_devices()
     location_list, home = smile.scan_thermostats()
 
-    print("Gateway id = ",smile._gateway_id)
+    print("Gateway id = ", smile._gateway_id)
     show_setup(location_list, device_list)
     if True:
         print("Device list: {}".format(device_list))
@@ -235,9 +235,9 @@ async def test_device(smile=Smile, testdata={}):
 
     for testdevice, measurements in testdata.items():
         assert testdevice in device_list
-        #if testdevice not in device_list:
+        # if testdevice not in device_list:
         #    print("Device {} to test against {} not found in device_list for {}".format(testdevice,measurements,smile_setup))
-        #else:
+        # else:
         #    print("Device {} to test found in {}".format(testdevice,device_list))
         for dev_id, details in device_list.items():
             if testdevice == dev_id:
@@ -317,7 +317,6 @@ async def test_connect_legacy_anna():
     #             'ctrl_id:dev_id': { 'type': 'thermostat', 'battery': None, }
     #         }
     testdata = {
-      
         # Anna
         "0d266432d64443e283b5d708ae98b455": {
             "thermostat": 20.5,
@@ -348,6 +347,7 @@ async def test_connect_legacy_anna():
     await smile.close_connection()
     await disconnect(server, client)
 
+
 # Actual test for directory 'P1' v2
 @pytest.mark.asyncio
 async def test_connect_smile_p1_v2():
@@ -374,6 +374,7 @@ async def test_connect_smile_p1_v2():
 
     await smile.close_connection()
     await disconnect(server, client)
+
 
 # Actual test for directory 'P1' v2 2nd version
 @pytest.mark.asyncio
@@ -433,10 +434,13 @@ async def test_connect_anna_v4():
     assert smile._smile_legacy == False
     await test_device(smile, testdata)
     await tinker_thermostat(
-        smile, "eb5309212bf5407bb143e5bfa3b18aee", good_schemas=["Standaard", "Thuiswerken"]
+        smile,
+        "eb5309212bf5407bb143e5bfa3b18aee",
+        good_schemas=["Standaard", "Thuiswerken"],
     )
     await smile.close_connection()
     await disconnect(server, client)
+
 
 # Actual test for directory 'Anna' without a boiler
 @pytest.mark.asyncio
@@ -648,7 +652,6 @@ async def test_connect_p1v3():
     await disconnect(server, client)
 
 
-
 # Faked solar for differential, need actual p1v3 with solar data :)
 @pytest.mark.asyncio
 async def test_connect_p1v3solarfake():
@@ -671,4 +674,3 @@ async def test_connect_p1v3solarfake():
     await test_device(smile, testdata)
     await smile.close_connection()
     await disconnect(server, client)
-

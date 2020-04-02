@@ -376,12 +376,11 @@ class Smile:
         # Basically walk locations for 'members' not set[] and
         # scan for the same functionality
 
-
         # Find gateway device as 'root', for legacy without gateway use heater
         root_device = "gateway"
         if self._smile_legacy and self._smile_type == "thermostat":
             root_device = "heater_central"
-            
+
         for appliance in self._appliances:
             if appliance.find("type").text == root_device:
                 self._gateway_id = appliance.attrib["id"]
@@ -440,11 +439,11 @@ class Smile:
         if len(self._locations) == 0 and self._smile_legacy:
             appliances = set([])
             home_location = 0
-            
+
             # Add Anna appliances
             for appliance in self._appliances:
                 appliances.add(appliance.attrib["id"])
-                
+
             locations[0] = {
                 "name": "Legacy",
                 "types": set(["temperature"]),
@@ -493,18 +492,18 @@ class Smile:
     # Using match_locations build up a list
     # of master thermostat for each zone
     # and a list of slaves not to become thermostat
-    def scan_thermostats(self,debug_text="missing text"):
+    def scan_thermostats(self, debug_text="missing text"):
         locations, home_location = self.match_locations()
         appliances = self.get_all_appliances()
 
         # Best thermostat mapping
         thermo_matching = {
-                            'thermostat': 3,
-                            'zone_thermostat': 2,
-                            'thermostatic_radiator_valve': 1,
-                          }
+            "thermostat": 3,
+            "zone_thermostat": 2,
+            "thermostatic_radiator_valve": 1,
+        }
 
-        _LOGGER.debug("---------",debug_text,"--------")
+        _LOGGER.debug("---------", debug_text, "--------")
         # Found thermostat yet?
         high_prio = 0
         # All locations have a device?
@@ -515,16 +514,25 @@ class Smile:
             locations[loc_id] = location_details
 
             # Only process if thermostat present
-            if 'thermostat' in location_details['types'] and loc_id != home_location:
-                locations[loc_id].update({ 'master': None, 'master_prio': 0, 'slaves': set([])})
+            if "thermostat" in location_details["types"] and loc_id != home_location:
+                locations[loc_id].update(
+                    {"master": None, "master_prio": 0, "slaves": set([])}
+                )
             elif loc_id == 0 and self._smile_legacy:
-                locations[loc_id].update({ 'master': None, 'master_prio': 0, 'slaves': set([])})
+                locations[loc_id].update(
+                    {"master": None, "master_prio": 0, "slaves": set([])}
+                )
             else:
-                _LOGGER.debug("skipping ",location_details['name']," types ",location_details['types'])
+                _LOGGER.debug(
+                    "skipping ",
+                    location_details["name"],
+                    " types ",
+                    location_details["types"],
+                )
                 continue
 
-            winner_name = None # throw away, just for printing
-            slavenames = '' # throw away, just for printing
+            winner_name = None  # throw away, just for printing
+            slavenames = ""  # throw away, just for printing
             for appliance_id, appliance_details in appliances.items():
 
                 # tore appliance class, DRY
@@ -533,23 +541,27 @@ class Smile:
                     if a_class in thermo_matching:
 
                         # Pre-elect new master
-                        if thermo_matching[a_class] > locations[loc_id]['master_prio']:
+                        if thermo_matching[a_class] > locations[loc_id]["master_prio"]:
 
                             # Demote former master
-                            if locations[loc_id]['master'] is not None:
-                                locations[loc_id]['slaves'].add(locations[loc_id]['master'])
-                                slavenames=f"{slavenames} - {winner_name}" # throw away, just for printing
+                            if locations[loc_id]["master"] is not None:
+                                locations[loc_id]["slaves"].add(
+                                    locations[loc_id]["master"]
+                                )
+                                slavenames = f"{slavenames} - {winner_name}"  # throw away, just for printing
 
                             # Crown master
-                            locations[loc_id]['master_prio'] = thermo_matching[a_class]
-                            locations[loc_id]['master'] = appliance_id
+                            locations[loc_id]["master_prio"] = thermo_matching[a_class]
+                            locations[loc_id]["master"] = appliance_id
 
-                            winner_name = appliance_details['name'] # throw away, just for printing
+                            winner_name = appliance_details[
+                                "name"
+                            ]  # throw away, just for printing
                         else:
 
                             # Designate slave
-                            locations[loc_id]['slaves'].add(appliance_id)
-                            slavenames=f"{slavenames} - {appliance_details['name']}" # throw away, just for printing
+                            locations[loc_id]["slaves"].add(appliance_id)
+                            slavenames = f"{slavenames} - {appliance_details['name']}"  # throw away, just for printing
 
                 # Find highest ranking thermostat
                 if a_class in thermo_matching:
@@ -557,16 +569,29 @@ class Smile:
                         high_prio = thermo_matching[a_class]
                         self._thermo_master_id = appliance_id
 
-            if locations[loc_id]['master'] is not None:
-                _LOGGER.debug("Location ",location_details['name']," won by '",winner_name ,"' with prio ",locations[loc_id]['master_prio']," slaves ",slavenames)
+            if locations[loc_id]["master"] is not None:
+                _LOGGER.debug(
+                    "Location ",
+                    location_details["name"],
+                    " won by '",
+                    winner_name,
+                    "' with prio ",
+                    locations[loc_id]["master_prio"],
+                    " slaves ",
+                    slavenames,
+                )
             else:
-                _LOGGER.debug("Location TROUBLE ",location_details['name']," no winners")
+                _LOGGER.debug(
+                    "Location TROUBLE ", location_details["name"], " no winners"
+                )
                 all_locations = False
 
         # Return location including slaves
-        _LOGGER.debug("We have ",all_locations," all locations - highest prio is ",high_prio)
-        _LOGGER.debug("Locations looks like ",locations)
-        _LOGGER.debug("---------",debug_text,"--------")
+        _LOGGER.debug(
+            "We have ", all_locations, " all locations - highest prio is ", high_prio
+        )
+        _LOGGER.debug("Locations looks like ", locations)
+        _LOGGER.debug("---------", debug_text, "--------")
         return locations, home_location
 
     # Build a list of locations and what
@@ -592,7 +617,7 @@ class Smile:
         devices = {}
 
         appliances = self.get_all_appliances()
-        #locations, home_location = self.get_all_locations()
+        # locations, home_location = self.get_all_locations()
         thermo_locations, home_location = self.scan_thermostats()
 
         for appliance, details in appliances.items():
@@ -602,7 +627,7 @@ class Smile:
 
             # Override slave thermostat class
             if loc_id in thermo_locations:
-                if 'slaves' in thermo_locations[loc_id]:
+                if "slaves" in thermo_locations[loc_id]:
                     if appliance in thermo_locations[loc_id]["slaves"]:
                         details["class"] = "thermo_sensor"
 
@@ -618,7 +643,11 @@ class Smile:
             return False
 
         merged_data = {}
-        thermostat_classes = [ "thermostat", "zone_thermostat", "thermostatic_radiator_valve"]
+        thermostat_classes = [
+            "thermostat",
+            "zone_thermostat",
+            "thermostatic_radiator_valve",
+        ]
 
         if dev_id == self._gateway_id:
             dev_ids = self._gw_appl_ids
@@ -764,7 +793,7 @@ class Smile:
 
             # Always run double tariff for P1 legacy
             if self._smile_legacy and self._smile_type == "power":
-                    peak_list.append("nl_offpeak")
+                peak_list.append("nl_offpeak")
 
             lt_string = ".//{}[type='{}']/period/measurement[@{}=\"{}\"]"
             l_string = ".//{}[type='{}']/period/measurement"
@@ -828,7 +857,7 @@ class Smile:
 
         if self._smile_legacy:
             return self.__get_presets_legacy()
-        
+
         # _LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
         rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
         if rule_ids is None:
@@ -1097,7 +1126,7 @@ class Smile:
         return re.sub(r"&([^a-zA-Z#])", r"&amp;\1", xmldata)
 
     # LEGACY Anna functions
-    
+
     def __get_presets_legacy(self):
         preset_dictionary = {}
         directives = self._domain_objects.findall("rule/directives/when/then")
@@ -1107,7 +1136,6 @@ class Smile:
                     directive.attrib["temperature"]
                 )
         return preset_dictionary
-
 
     async def set_preset_legacy(self, preset):
         """Sets the given preset on the thermostat - from DOMAIN_OBJECTS."""

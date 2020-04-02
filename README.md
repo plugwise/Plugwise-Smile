@@ -1,9 +1,11 @@
 # Plugwise Smile python module
 
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/plugwise)
 [![Build Status](https://travis-ci.org/plugwise/Plugwise-Smile.svg?branch=master)](https://travis-ci.org/plugwise/Plugwise-Smile)
 [![codecov](https://codecov.io/gh/plugwise/Plugwise-Smile/branch/master/graph/badge.svg)](https://codecov.io/gh/plugwise/Plugwise-Smile)
 [![PyPI version fury.io](https://badge.fury.io/py/Plugwise-Smile.svg)](https://pypi.python.org/pypi/Plugwise-Smile/)
+[![Generic badge](https://img.shields.io/badge/custom_component-yes-green.svg)](https://github.com/plugwise/plugwise-beta)
+[![Generic badge](https://img.shields.io/badge/HACS-add_our_repo-yellow.svg)](https://github.com/plugwise/plugwise-beta)
 
 
 Module providing interfacing with Plugwise:

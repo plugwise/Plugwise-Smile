@@ -681,6 +681,11 @@ class Smile:
 
         for appliance in appliances:
             for measurement in DEVICE_MEASUREMENTS:
+
+                if self._smile_legacy and measurement == "domestic_hot_water_state":
+                    data[measurement] = "off"
+                    continue
+
                 meter_id = None
                 appliance_name = appliance.find("name").text
 

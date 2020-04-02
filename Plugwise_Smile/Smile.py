@@ -72,6 +72,7 @@ TARIFF_MEASUREMENTS = [
 SMILES = {
     "smile_open_therm_v30": {"type": "thermostat", "friendly_name": "Adam",},
     "smile_open_therm_v23": {"type": "thermostat", "friendly_name": "Adam",},
+    "smile_thermo_v40": {"type": "thermostat", "friendly_name": "Smile (Anna)",},
     "smile_thermo_v31": {"type": "thermostat", "friendly_name": "Smile (Anna)",},
     "smile_thermo_v18": {
         "type": "thermostat",
@@ -356,6 +357,8 @@ class Smile:
     def get_all_appliances(self):
         appliances = {}
 
+        locations, home_location = self.get_all_locations()
+
         if self._smile_legacy and self._smile_type == "power":
             # Injecting home location as dev id
             # so get_appliance_data can use loc_id for dev_id
@@ -363,12 +366,10 @@ class Smile:
                 "name": "Smile P1",
                 "types": set(["power", "home"]),
                 "class": "gateway",
-                "location": None,
+                "location": home_location,
             }
             return appliances
             #    "location": self._home_location,
-
-        locations, home_location = self.get_all_locations()
 
         # TODO: add locations with members as appliance as well
         # example 'electricity consumed/produced and relay' on Adam
@@ -407,7 +408,10 @@ class Smile:
                 appliance_types = locations[home_location]["types"]
                 # Override registering to ensure gateway
                 appliance_name = self._smile_name
-                appliance_id = self._gateway_id
+                # Legacy_anna has no gw id
+                # TODO evaluate if we should add 'is thermo is legacy' too
+                if self._gateway_id is not None:
+                    appliance_id = self._gateway_id
 
             # Determine appliance_type from funcitonality
             if appliance.find(".//actuator_functionalities/relay_functionality"):

@@ -8,7 +8,9 @@ Our main usage for this module is supporting [Home Assistant](https://www.home-a
 [![PyPI version fury.io](https://badge.fury.io/py/Plugwise-Smile.svg)](https://pypi.python.org/pypi/Plugwise-Smile/)
 
 
-# Home-Assistant module (beta)
+## Integration
+
+### Home-Assistant module (beta)
 
 (use at your own risk)
 
@@ -16,7 +18,7 @@ Our main usage for this module is supporting [Home Assistant](https://www.home-a
 [![Generic badge](https://img.shields.io/badge/HA%20custom_component-yes-green.svg)](https://github.com/plugwise/plugwise-beta)
 [![Generic badge](https://img.shields.io/badge/HACS-add%20our%20repo-yellow.svg)](https://github.com/plugwise/plugwise-beta)
 
-# Home-Assitant code (stable)
+### Home-Assitant code (stable)
 
 (maintained through Home-Assistant)
 
@@ -24,7 +26,7 @@ Our main usage for this module is supporting [Home Assistant](https://www.home-a
 
 Note we currently have a `plugwise` [component](https://github.com/home-assistant/core/tree/dev/homeassistant/components/plugwise) in core that will be replaced (eventually, then continously) with stable releases from this project
 
-# Project support status
+## Project support status
 
 Module providing interfacing with Plugwise:
 
@@ -46,7 +48,7 @@ Module providing interfacing with Plugwise:
   - [x]  - `custom_component` [Plugwise-HA](https://github.com/plugwise/Plugwise-HA)
   - [ ]  - `HACS` [Plugwise-HA](https://github.com/plugwise/Plugwise-HA)
 
-# License, origins and contributors
+## License, origins and contributors
 
 Original (and therefor, license) by [haanna](https://github.com/laetificat/haanna) by Kevin Heruer
 

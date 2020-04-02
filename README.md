@@ -1,11 +1,21 @@
 # Plugwise Smile python module
 
+Our main usage for this module is supporting [Home Assistant](https://www.home-assistant.io) / [home-assistant](http://github.com/home-assistant/core/)
+
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/plugwise)
 [![Build Status](https://travis-ci.org/plugwise/Plugwise-Smile.svg?branch=master)](https://travis-ci.org/plugwise/Plugwise-Smile)
 [![codecov](https://codecov.io/gh/plugwise/Plugwise-Smile/branch/master/graph/badge.svg)](https://codecov.io/gh/plugwise/Plugwise-Smile)
 [![PyPI version fury.io](https://badge.fury.io/py/Plugwise-Smile.svg)](https://pypi.python.org/pypi/Plugwise-Smile/)
-[![Generic badge](https://img.shields.io/badge/custom_component-yes-green.svg)](https://github.com/plugwise/plugwise-beta)
-[![Generic badge](https://img.shields.io/badge/HACS-add_our_repo-yellow.svg)](https://github.com/plugwise/plugwise-beta)
+
+Beta: (use at your own risk)
+
+[![Generic badge](https://img.shields.io/badge/HA%20custom_component-yes-green.svg)](https://github.com/plugwise/plugwise-beta)
+[![Generic badge](https://img.shields.io/badge/HACS-add%20our%20repo-yellow.svg)](https://github.com/plugwise/plugwise-beta)
+
+Core: (maintained through Home-Assistant)
+
+[![Generic badge](https://img.shields.io/badge/HA%20core-no-red.svg)](https://github.com/home-assistant/core/tree/dev/homeassistant/components/plugwise)
+Note we currently have a `plugwise` [component](https://github.com/home-assistant/core/tree/dev/homeassistant/components/plugwise) in core that will be replaced (eventually, then continously) with stable releases from this project
 
 
 Module providing interfacing with Plugwise:

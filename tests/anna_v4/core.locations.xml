@@ -519,7 +519,7 @@
 				<unit></unit>
 				<last_consecutive_log_date>2020-04-01T07:27:53+02:00</last_consecutive_log_date>
 				<period start_date="2020-04-02T09:48:36.297+02:00" end_date="2020-04-02T09:48:36.297+02:00">
-					<measurement log_date="2020-04-02T09:48:36.297+02:00">192.168.0.40</measurement>
+					<measurement log_date="2020-04-02T09:48:36.297+02:00">127.0.0.1</measurement>
 				</period>
 				<network_address id='bd195e84b64849a698bbdaa51971d5bf'/>
 			</point_log>

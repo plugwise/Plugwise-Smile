@@ -741,7 +741,7 @@ class Smile:
             measure = int(measure)
         except ValueError:
             try:
-                measure = "{:.2f}".format(round(float(measure), 2))
+                measure = float("{:.2f}".format(round(float(measure), 2)))
             except ValueError:
                 if measure == "on":
                     measure = True

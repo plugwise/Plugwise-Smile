@@ -740,13 +740,13 @@ class Smile:
         try:
             measure = int(measure)
         except ValueError:
-            pass
-        try:
-            measure = float(measure)
-        except ValueError:
-            pass
-        if type(measure) == "float":
-            measure = "{:.2f}".format(round(measure, 2))
+            try:
+                measure = "{:.2f}".format(round(float(measure), 2))
+            except ValueError:
+                if measure == "on":
+                    measure = True
+                elif measure == "off":
+                    measure = False
         return measure
 
     # Smile P1 specific

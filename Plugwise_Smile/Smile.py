@@ -107,7 +107,6 @@ class Smile:
         port=80,
         timeout=DEFAULT_TIMEOUT,
         websession=None,
-        sleeptime=1,
     ):
         """Set the constructor for this class."""
 

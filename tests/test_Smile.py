@@ -152,7 +152,6 @@ async def connect():
         password="abcdefgh",
         port=server.port,
         websession=websession,
-        sleeptime=0,
     )
     assert smile._timeout == 20
     assert smile._domain_objects is None

@@ -707,7 +707,7 @@ class Smile:
             for measurement in DEVICE_MEASUREMENTS:
 
                 if self._smile_legacy and measurement == "domestic_hot_water_state":
-                    data[measurement] = "off"
+                    data[measurement] = False
                     continue
 
                 meter_id = None

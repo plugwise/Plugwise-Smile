@@ -152,7 +152,6 @@ async def connect():
         password="abcdefgh",
         port=server.port,
         websession=websession,
-        sleeptime=0,
     )
     assert smile._timeout == 20
     assert smile._domain_objects is None
@@ -263,7 +262,7 @@ async def tinker_relay(smile, dev_ids=[]):
     print("Asserting modifying settings for relay devices:")
     for dev_id in dev_ids:
         print("- Devices ({}):".format(dev_id))
-        for new_state in ["off", "on", "off"]:
+        for new_state in [False, True, False]:
             print("- Switching {}".format(new_state))
             relay_change = await smile.set_relay_state(dev_id, new_state)
             assert relay_change == True
@@ -325,11 +324,11 @@ async def test_connect_legacy_anna():
         },
         # Central
         "04e4cbfe7f4340f090f85ec3b9e6a950": {
-            "domestic_hot_water_state": "off",
+            "domestic_hot_water_state": False,
             "boiler_temperature": 23.59,
-            "central_heating_state": "on",
+            "central_heating_state": True,
             "central_heater_water_pressure": 1.2,
-            "boiler_state": "off",
+            "boiler_state": False,
         },
     }
     global smile_setup
@@ -421,7 +420,7 @@ async def test_connect_anna_v4():
         # Central
         "0466eae8520144c78afb29628384edeb": {
             "outdoor_temperature": 7.4,
-            "central_heating_state": "on",
+            "central_heating_state": True,
             "central_heater_water_pressure": 2.1,
             "boiler_temperature": 52.0,
         },
@@ -460,7 +459,7 @@ async def test_connect_anna_without_boiler():
         # Central
         "a270735e4ccd45239424badc0578a2b1": {
             "outdoor_temperature": 10.8,
-            "central_heating_state": "off",
+            "central_heating_state": False,
         },
     }
     global smile_setup
@@ -520,14 +519,14 @@ async def test_connect_adam_plus_anna():
         },
         # Central
         "b128b4bbbd1f47e9bf4d756e8fb5ee94": {
-            "central_heating_state": "off",
+            "central_heating_state": False,
             "outdoor_temperature": 11.9,
             "central_heater_water_pressure": 6.0,
         },
         # Plug MediaCenter
         "aa6b0002df0a46e1b1eb94beb61eddfe": {
             "electricity_consumed": 10.31,
-            "relay": "on",
+            "relay": True,
         },
     }
     global smile_setup
@@ -565,7 +564,7 @@ async def test_connect_adam_zone_per_device():
         # CV pomp
         "78d1126fc4c743db81b61c20e88342a7": {
             "electricity_consumed": 35.81,
-            "relay": "on",
+            "relay": True,
         },
         # Lisa Bios
         "df4a4a8169904cdb9c03d61a21f42140": {
@@ -576,12 +575,12 @@ async def test_connect_adam_zone_per_device():
         # Adam
         "fe799307f1624099878210aa0b9f1475": {
             "outdoor_temperature": 7.7,
-            "central_heating_state": "on",
+            "central_heating_state": True,
         },
         # Modem
         "675416a629f343c495449970e2ca37b5": {
             "electricity_consumed": 12.19,
-            "relay": "on",
+            "relay": True,
         },
     }
     global smile_setup

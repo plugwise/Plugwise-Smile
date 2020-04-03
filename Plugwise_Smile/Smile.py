@@ -124,7 +124,6 @@ class Smile:
         self._auth = aiohttp.BasicAuth(username, password=password)
 
         self._timeout = timeout
-        self._sleeptime = sleeptime
         self._endpoint = "http://" + host + ":" + str(port)
         self._appliances = None
         self._direct_objects = None
@@ -132,7 +131,6 @@ class Smile:
         self._locations = None
         self._modules = None
         self._power_tariff = None
-        self._rules = None
         self._smile_type = None
         self._smile_subtype = None
         self._smile_version = ()
@@ -141,7 +139,6 @@ class Smile:
         self._gateway_id = None
         self._gw_appl_ids = []
         self._thermo_master_id = None
-        self._platforms = ["climate", "water_heater", "sensor"]
 
     async def connect(self, retry=2):
         """Connect to Plugwise device."""
@@ -639,8 +636,6 @@ class Smile:
         devices = self.get_all_devices()
         if dev_id in devices:
             details = devices[dev_id]
-        else:
-            return False
 
         merged_data = {}
         thermostat_classes = [
@@ -944,7 +939,6 @@ class Smile:
 
         return last_modified
 
-    # get_rule_id_and_zone_location_by_template_tag_with_id(self, rule_name, dev_id):
     def get_rule_ids_by_tag(self, tag, loc_id):
         """Obtains the rule_id based on the given template_tag and
            location_id."""
@@ -972,7 +966,6 @@ class Smile:
 
     def get_object_value(self, obj_type, appl_id, measurement):
         """Obtain the illuminance value from the thermostat."""
-
         search = self._direct_objects
 
         if self._smile_legacy and self._smile_type == "power":
@@ -1014,10 +1007,6 @@ class Smile:
 
                 await self.request(uri, method="put", data=data)
 
-                # All get_schema related items check domain_objects so update that
-                # await asyncio.sleep(self._sleeptime)
-                # await self.update_domain_objects()
-
         return True
 
     async def set_preset(self, loc_id, preset):
@@ -1055,7 +1044,10 @@ class Smile:
             + "</locations>"
         )
 
-        await self.request(uri, method="put", data=data)
+        if uri is not None:
+            await self.request(uri, method="put", data=data)
+        else:
+            return False
 
         return True
 
@@ -1072,9 +1064,7 @@ class Smile:
 
         if uri is not None:
             await self.request(uri, method="put", data=data)
-
         else:
-            CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
             return False
 
         return True
@@ -1113,9 +1103,7 @@ class Smile:
 
         if uri is not None:
             await self.request(uri, method="put", data=data)
-
         else:
-            CouldNotSetTemperatureException("Could not obtain the temperature_uri.")
             return False
 
         return True

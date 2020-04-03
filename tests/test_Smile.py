@@ -327,7 +327,7 @@ async def test_connect_legacy_anna():
         "04e4cbfe7f4340f090f85ec3b9e6a950": {
             "domestic_hot_water_state": False,
             "boiler_temperature": 23.59,
-            "central_heating_state": True
+            "central_heating_state": True,
             "central_heater_water_pressure": 1.2,
             "boiler_state": False,
         },

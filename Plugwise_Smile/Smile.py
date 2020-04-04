@@ -685,7 +685,8 @@ class Smile:
 
             merged_data.update(device_data)
 
-        return merged_data
+        if merged_data != {}:
+            return merged_data
 
     def get_appliance_data(self, dev_id):
         """Obtains the appliance-data connected to a location -

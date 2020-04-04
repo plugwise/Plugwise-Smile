@@ -148,19 +148,16 @@ async def connect():
         pass
 
     smile = Smile(
-        host=server.host,
-        password="abcdefgh",
-        port=server.port,
-        websession=websession,
+        host=server.host, password="abcdefgh", port=server.port, websession=websession,
     )
     assert smile._timeout == 20
     assert smile._domain_objects is None
-    assert smile._smile_type is None
+    assert smile.smile_type is None
 
     """Connect to the smile"""
     connection = await smile.connect()
     assert connection is True
-    assert smile._smile_type is not None
+    assert smile.smile_type is not None
     return server, smile, client
 
 
@@ -175,7 +172,7 @@ async def list_devices(server, smile):
     ##for dev in devices:
     ##    if dev['name'] == 'Controlled Device':
     ##        ctrl_id = dev['id']
-    ##    if dev['name'] == 'Home' and smile._smile_type == 'power':
+    ##    if dev['name'] == 'Home' and smile.smile_type == 'power':
     ##        ctrl_id = dev['id']
     for device, details in devices.items():
         # Detect home
@@ -224,7 +221,7 @@ async def test_device(smile=Smile, testdata={}):
     device_list = smile.get_all_devices()
     location_list, home = smile.scan_thermostats()
 
-    print("Gateway id = ", smile._gateway_id)
+    print("Gateway id = ", smile.gateway_id)
     show_setup(location_list, device_list)
     if True:
         print("Device list: {}".format(device_list))
@@ -334,8 +331,8 @@ async def test_connect_legacy_anna():
     global smile_setup
     smile_setup = "legacy_anna"
     server, smile, client = await connect()
-    assert smile._smile_type == "thermostat"
-    assert smile._smile_version[0] == "1.8.0"
+    assert smile.smile_type == "thermostat"
+    assert smile.smile_version[0] == "1.8.0"
     assert smile._smile_legacy == True
     await test_device(smile, testdata)
     # TODO looks like 'legacy_anna' has no schemas defined
@@ -364,8 +361,8 @@ async def test_connect_smile_p1_v2():
     global smile_setup
     smile_setup = "smile_p1_v2"
     server, smile, client = await connect()
-    assert smile._smile_type == "power"
-    assert smile._smile_version[0] == "2.5.9"
+    assert smile.smile_type == "power"
+    assert smile.smile_version[0] == "2.5.9"
     assert smile._smile_legacy == True
     await test_device(smile, testdata)
     await smile.close_connection()
@@ -391,8 +388,8 @@ async def test_connect_smile_p1_v2_2():
     global smile_setup
     smile_setup = "smile_p1_v2_2"
     server, smile, client = await connect()
-    assert smile._smile_type == "power"
-    assert smile._smile_version[0] == "2.5.9"
+    assert smile.smile_type == "power"
+    assert smile.smile_version[0] == "2.5.9"
     assert smile._smile_legacy == True
     await test_device(smile, testdata)
     await smile.close_connection()
@@ -428,8 +425,8 @@ async def test_connect_anna_v4():
     global smile_setup
     smile_setup = "anna_v4"
     server, smile, client = await connect()
-    assert smile._smile_type == "thermostat"
-    assert smile._smile_version[0] == "4.0.15"
+    assert smile.smile_type == "thermostat"
+    assert smile.smile_version[0] == "4.0.15"
     assert smile._smile_legacy == False
     await test_device(smile, testdata)
     await tinker_thermostat(
@@ -465,8 +462,8 @@ async def test_connect_anna_without_boiler():
     global smile_setup
     smile_setup = "anna_without_boiler"
     server, smile, client = await connect()
-    assert smile._smile_type == "thermostat"
-    assert smile._smile_version[0] == "3.1.11"
+    assert smile.smile_type == "thermostat"
+    assert smile.smile_version[0] == "3.1.11"
     assert smile._smile_legacy == False
     await test_device(smile, testdata)
     await tinker_thermostat(
@@ -487,7 +484,7 @@ async def test_connect_adam():
     smile_setup = 'adam_living_floor_plus_3_rooms'
     server,smile,client = await connect()
     device_list = await list_devices(server,smile)
-    #assert smile._smile_type == 'thermostat'
+    #assert smile.smile_type == 'thermostat'
     print(device_list)
     #testdata dictionary with key ctrl_id_dev_id => keys:values
     testdata={}
@@ -532,8 +529,8 @@ async def test_connect_adam_plus_anna():
     global smile_setup
     smile_setup = "adam_plus_anna"
     server, smile, client = await connect()
-    assert smile._smile_type == "thermostat"
-    assert smile._smile_version[0] == "3.0.15"
+    assert smile.smile_type == "thermostat"
+    assert smile.smile_version[0] == "3.0.15"
     assert smile._smile_legacy == False
     await test_device(smile, testdata)
     await tinker_thermostat(
@@ -586,8 +583,8 @@ async def test_connect_adam_zone_per_device():
     global smile_setup
     smile_setup = "adam_zone_per_device"
     server, smile, client = await connect()
-    assert smile._smile_type == "thermostat"
-    assert smile._smile_version[0] == "3.0.15"
+    assert smile.smile_type == "thermostat"
+    assert smile.smile_version[0] == "3.0.15"
     assert smile._smile_legacy == False
     await test_device(smile, testdata)
     await tinker_thermostat(
@@ -643,8 +640,8 @@ async def test_connect_p1v3():
     global smile_setup
     smile_setup = "p1v3"
     server, smile, client = await connect()
-    assert smile._smile_type == "power"
-    assert smile._smile_version[0] == "3.3.6"
+    assert smile.smile_type == "power"
+    assert smile.smile_version[0] == "3.3.6"
     assert smile._smile_legacy == False
     await test_device(smile, testdata)
     await smile.close_connection()
@@ -667,8 +664,8 @@ async def test_connect_p1v3solarfake():
     global smile_setup
     smile_setup = "p1v3solarfake"
     server, smile, client = await connect()
-    assert smile._smile_type == "power"
-    assert smile._smile_version[0] == "3.3.6"
+    assert smile.smile_type == "power"
+    assert smile.smile_version[0] == "3.3.6"
     assert smile._smile_legacy == False
     await test_device(smile, testdata)
     await smile.close_connection()

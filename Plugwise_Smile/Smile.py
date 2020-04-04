@@ -83,14 +83,6 @@ SMILES = {
     "smile_v25": {"type": "power", "friendly_name": "Smile P1", "legacy": True,},
 }
 
-# Appliances with location WITHOUT id=
-# p1v3 = gateway
-# anna = gateway, heater_central
-# leg_anna = heater_central !!! has no gateway
-# adam = gateway,heater_central,open_therm_gateway
-# older adam = gateway,heater_central,open_therm_gateway
-# p1v2 has no applianace
-
 CENTRAL_COMPONENTS = ["heater_central", "gateway", "open_therm_gateway"]
 
 
@@ -109,7 +101,6 @@ class Smile:
         websession=None,
     ):
         """Set the constructor for this class."""
-
         if websession is None:
 
             async def _create_session():
@@ -127,17 +118,19 @@ class Smile:
         self._appliances = None
         self._direct_objects = None
         self._domain_objects = None
+        self._gw_appl_ids = []
+        self._home_location = None
         self._locations = None
         self._modules = None
         self._power_tariff = None
-        self._smile_type = None
         self._smile_subtype = None
-        self._smile_version = ()
         self._smile_legacy = False
-        self._home_location = None
-        self._gateway_id = None
-        self._gw_appl_ids = []
         self._thermo_master_id = None
+
+        self.gateway_id = None
+        self.smile_name = None
+        self.smile_type = None
+        self.smile_version = ()
 
     async def connect(self, retry=2):
         """Connect to Plugwise device."""
@@ -188,7 +181,7 @@ class Smile:
                     _LOGGER.error("Connected but no gateway device information found")
                     return False
 
-            _LOGGER.info("Assuming legacy device")
+            _LOGGER.debug("Assuming legacy device")
 
         if not self._smile_legacy:
             smile_model = do_xml.find(".//gateway/vendor_model").text
@@ -213,9 +206,9 @@ class Smile:
             )
             return False
 
-        self._smile_type = SMILES[target_smile]["type"]
-        self._smile_name = SMILES[target_smile]["friendly_name"]
-        self._smile_version = (smile_version, ver)
+        self.smile_name = SMILES[target_smile]["friendly_name"]
+        self.smile_type = SMILES[target_smile]["type"]
+        self.smile_version = (smile_version, ver)
 
         if "legacy" in SMILES[target_smile]:
             self._smile_legacy = SMILES[target_smile]["legacy"]
@@ -241,17 +234,12 @@ class Smile:
         # pylint: disable=too-many-return-statements
 
         url = self._endpoint + command
-        # _LOGGER.debug("Plugwise command: %s",command)
-        # _LOGGER.debug("Plugwise command type: %s",method)
-        # _LOGGER.debug("Plugwise command data: %s",data)
 
         try:
             with async_timeout.timeout(self._timeout):
                 if method == "get":
                     resp = await self.websession.get(url, auth=self._auth)
                 if method == "put":
-                    # _LOGGER.debug("Sending: command/url %s with data %s
-                    #               using headers %s", command, data, headers)
                     resp = await self.websession.put(
                         url, data=data, headers=headers, auth=self._auth
                     )
@@ -268,7 +256,6 @@ class Smile:
 
         result = await resp.text()
 
-        # _LOGGER.debug(result)
         _LOGGER.debug(
             "Plugwise network traffic to %s- talking to Smile with \
                       %s",
@@ -282,82 +269,73 @@ class Smile:
         # Encode to ensure utf8 parsing
         return etree.XML(self.escape_illegal_xml_characters(result).encode())
 
-    # Appliances
     async def update_appliances(self):
-        """Request data."""
-        if self._smile_legacy and self._smile_type == "power":
+        """Request appliance data."""
+        if self._smile_legacy and self.smile_type == "power":
             return True
 
         new_data = await self.request(APPLIANCES)
         if new_data is not None:
             self._appliances = new_data
 
-    # Direct objects
     async def update_direct_objects(self):
-        """Request data."""
-        if self._smile_legacy and self._smile_type == "power":
+        """Request direct_objects data."""
+        if self._smile_legacy and self.smile_type == "power":
             return True
 
         new_data = await self.request(DIRECT_OBJECTS)
         if new_data is not None:
             self._direct_objects = new_data
 
-    # Domain objects
     async def update_domain_objects(self):
-        """Request data."""
+        """Request domain_objects data."""
         new_data = await self.request(DOMAIN_OBJECTS)
         if new_data is not None:
             self._domain_objects = new_data
 
-    # Locations
     async def update_locations(self):
-        """Request data."""
+        """Request locations data."""
         new_data = await self.request(LOCATIONS)
         if new_data is not None:
             self._locations = new_data
 
-    # Retrieve all XMLs
     async def full_update_device(self):
-        """Update device."""
-        # P1 legacy has no appliances nor direct_objects
+        """Update all XML data from device."""
         await self.update_appliances()
         await self.update_direct_objects()
         await self.update_domain_objects()
         await self.update_locations()
         return True
 
-    # Helper function detecting power types used in multiple routines
     def _types_finder(self, data):
+        """Detect types within locations from logs."""
         types = set([])
-        # Plug measurements detection - same as P1 in get_all_locations
         for measure, measure_type in HOME_MEASUREMENTS.items():
             locator = './/logs/point_log[type="{}"]'.format(measure)
-            # Find powermeasures within data
             if data.find(locator):
                 log = data.find(locator)
 
-                # outdoor_temperature found
                 if measure == "outdoor_temperature":
                     types.add(measure_type)
 
-                # TODO, build gas locator for P1
-
-                # Find electra meter in locattion
                 p_locator = ".//electricity_point_meter"
                 if log.find(p_locator) is not None:
                     if log.find(p_locator).get("id"):
                         types.add(measure_type)
         return types
 
-    # Return list of all appliances, type and location
     def get_all_appliances(self):
+        """Determine available appliances from inventory."""
         appliances = {}
 
         locations, home_location = self.get_all_locations()
 
-        if self._smile_legacy and self._smile_type == "power":
-            # Injecting home location as dev id
-            # so get_appliance_data can use loc_id for dev_id
+        if self._smile_legacy and self.smile_type == "power":
+            """
+            Inject home_location as dev_id for legacy.
+
+            get_appliance_data can use loc_id for dev_id
+            """
             appliances[self._home_location] = {
                 "name": "Smile P1",
                 "types": set(["power", "home"]),
@@ -365,21 +343,19 @@ class Smile:
                 "location": home_location,
             }
             return appliances
-            #    "location": self._home_location,
 
         # TODO: add locations with members as appliance as well
         # example 'electricity consumed/produced and relay' on Adam
         # Basically walk locations for 'members' not set[] and
         # scan for the same functionality
 
-        # Find gateway device as 'root', for legacy without gateway use heater
         root_device = "gateway"
-        if self._smile_legacy and self._smile_type == "thermostat":
+        if self._smile_legacy and self.smile_type == "thermostat":
             root_device = "heater_central"
 
         for appliance in self._appliances:
             if appliance.find("type").text == root_device:
-                self._gateway_id = appliance.attrib["id"]
+                self.gateway_id = appliance.attrib["id"]
                 break
 
         for appliance in self._appliances:
@@ -407,11 +383,11 @@ class Smile:
                 # Return all types applicable to home
                 appliance_types = locations[home_location]["types"]
                 # Override registering to ensure gateway
-                appliance_name = self._smile_name
+                appliance_name = self.smile_name
                 # Legacy_anna has no gw id
                 # TODO evaluate if we should add 'is thermo is legacy' too
                 if not self._smile_legacy:
-                    appliance_id = self._gateway_id
+                    appliance_id = self.gateway_id
 
             # Determine appliance_type from funcitonality
             if appliance.find(".//actuator_functionalities/relay_functionality"):
@@ -427,8 +403,8 @@ class Smile:
             }
         return appliances
 
-    # Return aavailable locations (unmapped, see match_locations)
     def get_all_locations(self):
+        """Determine available locations from inventory."""
         home_location = None
         locations = {}
         # Legacy Anna has no locations, create one containing all appliances
@@ -485,31 +461,21 @@ class Smile:
         self._home_location = home_location
         return locations, home_location
 
-    # Using match_locations build up a list
-    # of master thermostat for each zone
-    # and a list of slaves not to become thermostat
     def scan_thermostats(self, debug_text="missing text"):
+        """Update locations with actual master/slave thermostats."""
         locations, home_location = self.match_locations()
         appliances = self.get_all_appliances()
 
-        # Best thermostat mapping
         thermo_matching = {
             "thermostat": 3,
             "zone_thermostat": 2,
             "thermostatic_radiator_valve": 1,
         }
 
-        _LOGGER.debug("---------", debug_text, "--------")
-        # Found thermostat yet?
         high_prio = 0
-        # All locations have a device?
-        all_locations = True
-        # Walk locations
         for loc_id, location_details in locations.items():
-            # Rebuild locations in new table
             locations[loc_id] = location_details
 
-            # Only process if thermostat present
             if "thermostat" in location_details["types"] and loc_id != home_location:
                 locations[loc_id].update(
                     {"master": None, "master_prio": 0, "slaves": set([])}
@@ -527,11 +493,8 @@ class Smile:
                 )
                 continue
 
-            winner_name = None  # throw away, just for printing
-            slavenames = ""  # throw away, just for printing
             for appliance_id, appliance_details in appliances.items():
 
-                # tore appliance class, DRY
                 a_class = appliance_details["class"]
                 if loc_id == appliance_details["location"]:
                     if a_class in thermo_matching:
@@ -544,20 +507,13 @@ class Smile:
                                 locations[loc_id]["slaves"].add(
                                     locations[loc_id]["master"]
                                 )
-                                slavenames = f"{slavenames} - {winner_name}"  # throw away, just for printing
 
                             # Crown master
                             locations[loc_id]["master_prio"] = thermo_matching[a_class]
                             locations[loc_id]["master"] = appliance_id
 
-                            winner_name = appliance_details[
-                                "name"
-                            ]  # throw away, just for printing
                         else:
-
-                            # Designate slave
                             locations[loc_id]["slaves"].add(appliance_id)
-                            slavenames = f"{slavenames} - {appliance_details['name']}"  # throw away, just for printing
 
                 # Find highest ranking thermostat
                 if a_class in thermo_matching:
@@ -565,34 +521,16 @@ class Smile:
                         high_prio = thermo_matching[a_class]
                         self._thermo_master_id = appliance_id
 
-            if locations[loc_id]["master"] is not None:
+            if locations[loc_id]["master"] is None:
                 _LOGGER.debug(
-                    "Location ",
-                    location_details["name"],
-                    " won by '",
-                    winner_name,
-                    "' with prio ",
-                    locations[loc_id]["master_prio"],
-                    " slaves ",
-                    slavenames,
+                    "Location ", location_details["name"], " has no (master) thermostat"
                 )
-            else:
-                _LOGGER.debug(
-                    "Location TROUBLE ", location_details["name"], " no winners"
-                )
-                all_locations = False
 
         # Return location including slaves
-        _LOGGER.debug(
-            "We have ", all_locations, " all locations - highest prio is ", high_prio
-        )
-        _LOGGER.debug("Locations looks like ", locations)
-        _LOGGER.debug("---------", debug_text, "--------")
         return locations, home_location
 
-    # Build a list of locations and what
-    # kind of types of equipment they have (power, thermo, etc.)
     def match_locations(self):
+        """Update locations with used types of appliances."""
         match_locations = {}
 
         locations, home_location = self.get_all_locations()
@@ -608,8 +546,8 @@ class Smile:
 
         return match_locations, home_location
 
-    # Replacement function for deprecated get_devices
     def get_all_devices(self):
+        """Determine available devices from inventory."""
         devices = {}
 
         appliances = self.get_all_appliances()
@@ -631,7 +569,7 @@ class Smile:
         return devices
 
     def get_device_data(self, dev_id):
-        """Provides the device-data, based on location_id, from APPLIANCES."""
+        """Provide device-data, based on location_id, from APPLIANCES."""
         devices = self.get_all_devices()
         if dev_id in devices:
             details = devices[dev_id]
@@ -643,7 +581,7 @@ class Smile:
             "thermostatic_radiator_valve",
         ]
 
-        if dev_id == self._gateway_id:
+        if dev_id == self.gateway_id:
             dev_ids = self._gw_appl_ids
         else:
             dev_ids = [dev_id]
@@ -669,7 +607,7 @@ class Smile:
                 )
 
             # Generic
-            if details["class"] == "gateway" or dev_id == self._gateway_id:
+            if details["class"] == "gateway" or dev_id == self.gateway_id:
 
                 # Try to get P1 data
                 self.get_power_tariff()
@@ -689,12 +627,15 @@ class Smile:
             return merged_data
 
     def get_appliance_data(self, dev_id):
-        """Obtains the appliance-data connected to a location -
-           from APPLIANCES or legacy DOMAIN_OBJECTS."""
+        """
+        Obtain the appliance-data connected to a location.
+
+        Determined from APPLIANCES or legacy DOMAIN_OBJECTS.
+        """
         data = {}
         search = self._appliances
 
-        if self._smile_legacy and self._smile_type == "power":
+        if self._smile_legacy and self.smile_type == "power":
             search = self._domain_objects
 
         appliances = search.findall('.//appliance[@id="{}"]'.format(dev_id))
@@ -709,9 +650,6 @@ class Smile:
                 if self._smile_legacy and measurement == "domestic_hot_water_state":
                     data[measurement] = False
                     continue
-
-                meter_id = None
-                appliance_name = appliance.find("name").text
 
                 pl_value = p_locator.format(measurement)
                 if appliance.find(pl_value) is not None:
@@ -734,9 +672,8 @@ class Smile:
 
         return data
 
-    # format_measure
     def _format_measure(self, measure):
-
+        """Format measure to correct type."""
         try:
             measure = int(measure)
         except ValueError:
@@ -749,9 +686,8 @@ class Smile:
                     measure = False
         return measure
 
-    # Smile P1 specific
     def get_power_tariff(self):
-        """Obtains power tariff information from Smile"""
+        """Obtain power tariff information from Smile P1 v3."""
         self._power_tariff = {}
         for t in TARIFF_MEASUREMENTS:
             locator = "./gateway/gateway_environment/{}".format(t)
@@ -762,20 +698,20 @@ class Smile:
         return True
 
     def get_direct_objects_from_location(self, loc_id):
-        """Obtains the appliance-data from appliances without a location
-           - from DIRECT_OBJECTS."""
+        """
+        Obtain the appliance-data from appliances without a location.
+
+        Determined from DIRECT_OBJECTS.
+        """
         direct_data = {}
         search = self._direct_objects
         t_string = "tariff"
 
-        if self._smile_legacy and self._smile_type == "power":
+        if self._smile_legacy and self.smile_type == "power":
             search = self._domain_objects
             t_string = "tariff_indicator"
 
         loc_logs = search.find(".//location[@id='{}']/logs".format(loc_id))
-
-        # Dict for energy differential
-        net_energy = {}
 
         if loc_logs is not None and self._power_tariff is not None:
             log_list = ["point_log", "cumulative_log", "interval_log"]
@@ -787,7 +723,7 @@ class Smile:
                     peak_list.append("nl_offpeak")
 
             # Always run double tariff for P1 legacy
-            if self._smile_legacy and self._smile_type == "power":
+            if self._smile_legacy and self.smile_type == "power":
                 peak_list.append("nl_offpeak")
 
             lt_string = ".//{}[type='{}']/period/measurement[@{}=\"{}\"]"
@@ -795,8 +731,6 @@ class Smile:
             # meter_string = ".//{}[type='{}']/"
             for measurement in HOME_MEASUREMENTS:
                 for log_type in log_list:
-                    # meter_id = None
-                    # meter = meter_string.format(log_type, measurement)
                     for peak_select in peak_list:
                         locator = lt_string.format(
                             log_type, measurement, t_string, peak_select
@@ -806,7 +740,7 @@ class Smile:
                         if (
                             loc_logs.find(locator) is None
                             and self._smile_legacy
-                            and self._smile_type == "power"
+                            and self.smile_type == "power"
                         ):
                             locator = l_string.format(log_type, measurement)
 
@@ -838,15 +772,18 @@ class Smile:
             return direct_data
 
     def get_preset(self, loc_id):
-        """Obtains the active preset based on the location_id -
-           from DOMAIN_OBJECTS."""
+        """
+        Obtain the active preset based on the location_id.
+
+        Determined from DOMAIN_OBJECTS.
+        """
         locator = ".//location[@id='{}']/preset".format(loc_id)
         preset = self._domain_objects.find(locator)
         if preset is not None:
             return preset.text
 
     def get_presets(self, loc_id):
-        """Gets the presets from the thermostat based on location_id."""
+        """Get the presets from the thermostat based on location_id."""
         presets = {}
         tag = "zone_setpoint_and_state_based_on_preset"
 
@@ -879,8 +816,7 @@ class Smile:
         return presets
 
     def get_schemas(self, loc_id):
-        """Obtains the available schemas or schedules based on the
-           location_id."""
+        """Obtain the available schemas or schedules based on the location_id."""
         rule_ids = {}
         schemas = {}
         available = []
@@ -940,9 +876,7 @@ class Smile:
         return last_modified
 
     def get_rule_ids_by_tag(self, tag, loc_id):
-        """Obtains the rule_id based on the given template_tag and
-           location_id."""
-        # _LOGGER.debug("Plugwise rule and id: %s -> %s",rule_name,dev_id)
+        """Obtain the rule_id based on the given template_tag and location_id."""
         schema_ids = {}
         rules = self._domain_objects.findall(".//rule")
         locator1 = './/template[@tag="{}"]'.format(tag)
@@ -954,7 +888,7 @@ class Smile:
             return schema_ids
 
     def get_rule_ids_by_name(self, name, loc_id):
-        """Obtains the rule_id on the given name and location_id."""
+        """Obtain the rule_id on the given name and location_id."""
         schema_ids = {}
         rules = self._domain_objects.findall('.//rule[name="{}"]'.format(name))
         locator = './/contexts/context/zone/location[@id="{}"]'.format(loc_id)
@@ -968,7 +902,7 @@ class Smile:
         """Obtain the illuminance value from the thermostat."""
         search = self._direct_objects
 
-        if self._smile_legacy and self._smile_type == "power":
+        if self._smile_legacy and self.smile_type == "power":
             search = self._domain_objects
 
         locator = ".//{}[@id='{}']/logs/point_log[type='{}']/period/measurement".format(
@@ -982,8 +916,11 @@ class Smile:
             return val
 
     async def set_schedule_state(self, loc_id, name, state):
-        """Sets the schedule, with the given name, connected to a location, to true or false - DOMAIN_OBJECTS."""
-        # _LOGGER.debug("Changing schedule state to: %s", state)
+        """
+        Set the schedule, with the given name, connected to a location.
+
+        Determined from - DOMAIN_OBJECTS.
+        """
         schema_rule_ids = self.get_rule_ids_by_name(str(name), loc_id)
         if schema_rule_ids == {} or schema_rule_ids is None:
             return False
@@ -1010,13 +947,10 @@ class Smile:
         return True
 
     async def set_preset(self, loc_id, preset):
-        """Sets the given location-preset on the relevant thermostat -
-           from LOCATIONS."""
-
+        """Set the given location-preset on the relevant thermostat - from LOCATIONS."""
         if self._smile_legacy:
             return await self.set_preset_legacy(preset)
 
-        # _LOGGER.debug("Changing preset for %s - %s to: %s", loc_id, loc_type, preset)
         current_location = self._locations.find("location[@id='{}']".format(loc_id))
         location_name = current_location.find("name").text
         location_type = current_location.find("type").text
@@ -1052,8 +986,7 @@ class Smile:
         return True
 
     async def set_temperature(self, loc_id, temperature):
-        """Sends a temperature-set request to the relevant thermostat,
-           connected to a location."""
+        """Send temperature-set request to the locations thermostat."""
         uri = self.__get_temperature_uri(loc_id)
         temperature = str(temperature)
         data = (
@@ -1116,6 +1049,7 @@ class Smile:
     # LEGACY Anna functions
 
     def __get_presets_legacy(self):
+        """Get presets from domain_objects for legacy Smile."""
         preset_dictionary = {}
         directives = self._domain_objects.findall("rule/directives/when/then")
         for directive in directives:
@@ -1126,7 +1060,7 @@ class Smile:
         return preset_dictionary
 
     async def set_preset_legacy(self, preset):
-        """Sets the given preset on the thermostat - from DOMAIN_OBJECTS."""
+        """Set the given preset on the thermostat - from DOMAIN_OBJECTS."""
         locator = "rule/directives/when/then[@icon='{}'].../.../...".format(preset)
         rule = self._domain_objects.find(locator)
         if rule is None:

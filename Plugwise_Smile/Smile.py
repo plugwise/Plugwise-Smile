@@ -777,6 +777,12 @@ class Smile:
 
         Determined from DOMAIN_OBJECTS.
         """
+        if self._smile_legacy:
+            active_rule = self._domain_objects.find("rule[active='true']/directives/when/then")
+            if active_rule is not None:
+                if "icon" in active_rule.keys():
+                    return active_rule.attrib["icon"]
+
         locator = ".//location[@id='{}']/preset".format(loc_id)
         preset = self._domain_objects.find(locator)
         if preset is not None:

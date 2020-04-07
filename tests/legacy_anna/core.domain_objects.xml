@@ -693,7 +693,7 @@
 		<name>Thermostat home preset</name>
 		<description>Provides a home preset for a Thermostat</description>
 		<template id="65256e8793094d06a8083d53cf1f1877"/>
-		<active>false</active>
+		<active>true</active>
 		<created_date>2015-01-22T14:45:36.398+01:00</created_date>
 		<modified_date>2020-01-07T11:38:55.189+01:00</modified_date>
 		<deleted_date></deleted_date>

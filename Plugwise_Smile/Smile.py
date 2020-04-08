@@ -596,7 +596,10 @@ class Smile:
                 avail_schemas, sel_schema = self.get_schemas(details["location"])
                 device_data["available_schedules"] = avail_schemas
                 device_data["selected_schedule"] = sel_schema
-                device_data["last_used"] = self.get_last_active_schema(
+                if  self._smile_legacy:
+                    device_data["last_used"] =  "".join(map(str, avail_schemas))
+                else:
+                    device_data["last_used"] = self.get_last_active_schema(
                     details["location"]
                 )
 
@@ -877,9 +880,6 @@ class Smile:
 
     def get_last_active_schema(self, loc_id):
         """Determine the last active schema."""
-        if self._smile_legacy:
-            return None
-
         epoch = dt.datetime(1970, 1, 1, tzinfo=pytz.utc)
         rule_ids = {}
         schemas = {}

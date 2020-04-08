@@ -828,30 +828,51 @@ class Smile:
         available = []
         selected = None
 
-        tag = "zone_preset_based_on_time_and_presence_with_override"
+        if self._smile_legacy: # Only one schedule allowed
+            schedules = self._domain_objects.findall(".//rule")
+            name =  None
+            for schema in schedules:
+                rule_name = schema.find("name").text
+                if  rule_name:
+                    if "preset" not in rule_name:
+                        name = rule_name
 
-        rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
-        if rule_ids is not None:
-            for rule_id, location_id in rule_ids.items():
-                if location_id == loc_id:
-                    active = False
+            log_type = "schedule_state"
+            locator = (
+                "appliance[type='thermostat']/logs/point_log[type='"
+                + log_type
+                + "']/period/measurement"
+            )
+            active = False
+            if self._domain_objects.find(locator) is not None:
+                active = self._domain_objects.find(locator).text == "on"
 
-                    name = self._domain_objects.find(
-                        "rule[@id='{}']/name".format(rule_id)
-                    ).text
-                    if (
-                        self._domain_objects.find(
-                            "rule[@id='{}']/active".format(rule_id)
+            if name is not None:
+                schemas[name] = active
+
+        else:
+            tag = "zone_preset_based_on_time_and_presence_with_override"
+            rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
+            if rule_ids is not None:
+                for rule_id, location_id in rule_ids.items():
+                    if location_id == loc_id:
+                        active = False
+                        name = self._domain_objects.find(
+                            "rule[@id='{}']/name".format(rule_id)
                         ).text
-                        == "true"
-                    ):
-                        active = True
-                    schemas[name] = active
+                        if (
+                            self._domain_objects.find(
+                                "rule[@id='{}']/active".format(rule_id)
+                            ).text
+                            == "true"
+                        ):
+                            active = True
+                        schemas[name] = active
 
-            for a, b in schemas.items():
-                available.append(a)
-                if b:
-                    selected = a
+        for a, b in schemas.items():
+            available.append(a)
+            if b:
+                selected = a
 
         return available, selected
 

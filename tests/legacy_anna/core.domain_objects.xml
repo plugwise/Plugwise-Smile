@@ -384,7 +384,7 @@
 		<name>Thermostat schedule</name>
 		<description>Provides a week schedule for a Thermostat.</description>
 		<template id="b88088e7de06408e8eba445b0dd2f33e"/>
-		<active>false</active>
+		<active>true</active>
 		<created_date>2015-01-22T14:45:35.401+01:00</created_date>
 		<modified_date>2020-02-15T11:55:10.143+01:00</modified_date>
 		<deleted_date></deleted_date>
@@ -514,7 +514,7 @@
 				<last_consecutive_log_date>2020-02-15T11:55:10.270+01:00</last_consecutive_log_date>
 				<schedule_state id='4f3adac09b23477dbf9211ae3da73811'/>
 				<period start_date="2020-02-15T11:55:10.270+01:00" end_date="2020-02-15T11:55:10.270+01:00">
-					<measurement log_date="2020-02-15T11:55:10.270+01:00">off</measurement>
+					<measurement log_date="2020-02-15T11:55:10.270+01:00">on</measurement>
 				</period>
 			</point_log>
 			<point_log id='1ed5adccfc7146bf9a11cb8e172bda64'>

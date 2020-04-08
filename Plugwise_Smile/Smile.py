@@ -1058,9 +1058,11 @@ class Smile:
         directives = self._domain_objects.findall("rule/directives/when/then")
         for directive in directives:
             if directive is not None and "icon" in directive.keys():
-                preset_dictionary[directive.attrib["icon"]] = float(
-                    directive.attrib["temperature"]
-                )
+                # Ensure list of heating_setpoint, cooling_setpoint
+                preset_dictionary[directive.attrib["icon"]] = [
+                    float(directive.attrib["temperature"]),
+                    0,
+                ]
         return preset_dictionary
 
     async def set_preset_legacy(self, preset):

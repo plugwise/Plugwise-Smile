@@ -878,7 +878,8 @@ class Smile:
     def get_last_active_schema(self, loc_id):
         """Determine the last active schema."""
         if self._smile_legacy:
-            return None
+            available, selected = self.get_schemas(loc_id)
+            return "".join(map(str, available))
 
         epoch = dt.datetime(1970, 1, 1, tzinfo=pytz.utc)
         rule_ids = {}

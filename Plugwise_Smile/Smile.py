@@ -830,8 +830,8 @@ class Smile:
 
         if self._smile_legacy: # Only one schedule allowed
             schedules = self._domain_objects.findall(".//rule")
+            name =  None
             for schema in schedules:
-                name =  None
                 rule_name = schema.find("name").text
                 if  rule_name:
                     if "preset" not in rule_name:

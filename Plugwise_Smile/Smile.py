@@ -834,7 +834,7 @@ class Smile:
                 name =  None
                 rule_name = schema.find("name").text
                 if  rule_name:
-                    if "preset" not in rule_name or "template" not in rule_name:
+                    if "preset" not in rule_name and "template" not in rule_name:
                         name = rule_name
 
             log_type = "schedule_state"

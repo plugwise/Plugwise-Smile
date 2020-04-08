@@ -951,7 +951,7 @@ class Smile:
         Determined from - DOMAIN_OBJECTS.
         """
         if self._smile_legacy:
-            return await self.set_schedule_state(name, state)
+            return await self.set_schedule_state_legacy(name, state)
 
         schema_rule_ids = self.get_rule_ids_by_name(str(name), loc_id)
         if schema_rule_ids == {} or schema_rule_ids is None:

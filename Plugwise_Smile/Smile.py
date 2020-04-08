@@ -877,30 +877,32 @@ class Smile:
 
     def get_last_active_schema(self, loc_id):
         """Determine the last active schema."""
-        if not self._smile_legacy:
-            epoch = dt.datetime(1970, 1, 1, tzinfo=pytz.utc)
-            rule_ids = {}
-            schemas = {}
-            last_modified = None
+        if self._smile_legacy:
+            return None
 
-            tag = "zone_preset_based_on_time_and_presence_with_override"
+        epoch = dt.datetime(1970, 1, 1, tzinfo=pytz.utc)
+        rule_ids = {}
+        schemas = {}
+        last_modified = None
 
-            rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
-            if rule_ids is not None:
-                for rule_id, location_id in rule_ids.items():
-                    if location_id == loc_id:
-                        schema_name = self._domain_objects.find(
-                            "rule[@id='{}']/name".format(rule_id)
-                        ).text
-                        schema_date = self._domain_objects.find(
-                            "rule[@id='{}']/modified_date".format(rule_id)
-                        ).text
-                        schema_time = parse(schema_date)
-                        schemas[schema_name] = (schema_time - epoch).total_seconds()
+        tag = "zone_preset_based_on_time_and_presence_with_override"
 
-                last_modified = sorted(schemas.items(), key=lambda kv: kv[1])[-1][0]
+        rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
+        if rule_ids is not None:
+            for rule_id, location_id in rule_ids.items():
+                if location_id == loc_id:
+                    schema_name = self._domain_objects.find(
+                        "rule[@id='{}']/name".format(rule_id)
+                    ).text
+                    schema_date = self._domain_objects.find(
+                        "rule[@id='{}']/modified_date".format(rule_id)
+                    ).text
+                    schema_time = parse(schema_date)
+                    schemas[schema_name] = (schema_time - epoch).total_seconds()
 
-            return last_modified
+            last_modified = sorted(schemas.items(), key=lambda kv: kv[1])[-1][0]
+
+        return last_modified
 
     def get_rule_ids_by_tag(self, tag, loc_id):
         """Obtain the rule_id based on the given template_tag and location_id."""

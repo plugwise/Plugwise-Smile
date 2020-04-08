@@ -1120,7 +1120,7 @@ class Smile:
         appliance_id = self._appliances.find(locator).attrib["id"]
         return APPLIANCES + ";id=" + appliance_id + "/thermostat"
 
-    async def set_schema_state_legacy(self, schema, state):
+    async def set_schedule_state_legacy(self, schema, state):
         """Send a set request to the schema with the given name."""
         rules = self._domain_objects.findall("rule")
         schema_rule_id = None

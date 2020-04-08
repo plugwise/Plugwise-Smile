@@ -353,7 +353,7 @@ async def test_connect_smile_p1_v2():
         "938696c4bcdb4b8a9a595cb38ed43913": {
             "electricity_consumed_peak_point": 458.0,
             "net_electricity_point": 458.0,
-            "gas_consumed_peak_cumulative": 584.433,
+            "gas_consumed_cumulative": 584.433,
             "electricity_produced_peak_cumulative": 1296136.0,
             "electricity_produced_off_peak_cumulative": 482598.0,
         }
@@ -381,7 +381,7 @@ async def test_connect_smile_p1_v2_2():
         "199aa40f126840f392983d171374ab0b": {
             "electricity_consumed_peak_point": 368.0,
             "net_electricity_point": 368.0,
-            "gas_consumed_peak_cumulative": 2637.993,
+            "gas_consumed_cumulative": 2637.993,
             "electricity_produced_peak_cumulative": 0.0,
         }
     }
@@ -658,7 +658,7 @@ async def test_connect_p1v3solarfake():
             "electricity_consumed_peak_point": 644.0,
             "electricity_produced_peak_cumulative": 20000.0,
             "electricity_consumed_off_peak_cumulative": 10263159.0,
-            "net_electricity_point": 444.0,
+            "net_electricity_point": 244.0,
         }
     }
     global smile_setup
@@ -666,6 +666,32 @@ async def test_connect_p1v3solarfake():
     server, smile, client = await connect()
     assert smile.smile_type == "power"
     assert smile.smile_version[0] == "3.3.6"
+    assert smile._smile_legacy == False
+    await test_device(smile, testdata)
+    await smile.close_connection()
+    await disconnect(server, client)
+
+
+# Full option p1v3
+@pytest.mark.asyncio
+async def test_connect_p1v3_full_option():
+    # testdata dictionary with key ctrl_id_dev_id => keys:values
+    testdata = {
+        # Gateway / P1 itself
+        "e950c7d5e1ee407a858e2a8b5016c8b3": {
+            "electricity_consumed_peak_point": 0.0,
+            "electricity_produced_peak_cumulative": 396559.0,
+            "electricity_consumed_off_peak_cumulative": 551090.0,
+            "electricity_produced_peak_point": 2809.0,
+            "net_electricity_point": -2809.0,
+            "gas_consumed_cumulative": 584.85,
+        }
+    }
+    global smile_setup
+    smile_setup = "p1v3_full_option"
+    server, smile, client = await connect()
+    assert smile.smile_type == "power"
+    assert smile.smile_version[0] == "3.3.9"
     assert smile._smile_legacy == False
     await test_device(smile, testdata)
     await smile.close_connection()

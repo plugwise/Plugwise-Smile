@@ -57,18 +57,6 @@ DEVICE_MEASUREMENTS = [
     "boiler_state",  # some Anna user had this ... lookup issues
 ]
 
-TARIFF_MEASUREMENTS = [
-    "electricity_consumption_tariff_structure",
-    "electricity_consumption_peak_tariff",
-    "electricity_consumption_off_peak_tariff",
-    "electricity_production_peak_tariff",
-    "electricity_production_off_peak_tariff",
-    "electricity_consumption_single_tariff",
-    "electricity_production_single_tariff",
-    "gas_consumption_tariff",
-]
-
-
 SMILES = {
     "smile_open_therm_v30": {"type": "thermostat", "friendly_name": "Adam",},
     "smile_open_therm_v23": {"type": "thermostat", "friendly_name": "Adam",},
@@ -122,7 +110,6 @@ class Smile:
         self._home_location = None
         self._locations = None
         self._modules = None
-        self._power_tariff = None
         self._smile_subtype = None
         self._smile_legacy = False
         self._thermo_master_id = None
@@ -322,6 +309,7 @@ class Smile:
                 if log.find(p_locator) is not None:
                     if log.find(p_locator).get("id"):
                         types.add(measure_type)
+
         return types
 
     def get_all_appliances(self):
@@ -596,12 +584,12 @@ class Smile:
                 avail_schemas, sel_schema = self.get_schemas(details["location"])
                 device_data["available_schedules"] = avail_schemas
                 device_data["selected_schedule"] = sel_schema
-                if  self._smile_legacy:
-                    device_data["last_used"] =  "".join(map(str, avail_schemas))
+                if self._smile_legacy:
+                    device_data["last_used"] = "".join(map(str, avail_schemas))
                 else:
                     device_data["last_used"] = self.get_last_active_schema(
-                    details["location"]
-                )
+                        details["location"]
+                    )
 
             # Anna specific
             if details["class"] in ["thermostat"]:
@@ -613,7 +601,6 @@ class Smile:
             if details["class"] == "gateway" or dev_id == self.gateway_id:
 
                 # Try to get P1 data
-                self.get_power_tariff()
                 power_data = self.get_direct_objects_from_location(details["location"])
                 if power_data is not None:
                     device_data.update(power_data)
@@ -688,17 +675,6 @@ class Smile:
                     measure = False
         return measure
 
-    def get_power_tariff(self):
-        """Obtain power tariff information from Smile P1 v3."""
-        self._power_tariff = {}
-        for t in TARIFF_MEASUREMENTS:
-            locator = "./gateway/gateway_environment/{}".format(t)
-            tariff = self._domain_objects.find(locator)
-            if tariff is not None:
-                self._power_tariff[t] = tariff.text
-
-        return True
-
     def get_direct_objects_from_location(self, loc_id):
         """
         Obtain the appliance-data from appliances without a location.
@@ -715,18 +691,11 @@ class Smile:
 
         loc_logs = search.find(".//location[@id='{}']/logs".format(loc_id))
 
-        if loc_logs is not None and self._power_tariff is not None:
+        if loc_logs is not None:
             log_list = ["point_log", "cumulative_log", "interval_log"]
-            peak_list = ["nl_peak"]
+            peak_list = ["nl_peak", "nl_offpeak"]
 
             tariff_structure = "electricity_consumption_tariff_structure"
-            if tariff_structure in self._power_tariff:
-                if self._power_tariff[tariff_structure] == "double":
-                    peak_list.append("nl_offpeak")
-
-            # Always run double tariff for P1 legacy
-            if self._smile_legacy and self.smile_type == "power":
-                peak_list.append("nl_offpeak")
 
             lt_string = ".//{}[type='{}']/period/measurement[@{}=\"{}\"]"
             l_string = ".//{}[type='{}']/period/measurement"
@@ -741,7 +710,6 @@ class Smile:
                         # Only once try to find P1 Legacy values
                         if (
                             loc_logs.find(locator) is None
-                            and self._smile_legacy
                             and self.smile_type == "power"
                         ):
                             locator = l_string.format(log_type, measurement)
@@ -756,6 +724,8 @@ class Smile:
                                 peak = "off_peak"
                             log_found = log_type.split("_")[0]
                             key_string = f"{measurement}_{peak}_{log_found}"
+                            if "gas" in measurement:
+                                key_string = f"{measurement}_{log_found}"
                             net_string = f"net_electricity_{log_found}"
                             val = float(loc_logs.find(locator).text)
 
@@ -780,7 +750,9 @@ class Smile:
         Determined from DOMAIN_OBJECTS.
         """
         if self._smile_legacy:
-            active_rule = self._domain_objects.find("rule[active='true']/directives/when/then")
+            active_rule = self._domain_objects.find(
+                "rule[active='true']/directives/when/then"
+            )
             if active_rule is not None:
                 if "icon" in active_rule.keys():
                     return active_rule.attrib["icon"]
@@ -830,12 +802,12 @@ class Smile:
         available = []
         selected = None
 
-        if self._smile_legacy: # Only one schedule allowed
+        if self._smile_legacy:  # Only one schedule allowed
             schedules = self._domain_objects.findall(".//rule")
-            name =  None
+            name = None
             for schema in schedules:
                 rule_name = schema.find("name").text
-                if  rule_name:
+                if rule_name:
                     if "preset" not in rule_name:
                         name = rule_name
 
@@ -1120,22 +1092,24 @@ class Smile:
         appliance_id = self._appliances.find(locator).attrib["id"]
         return APPLIANCES + ";id=" + appliance_id + "/thermostat"
 
-    async def set_schedule_state_legacy(self, schema, state):
+    async def set_schedule_state_legacy(self, name, state):
         """Send a set request to the schema with the given name."""
         rules = self._domain_objects.findall("rule")
         schema_rule_id = None
         for rule in rules:
-            if rule.find("name").text == schema:
+            if rule.find("name").text == name:
                 schema_rule_id = rule.attrib["id"]
 
         if schema_rule_id is not None:
-            templates = self._domain_objects.findall(".//*[@id='{}']/template".format(schema_rule_id))
+            templates = self._domain_objects.findall(
+                ".//*[@id='{}']/template".format(schema_rule_id)
+            )
             template_id = None
             for rule in templates:
                 template_id = rule.attrib["id"]
 
             uri = "{};id={}".format(RULES, schema_rule_id)
-            
+
             state = str(state)
             data = (
                 '<rules><rule id="{}"><name><![CDATA[{}]]></name>'

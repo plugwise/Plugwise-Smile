@@ -24,7 +24,7 @@ Intended: (yellow ones means, please submit yours)
 
  - [![Generic badge](https://img.shields.io/badge/P1-v3-green.svg)](https://github.com/plugwise/Plugwise-Smile/tree/docs/tests/p1v3) electricity only
  - [![Generic badge](https://img.shields.io/badge/P1-v3-green.svg)](https://github.com/plugwise/Plugwise-Smile/tree/docs/tests/p1v3solarfake) electricity only - just the above with added data, please submit **yours**
- - [![Generic badge](https://img.shields.io/badge/P1-v3-yellow.svg)]() electricity, solar and gas (`p1_full_option`)
+ - [![Generic badge](https://img.shields.io/badge/P1-v3-green.svg)](https://github.com/plugwise/Plugwise-Smile/tree/docs/tests/p1v3_full_option) electricity, solar and gas 
  - [![Generic badge](https://img.shields.io/badge/P1-v3-yellow.svg)]() electricity and gas (`p1v3_gas_nosolar`)
  - [![Generic badge](https://img.shields.io/badge/P1-v2-green.svg)](https://github.com/plugwise/Plugwise-Smile/tree/docs/tests/smile_p1_v2) electricity and gas
  - [![Generic badge](https://img.shields.io/badge/P1-v2-green.svg)](https://github.com/plugwise/Plugwise-Smile/tree/docs/tests/smile_p1_v2_2) another electricity and gas

@@ -647,13 +647,12 @@ class Smile:
         for appliance in appliances:
             for measurement in DEVICE_MEASUREMENTS:
 
-                if self._smile_legacy and measurement == "domestic_hot_water_state":
-                    data[measurement] = False
-                    continue
-
                 pl_value = p_locator.format(measurement)
                 if appliance.find(pl_value) is not None:
-                    measure = appliance.find(pl_value).text
+                    if self._smile_legacy and measurement == "domestic_hot_water_state":
+                        measure = "off"
+                    else:
+                        measure = appliance.find(pl_value).text
 
                     data[measurement] = self._format_measure(measure)
 

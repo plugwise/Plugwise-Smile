@@ -869,13 +869,12 @@ class Smile:
                             active = True
                         schemas[name] = active
 
-        if schemas != {}:
-            for a, b in schemas.items():
-                available.append(a)
-                if b:
-                    selected = a
+        for a, b in schemas.items():
+            available.append(a)
+            if b:
+                selected = a
 
-            return available, selected
+        return available, selected
 
     def get_last_active_schema(self, loc_id):
         """Determine the last active schema."""

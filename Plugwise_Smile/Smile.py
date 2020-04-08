@@ -950,6 +950,9 @@ class Smile:
 
         Determined from - DOMAIN_OBJECTS.
         """
+        if self._smile_legacy:
+            return await self.set_schedule_state_legacy(name, state)
+
         schema_rule_ids = self.get_rule_ids_by_name(str(name), loc_id)
         if schema_rule_ids == {} or schema_rule_ids is None:
             return False
@@ -1116,5 +1119,33 @@ class Smile:
         locator = ".//appliance[type='thermostat']"
         appliance_id = self._appliances.find(locator).attrib["id"]
         return APPLIANCES + ";id=" + appliance_id + "/thermostat"
+
+    async def set_schedule_state_legacy(self, schema, state):
+        """Send a set request to the schema with the given name."""
+        rules = self._domain_objects.findall("rule")
+        schema_rule_id = None
+        for rule in rules:
+            if rule.find("name").text == schema:
+                schema_rule_id = rule.attrib["id"]
+
+        if schema_rule_id is not None:
+            templates = self._domain_objects.findall(".//*[@id='{}']/template".format(schema_rule_id))
+            template_id = None
+            for rule in templates:
+                template_id = rule.attrib["id"]
+
+            uri = "{};id={}".format(RULES, schema_rule_id)
+            
+            state = str(state)
+            data = (
+                '<rules><rule id="{}"><name><![CDATA[{}]]></name>'
+                '<template id="{}" /><active>{}</active></rule>'
+                "</rules>".format(schema_rule_id, name, template_id, state)
+            )
+
+            await self.request(uri, method="put", data=data)
+            return True
+        else:
+            return False
 
     # LEGACY P1 functions

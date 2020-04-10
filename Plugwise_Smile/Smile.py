@@ -53,8 +53,10 @@ DEVICE_MEASUREMENTS = [
     "boiler_temperature",
     "central_heating_state",
     "central_heater_water_pressure",
-    "cooling_state",  # somebody confirmed he has this
+    "cooling_state",  # marcelveldt
     "boiler_state",  # some Anna user had this ... lookup issues
+    "slave_boiler_state", # marcelveldt
+    "compressor_state", # marcelveldt
 ]
 
 SMILES = {

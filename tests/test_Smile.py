@@ -91,32 +91,6 @@ async def smile_set_relay(request):
     raise aiohttp.web.HTTPAccepted(text=text)
 
 
-"""
-# 20200312 - somehow this broke testing using travis today
-#            with no obvious clue why loop_factory issues
-#            were involved out of the blue, commented out for now
-
-# Test if at least modules functions before going further
-# note that this only tests the modules-app for functionality
-# if this fails, none of the actual tests against the Smile library
-# will function correctly
-async def test_mock(aiohttp_client, loop):
-    global smile_setup
-    smile_setup = 'anna_without_boiler'
-    app = aiohttp.web.Application()
-    app.router.add_get('/core/modules',smile_modules)
-    app.router.add_route('PUT', '/core/locations{tail:.*}', smile_set_temp_or_preset)
-    client = await aiohttp_client(app)
-
-    resp = await client.get('/core/modules')
-    assert resp.status == 200
-    text = await resp.text()
-    assert 'xml' in text
-
-    resp = await client.put('/core/locations;id=bla')
-    assert resp.status == 202
-"""
-
 # Generic connect
 @pytest.mark.asyncio
 async def connect():
@@ -314,7 +288,7 @@ async def test_connect_legacy_anna():
     #         }
     testdata = {
         # Anna
-        "0d266432d64443e283b5d708ae98b455": {
+        "04e4cbfe7f4340f090f85ec3b9e6a950": {
             "thermostat": 20.5,
             "temperature": 20.4,
             "illuminance": 0.8,
@@ -415,12 +389,12 @@ async def test_connect_anna_v4():
             "active_preset": "home",
         },
         # Central
-        "0466eae8520144c78afb29628384edeb": {
-            "outdoor_temperature": 7.4,
+        "cd0e6156b1f04d5f952349ffbe397481": {
             "central_heating_state": True,
             "central_heater_water_pressure": 2.1,
             "boiler_temperature": 52.0,
         },
+        "0466eae8520144c78afb29628384edeb": {"outdoor_temperature": 7.4,},
     }
     global smile_setup
     smile_setup = "anna_v4"
@@ -453,11 +427,9 @@ async def test_connect_anna_without_boiler():
             "illuminance": 35.0,
             "active_preset": "away",
         },
+        "a270735e4ccd45239424badc0578a2b1": {"outdoor_temperature": 10.8,},
         # Central
-        "a270735e4ccd45239424badc0578a2b1": {
-            "outdoor_temperature": 10.8,
-            "central_heating_state": False,
-        },
+        "c46b4794d28149699eacf053deedd003": {"central_heating_state": False,},
     }
     global smile_setup
     smile_setup = "anna_without_boiler"
@@ -515,11 +487,11 @@ async def test_connect_adam_plus_anna():
             "temperature": 20.46,  # HA current_temp
         },
         # Central
-        "b128b4bbbd1f47e9bf4d756e8fb5ee94": {
+        "2743216f626f43948deec1f7ab3b3d70": {
             "central_heating_state": False,
-            "outdoor_temperature": 11.9,
             "central_heater_water_pressure": 6.0,
         },
+        "b128b4bbbd1f47e9bf4d756e8fb5ee94": {"outdoor_temperature": 11.9,},
         # Plug MediaCenter
         "aa6b0002df0a46e1b1eb94beb61eddfe": {
             "electricity_consumed": 10.31,
@@ -570,10 +542,8 @@ async def test_connect_adam_zone_per_device():
             "battery": 0.67,
         },
         # Adam
-        "fe799307f1624099878210aa0b9f1475": {
-            "outdoor_temperature": 7.7,
-            "central_heating_state": True,
-        },
+        "90986d591dcd426cae3ec3e8111ff730": {"central_heating_state": True,},
+        "fe799307f1624099878210aa0b9f1475": {"outdoor_temperature": 7.7,},
         # Modem
         "675416a629f343c495449970e2ca37b5": {
             "electricity_consumed": 12.19,
@@ -697,6 +667,7 @@ async def test_connect_p1v3_full_option():
     await smile.close_connection()
     await disconnect(server, client)
 
+
 # Heatpump Anna
 @pytest.mark.asyncio
 async def test_connect_anna_heatpump():
@@ -709,12 +680,12 @@ async def test_connect_anna_heatpump():
             "active_preset": "home",
         },
         # Central
-        "015ae9ea3f964e668e490fa39da3870b": {
-            "outdoor_temperature": 20.2,
+        "1cbf783bb11e4a7c8a6843dee3a86927": {
             "domestic_hot_water_state": False,
             "boiler_temperature": 29.09,
             "central_heater_water_pressure": 1.57,
         },
+        "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 20.2,},
     }
     global smile_setup
     smile_setup = "anna_heatpump"

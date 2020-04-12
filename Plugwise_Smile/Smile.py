@@ -62,15 +62,15 @@ DEVICE_MEASUREMENTS = [
 SMILES = {
     "smile_open_therm_v30": {"type": "thermostat", "friendly_name": "Adam",},
     "smile_open_therm_v23": {"type": "thermostat", "friendly_name": "Adam",},
-    "smile_thermo_v40": {"type": "thermostat", "friendly_name": "Smile (Anna)",},
-    "smile_thermo_v31": {"type": "thermostat", "friendly_name": "Smile (Anna)",},
+    "smile_thermo_v40": {"type": "thermostat", "friendly_name": "Anna",},
+    "smile_thermo_v31": {"type": "thermostat", "friendly_name": "Anna",},
     "smile_thermo_v18": {
         "type": "thermostat",
-        "friendly_name": "Smile (Anna)",
+        "friendly_name": "Anna",
         "legacy": True,
     },
-    "smile_v33": {"type": "power", "friendly_name": "Smile P1",},
-    "smile_v25": {"type": "power", "friendly_name": "Smile P1", "legacy": True,},
+    "smile_v33": {"type": "power", "friendly_name": "P1",},
+    "smile_v25": {"type": "power", "friendly_name": "P1", "legacy": True,},
 }
 
 
@@ -371,10 +371,10 @@ class Smile:
                 # If heater or gatweay override registering
                 if appliance_class == "heater_central":
                     appliance_id = self.heater_id
-                    appliance_name = f"{self.smile_name} Heater"
+                    appliance_name = self.smile_name
                 if appliance_class == "gateway":
                     appliance_id = self.gateway_id
-                    appliance_name = f"{self.smile_name} Gateway"
+                    appliance_name = self.smile_name
 
             # Determine appliance_type from funcitonality
             if appliance.find(".//actuator_functionalities/relay_functionality"):

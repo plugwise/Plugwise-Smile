@@ -54,9 +54,10 @@ DEVICE_MEASUREMENTS = [
     "central_heating_state",
     "central_heater_water_pressure",
     "cooling_state",  # marcelveldt
-    "boiler_state",  # some Anna user had this ... lookup issues
+    "boiler_state",  # a legacy Anna user has this as heating-is-on indication
     "slave_boiler_state",  # marcelveldt
     "compressor_state",  # marcelveldt
+    "flame_state",  # added to reliably detect a gas-type local heater device
 ]
 
 SMILES = {

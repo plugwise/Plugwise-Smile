@@ -449,6 +449,16 @@ class Smile:
         self._home_location = home_location
         return locations, home_location
 
+    def count_thermostats(self):
+        """Obtain the amount of master-thermostats."""
+        count = 0
+        locations, home_location = self.scan_thermostats()
+        for item, data in locations.items():
+            if "master_prio" in data:
+                count += 1
+                
+        return count   
+
     def scan_thermostats(self, debug_text="missing text"):
         """Update locations with actual master/slave thermostats."""
         locations, home_location = self.match_locations()

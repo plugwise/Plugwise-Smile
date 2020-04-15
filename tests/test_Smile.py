@@ -222,6 +222,7 @@ async def test_device(smile=Smile, testdata={}):
                         )
                     )
                     assert data[measure_key] == measure_assert
+    print("Number of thermostats: {}".format(smile.count_thermostats()))
 
 
 @pytest.mark.asyncio

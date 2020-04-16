@@ -456,7 +456,7 @@ class Smile:
         for item, data in locations.items():
             if "master_prio" in data:
                 count += 1
-        
+
         if count == 0:
             single_mr_therm = None
         elif count == 1:
@@ -464,7 +464,7 @@ class Smile:
         else:
             single_mr_therm = False
 
-        return single_mr_therm    
+        return single_mr_therm
 
     def scan_thermostats(self, debug_text="missing text"):
         """Update locations with actual master/slave thermostats."""
@@ -616,9 +616,14 @@ class Smile:
             if power_data is not None:
                 device_data.update(power_data)
 
-            outdoor_temperature = self.get_object_value(
-                "location", self._home_location, "outdoor_temperature"
-            )
+            heater_data = self.get_appliance_data(self.heater_id)
+            if "outdoor_temperature" in heater_data:
+                outdoor_temperature = heater_data["outdoor_temperature"]
+            else:
+                outdoor_temperature = self.get_object_value(
+                    "location", self._home_location, "outdoor_temperature"
+                )
+
             if outdoor_temperature:
                 device_data["outdoor_temperature"] = outdoor_temperature
 

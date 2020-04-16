@@ -686,10 +686,40 @@ async def test_connect_anna_heatpump():
             "boiler_temperature": 29.09,
             "central_heater_water_pressure": 1.57,
         },
-        "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 20.2,},
+        "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 18.0,},
     }
     global smile_setup
     smile_setup = "anna_heatpump"
+    server, smile, client = await connect()
+    assert smile.smile_type == "thermostat"
+    assert smile.smile_version[0] == "4.0.15"
+    assert smile._smile_legacy == False
+    await test_device(smile, testdata)
+    await smile.close_connection()
+    await disconnect(server, client)
+
+
+# Heatpump Anna in cooling mode
+@pytest.mark.asyncio
+async def test_connect_anna_heatpump_cooling():
+    # testdata dictionary with key ctrl_id_dev_id => keys:values
+    testdata = {
+        # Anna
+        "3cb70739631c4d17a86b8b12e8a5161b": {
+            "selected_schedule": None,
+            "illuminance": 25.5,
+            "active_preset": "home",
+        },
+        # Central
+        "1cbf783bb11e4a7c8a6843dee3a86927": {
+            "domestic_hot_water_state": False,
+            "boiler_temperature": 24.69,
+            "central_heater_water_pressure": 1.61,
+        },
+        "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 21.0,},
+    }
+    global smile_setup
+    smile_setup = "anna_heatpump_cooling"
     server, smile, client = await connect()
     assert smile.smile_type == "thermostat"
     assert smile.smile_version[0] == "4.0.15"

@@ -858,6 +858,7 @@ class Smile:
                         schemas[name] = active
 
                         schedules = {}
+                        schedule_temperature = None
                         days =  {'mo': 0, 'tu': 1, 'we': 2, 'th': 3, 'fr': 4, 'sa': 5, 'su': 6}
                         directives = self._domain_objects.find(
                                 "rule[@id='{}']/directives".format(rule_id)

@@ -301,7 +301,7 @@ class Smile:
         types = set([])
         for measure, measure_type in HOME_MEASUREMENTS.items():
             locator = './/logs/point_log[type="{}"]'.format(measure)
-            if data.find(locator):
+            if data.find(locator) is not None:
                 log = data.find(locator)
 
                 if measure == "outdoor_temperature":
@@ -379,9 +379,15 @@ class Smile:
                     appliance_name = self.smile_name
 
             # Determine appliance_type from funcitonality
-            if appliance.find(".//actuator_functionalities/relay_functionality"):
+            if (
+                appliance.find(".//actuator_functionalities/relay_functionality")
+                is not None
+            ):
                 appliance_types.add("plug")
-            elif appliance.find(".//actuator_functionalities/thermostat_functionality"):
+            elif (
+                appliance.find(".//actuator_functionalities/thermostat_functionality")
+                is not None
+            ):
                 appliance_types.add("thermostat")
 
             appliances[appliance_id] = {

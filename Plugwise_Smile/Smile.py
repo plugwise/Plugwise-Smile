@@ -815,6 +815,7 @@ class Smile:
         schemas = {}
         available = []
         selected = None
+        schedule_temperature = None
 
         if self._smile_legacy:  # Only one schedule allowed
             schedules = self._domain_objects.findall(".//rule")
@@ -858,12 +859,10 @@ class Smile:
                         schemas[name] = active
 
                         schedules = {}
-                        schedule_temperature = None
                         days =  {'mo': 0, 'tu': 1, 'we': 2, 'th': 3, 'fr': 4, 'sa': 5, 'su': 6}
-                        directives = self._domain_objects.find(
-                                "rule[@id='{}']/directives".format(rule_id)
-                        )
-                        if directives is not None:
+                        locator = "rule[@id='{}']/directives".format(rule_id)
+                        if self._domain_objects.find(locator) is not None:
+                            directives = self._domain_objects.find(locator)
                             for directive in directives:
                                 schedule = directive.find("then").attrib
                                 keys, values = zip(*schedule.items())

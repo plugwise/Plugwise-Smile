@@ -42,6 +42,7 @@ HOME_MEASUREMENTS = {
 DEVICE_MEASUREMENTS = [
     "thermostat",  # HA setpoint
     "temperature",  # HA current_temperature
+    "schedule_temperature", # only present on legacy_anna and anna_v3
     "battery",
     "valve_position",
     "temperature_difference",

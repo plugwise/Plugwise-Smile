@@ -594,7 +594,8 @@ class Smile:
             device_data["presets"] = self.get_presets(details["location"])
 
             avail_schemas, sel_schema, sched_setpoint = self.get_schemas(details["location"])
-            device_data["schedule_setpoint"] = sched_setpoint
+            if not self._smile_legacy:
+                device_data["schedule_temperature"] = sched_setpoint
             device_data["available_schedules"] = avail_schemas
             device_data["selected_schedule"] = sel_schema
             if self._smile_legacy:

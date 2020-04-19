@@ -863,33 +863,34 @@ class Smile:
                         directives = self._domain_objects.find(
                                 "rule[@id='{}']/directives".format(rule_id)
                         )
-                        for directive in directives:
-                            schedule = directive.find("then").attrib
-                            keys, values = zip(*schedule.items())
-                            if str(keys[0]) == "preset":
-                                schedules[directive.attrib["time"]] = float(
-                                    self.get_presets(loc_id)[schedule["preset"]][0]
-                                    )
-                            else:
-                                schedules[directive.attrib["time"]] = float(
-                                    schedule["setpoint"]
-                                    )
-                                
-                        for period, temp in schedules.items():
-                            moment_1, moment_2 = period.split(",")
-                            moment_1 = moment_1.replace("[","").split(" ")
-                            moment_2 = moment_2.replace(")","").split(" ")
-                            result_1 = days.get(moment_1[0], "None")
-                            result_2 = days.get(moment_2[0], "None")
-                            now = dt.datetime.now().time()
-                            start = dt.datetime.strptime(moment_1[1], '%H:%M').time()
-                            end = dt.datetime.strptime(moment_2[1], '%H:%M').time()
-                            if (
-                                result_1 == dt.datetime.now().weekday() 
-                                or result_2 == dt.datetime.now().weekday()
-                                ):
-                                if self.in_between(now, start, end):
-                                    schedule_temperature = temp
+                        if directives is not None:
+                            for directive in directives:
+                                schedule = directive.find("then").attrib
+                                keys, values = zip(*schedule.items())
+                                if str(keys[0]) == "preset":
+                                    schedules[directive.attrib["time"]] = float(
+                                        self.get_presets(loc_id)[schedule["preset"]][0]
+                                        )
+                                else:
+                                    schedules[directive.attrib["time"]] = float(
+                                        schedule["setpoint"]
+                                        )
+                                    
+                            for period, temp in schedules.items():
+                                moment_1, moment_2 = period.split(",")
+                                moment_1 = moment_1.replace("[","").split(" ")
+                                moment_2 = moment_2.replace(")","").split(" ")
+                                result_1 = days.get(moment_1[0], "None")
+                                result_2 = days.get(moment_2[0], "None")
+                                now = dt.datetime.now().time()
+                                start = dt.datetime.strptime(moment_1[1], '%H:%M').time()
+                                end = dt.datetime.strptime(moment_2[1], '%H:%M').time()
+                                if (
+                                    result_1 == dt.datetime.now().weekday() 
+                                    or result_2 == dt.datetime.now().weekday()
+                                    ):
+                                    if self.in_between(now, start, end):
+                                        schedule_temperature = temp
                 
         for a, b in schemas.items():
             available.append(a)

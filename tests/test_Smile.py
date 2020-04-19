@@ -311,7 +311,9 @@ async def test_connect_legacy_anna():
     assert smile._smile_legacy == True
     await test_device(smile, testdata)
     await tinker_thermostat(
-        smile, "c34c6864216446528e95d88985e714cc", good_schemas=["Thermostat schedule",],
+        smile,
+        "c34c6864216446528e95d88985e714cc",
+        good_schemas=["Thermostat schedule",],
     )
     await smile.close_connection()
     await disconnect(server, client)

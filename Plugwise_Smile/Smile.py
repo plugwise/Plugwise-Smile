@@ -42,6 +42,7 @@ HOME_MEASUREMENTS = {
 DEVICE_MEASUREMENTS = [
     "thermostat",  # HA setpoint
     "temperature",  # HA current_temperature
+    "schedule_temperature",  # only present on legacy_anna and anna_v3
     "battery",
     "valve_position",
     "temperature_difference",
@@ -592,7 +593,11 @@ class Smile:
             device_data["active_preset"] = self.get_preset(details["location"])
             device_data["presets"] = self.get_presets(details["location"])
 
-            avail_schemas, sel_schema = self.get_schemas(details["location"])
+            avail_schemas, sel_schema, sched_setpoint = self.get_schemas(
+                details["location"]
+            )
+            if not self._smile_legacy:
+                device_data["schedule_temperature"] = sched_setpoint
             device_data["available_schedules"] = avail_schemas
             device_data["selected_schedule"] = sel_schema
             if self._smile_legacy:
@@ -814,6 +819,7 @@ class Smile:
         schemas = {}
         available = []
         selected = None
+        schedule_temperature = None
 
         if self._smile_legacy:  # Only one schedule allowed
             schedules = self._domain_objects.findall(".//rule")
@@ -856,12 +862,62 @@ class Smile:
                             active = True
                         schemas[name] = active
 
+                        schedules = {}
+                        days = {
+                            "mo": 0,
+                            "tu": 1,
+                            "we": 2,
+                            "th": 3,
+                            "fr": 4,
+                            "sa": 5,
+                            "su": 6,
+                        }
+                        locator = "rule[@id='{}']/directives".format(rule_id)
+                        if self._domain_objects.find(locator) is not None:
+                            directives = self._domain_objects.find(locator)
+                            for directive in directives:
+                                schedule = directive.find("then").attrib
+                                keys, values = zip(*schedule.items())
+                                if str(keys[0]) == "preset":
+                                    schedules[directive.attrib["time"]] = float(
+                                        self.get_presets(loc_id)[schedule["preset"]][0]
+                                    )
+                                else:
+                                    schedules[directive.attrib["time"]] = float(
+                                        schedule["setpoint"]
+                                    )
+
+                            for period, temp in schedules.items():
+                                moment_1, moment_2 = period.split(",")
+                                moment_1 = moment_1.replace("[", "").split(" ")
+                                moment_2 = moment_2.replace(")", "").split(" ")
+                                result_1 = days.get(moment_1[0], "None")
+                                result_2 = days.get(moment_2[0], "None")
+                                now = dt.datetime.now().time()
+                                start = dt.datetime.strptime(
+                                    moment_1[1], "%H:%M"
+                                ).time()
+                                end = dt.datetime.strptime(moment_2[1], "%H:%M").time()
+                                if (
+                                    result_1 == dt.datetime.now().weekday()
+                                    or result_2 == dt.datetime.now().weekday()
+                                ):
+                                    if self.in_between(now, start, end):
+                                        schedule_temperature = temp
+
         for a, b in schemas.items():
             available.append(a)
             if b:
                 selected = a
 
-        return available, selected
+        return available, selected, schedule_temperature
+
+    @staticmethod
+    def in_between(now, start, end):
+        if start <= end:
+            return start <= now < end
+        else:
+            return start <= now or now < end
 
     def get_last_active_schema(self, loc_id):
         """Determine the last active schema."""

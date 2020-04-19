@@ -310,10 +310,10 @@ async def test_connect_legacy_anna():
     assert smile.smile_version[0] == "1.8.0"
     assert smile._smile_legacy == True
     await test_device(smile, testdata)
-    # TODO looks like 'legacy_anna' has no schemas defined
-    # check and/or create new test data from one that has
     await tinker_thermostat(
-        smile, "c34c6864216446528e95d88985e714cc", good_schemas=[],
+        smile,
+        "c34c6864216446528e95d88985e714cc",
+        good_schemas=["Thermostat schedule",],
     )
     await smile.close_connection()
     await disconnect(server, client)

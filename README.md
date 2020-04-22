@@ -32,9 +32,9 @@ Module providing interfacing with Plugwise:
 
   - [x] Adam
   - [x]  - Floor
-  - [ ]  - Koen
+  - [x]  - Koen (a Koen always comes with a Plug, the Plug is the active part)
   - [x]  - Lisa
-  - [x]  - Plug (each plug must have its own, unique, location-name, otherwise it will not show up) 
+  - [x]  - Plug
   - [x]  - Tom
   - [x] Anna
   - [x]  - v4.0

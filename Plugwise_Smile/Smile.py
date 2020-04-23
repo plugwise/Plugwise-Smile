@@ -808,7 +808,6 @@ class Smile:
         if self._smile_legacy:
             return self.__get_presets_legacy()
 
-        # _LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
         rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
         if rule_ids is None:
             rule_ids = self.get_rule_ids_by_name("Thermostat presets", loc_id)

@@ -131,7 +131,7 @@ class Smile:
         except (asyncio.TimeoutError, aiohttp.ClientError):
             if retry < 1:
                 _LOGGER.error("Error connecting to Plugwise", exc_info=True)
-                return False
+                raise self.ConnectionFailedError
             return await self.connect(retry - 1)
 
         result = await resp.text()
@@ -143,7 +143,7 @@ class Smile:
                               we got %s",
                     result,
                 )
-                return False
+                raise self.ConnectionFailedError
 
         # TODO creat this as another function NOT part of connect!
         # just using request to parse the data
@@ -168,7 +168,7 @@ class Smile:
                     smile_model = "smile"
                 else:
                     _LOGGER.error("Connected but no gateway device information found")
-                    return False
+                    raise self.ConnectionFailedError
 
             _LOGGER.debug("Assuming legacy device")
 
@@ -178,7 +178,7 @@ class Smile:
 
         if smile_model is None or smile_version is None:
             _LOGGER.error("Unable to find model or version information")
-            return False
+            raise self.UnsupportedDeviceError
 
         _LOGGER.debug("Plugwise model %s version %s", smile_model, smile_version)
         ver = semver.parse(smile_version)
@@ -193,7 +193,7 @@ class Smile:
                     smile_model, smile_version
                 )
             )
-            return False
+            raise self.UnsupportedDeviceError
 
         self.smile_name = SMILES[target_smile]["friendly_name"]
         self.smile_type = SMILES[target_smile]["type"]
@@ -203,7 +203,11 @@ class Smile:
             self._smile_legacy = SMILES[target_smile]["legacy"]
 
         # Update all endpoints on first connect
-        await self.full_update_device()
+        try:
+            await self.full_update_device()
+        except self.XMLDataMissingError:
+            _LOGGER.error("Critical information not returned from device")
+            raise self.DeviceSetupError
 
         return True
 
@@ -232,18 +236,24 @@ class Smile:
                     resp = await self.websession.put(
                         url, data=data, headers=headers, auth=self._auth
                     )
+
         except asyncio.TimeoutError:
             if retry < 1:
                 _LOGGER.error("Timed out sending command to Plugwise: %s", command)
-                return None
+                raise self.DeviceTimeoutError
             return await self.request(command, retry - 1)
+
         except aiohttp.ClientError:
             _LOGGER.error(
                 "Error sending command to Plugwise: %s", command, exc_info=True
             )
-            return None
+            raise self.ErrorSendingCommandError
 
-        result = await resp.text()
+        try:
+            result = await resp.text()
+        except asyncio.TimeoutError:
+            _LOGGER.error("Timed out reading response from Smile")
+            raise self.DeviceTimeoutError
 
         _LOGGER.debug(
             "Plugwise network traffic to %s- talking to Smile with \
@@ -253,10 +263,17 @@ class Smile:
         )
 
         if not result or "error" in result:
-            return None
+            raise self.ResponseError
 
-        # Encode to ensure utf8 parsing
-        return etree.XML(self.escape_illegal_xml_characters(result).encode())
+        try:
+            # Encode to ensure utf8 parsing
+            xml = etree.XML(self.escape_illegal_xml_characters(result).encode())
+        except etree.XMLSyntaxError:
+            _LOGGER.error("Smile returns invalid XML for %s", self._endpoint)
+            raise self.InvalidXMLError
+
+        return xml
+
 
     async def update_appliances(self):
         """Request appliance data."""
@@ -291,10 +308,26 @@ class Smile:
     async def full_update_device(self):
         """Update all XML data from device."""
         await self.update_appliances()
+        # P1 legacy has no appliances
+        if self._appliances is None and (self.smile_type == 'power' and not self._smile_legacy):
+            _LOGGER.error("Appliance data missing")
+            raise self.XMLDataMissingError
+
         await self.update_direct_objects()
+        # P1 legacy has no direct_objects
+        if self._direct_objects is None and (self.smile_type == 'power' and not self._smile_legacy):
+            _LOGGER.error("Direct_objects data missing")
+            raise self.XMLDataMissingError
+
         await self.update_domain_objects()
+        if self._domain_objects is None:
+            _LOGGER.error("Domain_objects data missing")
+            raise self.XMLDataMissingError
+
         await self.update_locations()
-        return True
+        if self._locations is None:
+            _LOGGER.error("Locataion data missing")
+            raise self.XMLDataMissingError
 
     def _types_finder(self, data):
         """Detect types within locations from logs."""
@@ -1200,3 +1233,38 @@ class Smile:
             return False
 
     # LEGACY P1 functions
+
+    class PlugwiseError(Exception):
+        pass
+
+    class ConnectionFailedError(PlugwiseError):
+        """Raised when unable to connect."""
+        pass
+
+    class UnsupportedDeviceError(PlugwiseError):
+        """Raised when device is not supported."""
+        pass
+
+    class DeviceSetupError(PlugwiseError):
+        """Raised when device is missing critical setup data."""
+        pass
+
+    class DeviceTimeoutError(PlugwiseError):
+        """Raised when device is not supported."""
+        pass
+
+    class ErrorSendingCommandError(PlugwiseError):
+        """Raised when device is not accepting the command."""
+        pass
+
+    class ResponseError(PlugwiseError):
+        """Raised when empty or error in response returned."""
+        pass
+
+    class InvalidXMLError(PlugwiseError):
+        """Raised when response holds incomplete or invalid XML data."""
+        pass
+
+    class XMLDataMissingError(PlugwiseError):
+        """Raised when xml data is empty."""
+        pass

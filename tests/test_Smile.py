@@ -1,24 +1,28 @@
 """Plugwise Home Assistant module."""
 
-import asyncio
-import os
+import time
 from pprint import PrettyPrinter
 
 import aiohttp
-import codecov
+import asyncio
 import pytest
-import pytest_aiohttp
-import pytest_asyncio
-from lxml import etree
+import logging
 
 from Plugwise_Smile.Smile import Smile
 
 pp = PrettyPrinter(indent=8)
 
+_LOGGER = logging.getLogger(__name__)
+
+_LOGGER.setLevel(logging.INFO)
+
+
 # Prepare aiohttp app routes
 # taking smile_setup (i.e. directory name under tests/{smile_app}/
 # as inclusion point
-async def setup_app():
+
+
+async def setup_app(broken=False, timeout=False, put_timeout=False, ):
     global smile_setup
     if not smile_setup:
         return False
@@ -26,12 +30,26 @@ async def setup_app():
     app.router.add_get("/core/appliances", smile_appliances)
     app.router.add_get("/core/direct_objects", smile_direct_objects)
     app.router.add_get("/core/domain_objects", smile_domain_objects)
-    app.router.add_get("/core/locations", smile_locations)
     app.router.add_get("/core/modules", smile_modules)
 
-    app.router.add_route("PUT", "/core/locations{tail:.*}", smile_set_temp_or_preset)
-    app.router.add_route("PUT", "/core/rules{tail:.*}", smile_set_schedule)
-    app.router.add_route("PUT", "/core/appliances{tail:.*}", smile_set_relay)
+    if broken:
+        app.router.add_get("/core/locations", smile_broken)
+    if timeout:
+        app.router.add_get("/core/locations", smile_timeout)
+    if not broken and not timeout:
+        app.router.add_get("/core/locations", smile_locations)
+
+    # Introducte timeout with 2 seconds, test by setting response to 10ms
+    # Don't actually wait 2 seconds as this will prolongue testing
+    if not put_timeout:
+        app.router.add_route("PUT", "/core/locations{tail:.*}", smile_set_temp_or_preset)
+        app.router.add_route("PUT", "/core/rules{tail:.*}", smile_set_schedule)
+        app.router.add_route("PUT", "/core/appliances{tail:.*}", smile_set_relay)
+    else:
+        app.router.add_route("PUT", "/core/locations{tail:.*}", smile_timeout)
+        app.router.add_route("PUT", "/core/rules{tail:.*}", smile_timeout)
+        app.router.add_route("PUT", "/core/appliances{tail:.*}", smile_timeout)
+
     return app
 
 
@@ -91,15 +109,24 @@ async def smile_set_relay(request):
     raise aiohttp.web.HTTPAccepted(text=text)
 
 
+async def smile_timeout(request):
+    raise asyncio.TimeoutError
+
+
+async def smile_broken(request):
+    raise aiohttp.web.HTTPInternalServerError()
+
+
 # Generic connect
 @pytest.mark.asyncio
-async def connect():
+async def connect(broken=False, timeout=False, put_timeout=False):
     global smile_setup
     if not smile_setup:
         return False
     port = aiohttp.test_utils.unused_port()
 
-    app = await setup_app()
+    # Happy flow
+    app = await setup_app(broken, timeout, put_timeout)
 
     server = aiohttp.test_utils.TestServer(
         app, port=port, scheme="http", host="127.0.0.1"
@@ -122,48 +149,53 @@ async def connect():
         pass
 
     smile = Smile(
-        host=server.host, password="abcdefgh", port=server.port, websession=websession,
+        host=server.host, password="abcdefgh", port=server.port, websession=websession
     )
-    assert smile._timeout == 20
+
+    if not timeout:
+        assert smile._timeout == 20
     assert smile._domain_objects is None
     assert smile.smile_type is None
 
     """Connect to the smile"""
-    connection = await smile.connect()
-    assert connection is True
-    assert smile.smile_type is not None
-    return server, smile, client
+    try:
+        connection_state = await smile.connect()
+        _LOGGER.info("Master thermostat: {}".format(smile.single_master_thermostat()))
+        assert connection_state is True
+        assert smile.smile_type is not None
+        return server, smile, client
+    except (Smile.DeviceTimeoutError, Smile.InvalidXMLError) as e:
+        await disconnect(server, client)
+        raise e
 
 
-# GEneric list_devices
-@pytest.mark.asyncio
-async def list_devices(server, smile):
-    device_list = {}
-    devices = await smile.get_all_devices()
-    return devices
-    ctrl_id = None
-    plug_id = None
-    ##for dev in devices:
-    ##    if dev['name'] == 'Controlled Device':
-    ##        ctrl_id = dev['id']
-    ##    if dev['name'] == 'Home' and smile.smile_type == 'power':
-    ##        ctrl_id = dev['id']
-    for device, details in devices.items():
-        # Detect home
-        if "home" in details["type"]:
-            ctrl_id = device
-        elif "plug" in details["type"]:
-            plug_id = device
+# Wrap connect for invalid connections
+async def connect_wrapper(put_timeout=False):
+    """ Wrap connect to try negative testing before positive testing."""
+    if put_timeout:
+        _LOGGER.info("Connecting to device exceeding timeout in handling:")
+        return await connect(put_timeout=True)
 
-        device_list[device] = {
-            "name": details["name"],
-            "type": details["type"],
-            "ctrl": ctrl_id,
-            "plug": plug_id,
-            "location": details["location"],
-        }
+    try:
+        _LOGGER.info("Connecting to device exceeding timeout in response:")
+        await connect(timeout=True)
+        _LOGGER.info(" - timeout not handled")
+        raise ConnectError
+    except (Smile.DeviceTimeoutError, Smile.ResponseError):
+        _LOGGER.info(" + succesfully passed timeout handling.")
+        pass
 
-    return device_list
+    try:
+        _LOGGER.info("Connecting to device with missing data:")
+        await connect(broken=True)
+        _LOGGER.info(" - broken information not handled")
+        raise ConnectError
+    except Smile.InvalidXMLError:
+        _LOGGER.info(" + succesfully passed XML issue handling.")
+        pass
+
+    _LOGGER.info("Connecting to functioning device:")
+    return await connect()
 
 
 # Generic disconnect
@@ -176,13 +208,13 @@ async def disconnect(server, client):
 
 
 def show_setup(location_list, device_list):
-    print("This smile looks like:")
+    _LOGGER.info("This smile looks like:")
     for loc_id, loc_info in location_list.items():
         pp = PrettyPrinter(indent=4)
-        print("  --> Location: {} ({})".format(loc_info["name"], loc_id))
+        _LOGGER.info("  --> Location: {} ({})".format(loc_info["name"], loc_id))
         for dev_id, dev_info in device_list.items():
             if dev_info["location"] == loc_id:
-                print("      + Device: {} ({})".format(dev_info["name"], dev_id))
+                _LOGGER.info("      + Device: {} ({})".format(dev_info["name"], dev_id))
 
 
 @pytest.mark.asyncio
@@ -191,66 +223,82 @@ async def test_device(smile=Smile, testdata={}):
     if testdata == {}:
         return False
 
-    print("Asserting testdata:")
+    _LOGGER.info("Asserting testdata:")
     device_list = smile.get_all_devices()
     location_list, home = smile.scan_thermostats()
 
-    print("Gateway id = ", smile.gateway_id)
+    _LOGGER.info("Gateway id = {}".format(smile.gateway_id))
     show_setup(location_list, device_list)
     if True:
-        print("Device list: {}".format(device_list))
+        _LOGGER.info("Device list: {}".format(device_list))
         for dev_id, details in device_list.items():
             data = smile.get_device_data(dev_id)
-            print("Device {} / {} data: {}".format(dev_id, details, data))
+            _LOGGER.info("Device {} / {} data: {}".format(dev_id, details, data))
 
     for testdevice, measurements in testdata.items():
         assert testdevice in device_list
         # if testdevice not in device_list:
-        #    print("Device {} to test against {} not found in device_list for {}".format(testdevice,measurements,smile_setup))
+        #    _LOGGER.info("Device {} to test against {} not found in device_list for {}".format(testdevice,measurements,smile_setup))
         # else:
-        #    print("Device {} to test found in {}".format(testdevice,device_list))
+        #    _LOGGER.info("Device {} to test found in {}".format(testdevice,device_list))
         for dev_id, details in device_list.items():
             if testdevice == dev_id:
                 data = smile.get_device_data(dev_id)
-                print(
+                _LOGGER.info(
                     "- Testing data for device {} ({})".format(details["name"], dev_id)
                 )
                 for measure_key, measure_assert in measurements.items():
-                    print(
+                    _LOGGER.info(
                         "  + Testing {} (should be {})".format(
                             measure_key, measure_assert
                         )
                     )
                     assert data[measure_key] == measure_assert
-    print("Single Master Thermostat?: {}".format(smile.single_master_thermostat()))
+    _LOGGER.info("Single Master Thermostat?: {}".format(smile.single_master_thermostat()))
 
 
 @pytest.mark.asyncio
-async def tinker_relay(smile, dev_ids=[]):
+async def tinker_relay(smile, dev_ids=[], unhappy=False):
     global smile_setup
     if not smile_setup:
         return False
 
-    print("Asserting modifying settings for relay devices:")
+    _LOGGER.info("Asserting modifying settings for relay devices:")
     for dev_id in dev_ids:
-        print("- Devices ({}):".format(dev_id))
+        _LOGGER.info("- Devices ({}):".format(dev_id))
         for new_state in [False, True, False]:
-            print("- Switching {}".format(new_state))
-            relay_change = await smile.set_relay_state(dev_id, new_state)
-            assert relay_change == True
+            _LOGGER.info("- Switching {}".format(new_state))
+            try:
+                relay_change = await smile.set_relay_state(dev_id, new_state)
+                assert relay_change == True
+                _LOGGER.info ("  + worked as intended")
+            except (Smile.ErrorSendingCommandError, Smile.ResponseError):
+                if unhappy:
+                    _LOGGER.info ("  + failed as expected")
+                else:
+                    _LOGGER.info ("  - failed unexpectedly")
+                    raise UnexpectedError
 
 
 @pytest.mark.asyncio
-async def tinker_thermostat(smile, loc_id, good_schemas=["Weekschema"]):
+async def tinker_thermostat(smile, loc_id, good_schemas=["Weekschema"], unhappy=False):
     global smile_setup
     if not smile_setup:
         return False
 
-    print("Asserting modifying settings in location ({}):".format(loc_id))
+    _LOGGER.info("Asserting modifying settings in location ({}):".format(loc_id))
     for new_temp in [20.0, 22.9]:
-        print("- Adjusting temperature to {}".format(new_temp))
-        temp_change = await smile.set_temperature(loc_id, new_temp)
-        assert temp_change == True
+        _LOGGER.info("- Adjusting temperature to {}".format(new_temp))
+        try:
+            temp_change = await smile.set_temperature(loc_id, new_temp)
+            assert temp_change == True
+            _LOGGER.info ("  + worked as intended")
+        except (Smile.ErrorSendingCommandError, Smile.ResponseError):
+            if unhappy:
+                _LOGGER.info ("  + failed as expected")
+            else:
+                _LOGGER.info ("  - failed unexpectedly")
+                raise UnexpectedError
 
     for new_preset in ["asleep", "home", "!bogus"]:
         assert_state = True
@@ -259,9 +307,17 @@ async def tinker_thermostat(smile, loc_id, good_schemas=["Weekschema"]):
             assert_state = False
             warning = " Negative test"
             new_preset = new_preset[1:]
-        print("- Adjusting preset to {}{}".format(new_preset, warning))
-        preset_change = await smile.set_preset(loc_id, new_preset)
-        assert preset_change == assert_state
+        _LOGGER.info("- Adjusting preset to {}{}".format(new_preset, warning))
+        try:
+            preset_change = await smile.set_preset(loc_id, new_preset)
+            assert preset_change == assert_state
+            _LOGGER.info ("  + worked as intended")
+        except (Smile.ErrorSendingCommandError, Smile.ResponseError):
+            if unhappy:
+                _LOGGER.info ("  + failed as expected")
+            else:
+                _LOGGER.info ("  - failed unexpectedly")
+                raise UnexpectedError
 
     if good_schemas is not []:
         good_schemas.append("!VeryBogusSchemaNameThatNobodyEverUsesOrShouldUse")
@@ -272,11 +328,19 @@ async def tinker_thermostat(smile, loc_id, good_schemas=["Weekschema"]):
                 assert_state = False
                 warning = " Negative test"
                 new_schema = new_schema[1:]
-            print("- Adjusting schedule to {}{}".format(new_schema, warning))
-            schema_change = await smile.set_schedule_state(loc_id, new_schema, "auto")
-            assert schema_change == assert_state
+            _LOGGER.info("- Adjusting schedule to {}{}".format(new_schema, warning))
+            try:
+                schema_change = await smile.set_schedule_state(loc_id, new_schema, "auto")
+                assert schema_change == assert_state
+                _LOGGER.info ("  + failed as intended")
+            except (Smile.ErrorSendingCommandError, Smile.ResponseError):
+                if unhappy:
+                    _LOGGER.info ("  + failed as expected before intended failure")
+                else:
+                    _LOGGER.info ("  - suceeded unexpectedly for some reason")
+                    raise UnexpectedError
     else:
-        print("- Skipping schema adjustments")
+        _LOGGER.info("- Skipping schema adjustments")
 
 
 # Actual test for directory 'Anna' legacy
@@ -305,11 +369,14 @@ async def test_connect_legacy_anna():
     }
     global smile_setup
     smile_setup = "legacy_anna"
-    server, smile, client = await connect()
+    server, smile, client = await connect_wrapper()
+
     assert smile.smile_type == "thermostat"
     assert smile.smile_version[0] == "1.8.0"
     assert smile._smile_legacy == True
+
     await test_device(smile, testdata)
+
     await tinker_thermostat(
         smile,
         "c34c6864216446528e95d88985e714cc",
@@ -318,6 +385,15 @@ async def test_connect_legacy_anna():
     await smile.close_connection()
     await disconnect(server, client)
 
+    server, smile, client = await connect_wrapper(put_timeout=True)
+    await tinker_thermostat(
+        smile,
+        "c34c6864216446528e95d88985e714cc",
+        good_schemas=["Thermostat schedule",],
+        unhappy=True,
+    )
+    await smile.close_connection()
+    await disconnect(server, client)
 
 # Actual test for directory 'P1' v2
 @pytest.mark.asyncio
@@ -335,7 +411,7 @@ async def test_connect_smile_p1_v2():
     }
     global smile_setup
     smile_setup = "smile_p1_v2"
-    server, smile, client = await connect()
+    server, smile, client = await connect_wrapper()
     assert smile.smile_type == "power"
     assert smile.smile_version[0] == "2.5.9"
     assert smile._smile_legacy == True
@@ -343,8 +419,7 @@ async def test_connect_smile_p1_v2():
     await smile.close_connection()
     await disconnect(server, client)
 
-    await smile.close_connection()
-    await disconnect(server, client)
+    server, smile, client = await connect_wrapper(put_timeout=True)
 
 
 # Actual test for directory 'P1' v2 2nd version
@@ -362,14 +437,11 @@ async def test_connect_smile_p1_v2_2():
     }
     global smile_setup
     smile_setup = "smile_p1_v2_2"
-    server, smile, client = await connect()
+    server, smile, client = await connect_wrapper()
     assert smile.smile_type == "power"
     assert smile.smile_version[0] == "2.5.9"
     assert smile._smile_legacy == True
     await test_device(smile, testdata)
-    await smile.close_connection()
-    await disconnect(server, client)
-
     await smile.close_connection()
     await disconnect(server, client)
 
@@ -399,7 +471,7 @@ async def test_connect_anna_v4():
     }
     global smile_setup
     smile_setup = "anna_v4"
-    server, smile, client = await connect()
+    server, smile, client = await connect_wrapper()
     assert smile.smile_type == "thermostat"
     assert smile.smile_version[0] == "4.0.15"
     assert smile._smile_legacy == False
@@ -408,6 +480,16 @@ async def test_connect_anna_v4():
         smile,
         "eb5309212bf5407bb143e5bfa3b18aee",
         good_schemas=["Standaard", "Thuiswerken"],
+    )
+    await smile.close_connection()
+    await disconnect(server, client)
+
+    server, smile, client = await connect_wrapper(put_timeout=True)
+    await tinker_thermostat(
+        smile,
+        "eb5309212bf5407bb143e5bfa3b18aee",
+        good_schemas=["Standaard", "Thuiswerken"],
+        unhappy=True,
     )
     await smile.close_connection()
     await disconnect(server, client)
@@ -434,7 +516,7 @@ async def test_connect_anna_without_boiler():
     }
     global smile_setup
     smile_setup = "anna_without_boiler"
-    server, smile, client = await connect()
+    server, smile, client = await connect_wrapper()
     assert smile.smile_type == "thermostat"
     assert smile.smile_version[0] == "3.1.11"
     assert smile._smile_legacy == False
@@ -445,31 +527,50 @@ async def test_connect_anna_without_boiler():
     await smile.close_connection()
     await disconnect(server, client)
 
+    server, smile, client = await connect_wrapper(put_timeout=True)
+    await tinker_thermostat(
+        smile, "c34c6864216446528e95d88985e714cc", good_schemas=["Test", "Normal"],
+        unhappy=True,
+    )
+    await smile.close_connection()
+    await disconnect(server, client)
+
 
 """
+
+# TODO: This device setup needs work - doesn't seem to work straightforard
+# currently breaks on setting thermostat setpoint
 
 # Actual test for directory 'Adam'
 # living room floor radiator valve and separate zone thermostat
 # an three rooms with conventional radiators
 @pytest.mark.asyncio
 async def test_connect_adam():
+    testdata = {
+        "95395fb15c814a1f8bba88363e4a5833": { "temperature": 19.8, 'active_preset': 'home',},
+        "450d49ef2e8942f78c1242cdd8dfecd0": { "temperature": 20.18, 'battery':  0.77, 'selected_schedule': 'Kira' },
+        "bc9e18756ad04c3f9f35298cbe537c8e": { "temperature": 20.63, 'thermostat': 20.0 },
+    }
     global smile_setup
     smile_setup = 'adam_living_floor_plus_3_rooms'
-    server,smile,client = await connect()
-    device_list = await list_devices(server,smile)
-    #assert smile.smile_type == 'thermostat'
-    print(device_list)
-    #testdata dictionary with key ctrl_id_dev_id => keys:values
-    testdata={}
-    for dev_id,details in device_list.items():
-        data = smile.get_device_data(dev_id, details['ctrl'], details['plug'])
-        test_id = '{}_{}'.format(details['ctrl'],dev_id)
-        #if test_id not in testdata:
-        #    continue
-        print(data)
-
+    server, smile, client = await connect_wrapper()
+    assert smile.smile_type == "thermostat"
+    assert smile.smile_version[0] == "2.3.35"
+    assert smile._smile_legacy == False
+    await test_device(smile, testdata)
+    await tinker_thermostat(
+        smile, "95395fb15c814a1f8bba88363e4a5833", good_schemas=["Living room"]
+    )
     await smile.close_connection()
-    await disconnect(server,client)
+    await disconnect(server, client)
+
+    server, smile, client = await connect_wrapper(put_timeout=True)
+    await tinker_thermostat(
+        smile, "95395fb15c814a1f8bba88363e4a5833", good_schemas=["Living room"],
+        unhappy=True,
+    )
+    await smile.close_connection()
+    await disconnect(server, client)
 
 """
 
@@ -501,7 +602,7 @@ async def test_connect_adam_plus_anna():
     }
     global smile_setup
     smile_setup = "adam_plus_anna"
-    server, smile, client = await connect()
+    server, smile, client = await connect_wrapper()
     assert smile.smile_type == "thermostat"
     assert smile.smile_version[0] == "3.0.15"
     assert smile._smile_legacy == False
@@ -510,6 +611,15 @@ async def test_connect_adam_plus_anna():
         smile, "009490cc2f674ce6b576863fbb64f867", good_schemas=["Weekschema"]
     )
     await tinker_relay(smile, ["aa6b0002df0a46e1b1eb94beb61eddfe"])
+    await smile.close_connection()
+    await disconnect(server, client)
+
+    server, smile, client = await connect_wrapper(put_timeout=True)
+    await tinker_thermostat(
+        smile, "009490cc2f674ce6b576863fbb64f867", good_schemas=["Weekschema"],
+        unhappy=True,
+    )
+    await tinker_relay(smile, ["aa6b0002df0a46e1b1eb94beb61eddfe"], unhappy=True)
     await smile.close_connection()
     await disconnect(server, client)
 
@@ -553,7 +663,7 @@ async def test_connect_adam_zone_per_device():
     }
     global smile_setup
     smile_setup = "adam_zone_per_device"
-    server, smile, client = await connect()
+    server, smile, client = await connect_wrapper()
     assert smile.smile_type == "thermostat"
     assert smile.smile_version[0] == "3.0.15"
     assert smile._smile_legacy == False
@@ -568,6 +678,18 @@ async def test_connect_adam_zone_per_device():
     await smile.close_connection()
     await disconnect(server, client)
 
+    server, smile, client = await connect_wrapper(put_timeout=True)
+    await tinker_thermostat(
+        smile, "c50f167537524366a5af7aa3942feb1e", good_schemas=["GF7  Woonkamer"],
+        unhappy=True,
+    )
+    await tinker_thermostat(
+        smile, "82fa13f017d240daa0d0ea1775420f24", good_schemas=["CV Jessie"],
+        unhappy=True,
+    )
+    await smile.close_connection()
+    await disconnect(server, client)
+
 
 # Actual test for directory 'Adam + Anna'
 @pytest.mark.asyncio
@@ -578,21 +700,21 @@ async def test_connect_adam_zone_per_device():
 async def test_connect_adam_multiple_devices_per_zone():
     global smile_setup
     smile_setup = "adam_multiple_devices_per_zone"
-    server, smile, client = await connect()
+    server, smile, client = await connect_wrapper()
     device_list = smile.get_all_devices()
     location_list, home = smile.match_locations()
     for loc_id, loc_info in location_list.items():
-        print("  --> Location: {} ({}) - {}".format(loc_info["name"], loc_id, loc_info))
+        _LOGGER.info("  --> Location: {} ({}) - {}".format(loc_info["name"], loc_id, loc_info))
         for dev_id, dev_info in device_list.items():
             if dev_info["location"] == loc_id:
-                print(
+                _LOGGER.info(
                     "      + Device: {} ({}) - {}".format(
                         dev_info["name"], dev_id, dev_info
                     )
                 )
     for dev_id, details in device_list.items():
         data = smile.get_device_data(dev_id)
-        print("Device {} / {} data: {}".format(dev_id, details, data))
+        _LOGGER.info("Device {} / {} data: {}".format(dev_id, details, data))
 
 
 # {'electricity_consumed_peak_point': 644.0, 'electricity_consumed_off_peak_point': 0.0, 'electricity_consumed_peak_cumulative': 7702167.0, 'electricity_consumed_off_peak_cumulative': 10263159.0, 'electricity_produced_off_peak_point': 0.0, 'electricity_produced_peak_cumulative': 0.0, 'electricity_produced_off_peak_cumulative': 0.0}
@@ -610,7 +732,7 @@ async def test_connect_p1v3():
     }
     global smile_setup
     smile_setup = "p1v3"
-    server, smile, client = await connect()
+    server, smile, client = await connect_wrapper()
     assert smile.smile_type == "power"
     assert smile.smile_version[0] == "3.3.6"
     assert smile._smile_legacy == False
@@ -634,7 +756,7 @@ async def test_connect_p1v3solarfake():
     }
     global smile_setup
     smile_setup = "p1v3solarfake"
-    server, smile, client = await connect()
+    server, smile, client = await connect_wrapper()
     assert smile.smile_type == "power"
     assert smile.smile_version[0] == "3.3.6"
     assert smile._smile_legacy == False
@@ -660,7 +782,7 @@ async def test_connect_p1v3_full_option():
     }
     global smile_setup
     smile_setup = "p1v3_full_option"
-    server, smile, client = await connect()
+    server, smile, client = await connect_wrapper()
     assert smile.smile_type == "power"
     assert smile.smile_version[0] == "3.3.9"
     assert smile._smile_legacy == False
@@ -690,7 +812,7 @@ async def test_connect_anna_heatpump():
     }
     global smile_setup
     smile_setup = "anna_heatpump"
-    server, smile, client = await connect()
+    server, smile, client = await connect_wrapper()
     assert smile.smile_type == "thermostat"
     assert smile.smile_version[0] == "4.0.15"
     assert smile._smile_legacy == False
@@ -720,10 +842,22 @@ async def test_connect_anna_heatpump_cooling():
     }
     global smile_setup
     smile_setup = "anna_heatpump_cooling"
-    server, smile, client = await connect()
+    server, smile, client = await connect_wrapper()
     assert smile.smile_type == "thermostat"
     assert smile.smile_version[0] == "4.0.15"
     assert smile._smile_legacy == False
     await test_device(smile, testdata)
     await smile.close_connection()
     await disconnect(server, client)
+
+
+class PlugwiseTestError(Exception):
+    pass
+
+class ConnectError(PlugwiseTestError):
+    """Raised when connectivity test fails."""
+    pass
+
+class UnexpectedError(PlugwiseTestError):
+    """Raised when something went against logic."""
+    pass

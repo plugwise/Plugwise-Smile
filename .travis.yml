@@ -4,12 +4,13 @@ python:
 before_install:
 - python --version
 - pip install -U pip
-- pip install -U codecov coverage pytest pytest_asyncio pytest_aiohttp pytest-cov pprint
-  pytest-coverage
 install:
-- pip install -r requirements.txt
+- pip install -r requirements.txt -r tests/requirements.txt
 script: 
-- PYTHONPATH=`pwd` pytest -rpP tests/test_Smile.py --cov='.'
+- PYTHONPATH=`pwd` pytest -rpP --log-level info tests/test_Smile.py --cov='.'
+#- PYTHONPATH=`pwd` flake8 --config=.flake8 Plugwise_Smile/*.py tests/*py
+#- PYTHONPATH=`pwd` pydocstyle Plugwise_Smile/*.py tests/*py
+#- PYTHONPATH=`pwd` pylint --rcfile=pylintrc Plugwise_Smile/*.py
 after_success:
 - codecov
 deploy:

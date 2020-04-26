@@ -188,7 +188,8 @@ class Smile:
                 'Your version Smile identified as "%s" \
                           seems unsupported by our plugin, please create \
                           an issue on github.com/plugwise/Plugwise-Smile!\
-                          ', target_smile
+                          ',
+                target_smile,
             )
             raise self.UnsupportedDeviceError
 
@@ -213,12 +214,7 @@ class Smile:
         await self.websession.close()
 
     async def request(
-        self,
-        command,
-        retry=3,
-        method="get",
-        data=None,
-        headers=None,
+        self, command, retry=3, method="get", data=None, headers=None,
     ):
         """Request data."""
         # pylint: disable=too-many-return-statements
@@ -484,7 +480,7 @@ class Smile:
         return locations, home_location
 
     def single_master_thermostat(self):
-        """Is there a single master thermostats in the system?"""
+        """Determine if there is a single master thermostat in the setup."""
         count = 0
         locations, dummy = self.scan_thermostats()
         for dummy, data in locations.items():
@@ -529,16 +525,17 @@ class Smile:
             for appliance_id, appliance_details in appliances.items():
 
                 appl_class = appliance_details["class"]
-                if loc_id == appliance_details["location"] and appl_class in thermo_matching:
+                if (
+                    loc_id == appliance_details["location"]
+                    and appl_class in thermo_matching
+                ):
 
                     # Pre-elect new master
                     if thermo_matching[appl_class] > locations[loc_id]["master_prio"]:
 
                         # Demote former master
                         if locations[loc_id]["master"] is not None:
-                            locations[loc_id]["slaves"].add(
-                                locations[loc_id]["master"]
-                            )
+                            locations[loc_id]["slaves"].add(locations[loc_id]["master"])
 
                         # Crown master
                         locations[loc_id]["master_prio"] = thermo_matching[appl_class]
@@ -750,10 +747,7 @@ class Smile:
                     )
 
                     # Only once try to find P1 Legacy values
-                    if (
-                        loc_logs.find(locator) is None
-                        and self.smile_type == "power"
-                    ):
+                    if loc_logs.find(locator) is None and self.smile_type == "power":
                         locator = l_string.format(log_type, measurement)
 
                         # Skip peak if not split (P1 Legacy)
@@ -761,7 +755,7 @@ class Smile:
                             continue
 
                     if loc_logs.find(locator) is None:
-                            continue
+                        continue
 
                     peak = peak_select.split("_")[1]
                     if peak == "offpeak":
@@ -930,9 +924,7 @@ class Smile:
                     result_1 = days.get(moment_1[0], "None")
                     result_2 = days.get(moment_2[0], "None")
                     now = dt.datetime.now().time()
-                    start = dt.datetime.strptime(
-                        moment_1[1], "%H:%M"
-                    ).time()
+                    start = dt.datetime.strptime(moment_1[1], "%H:%M").time()
                     end = dt.datetime.strptime(moment_2[1], "%H:%M").time()
                     if (
                         result_1 == dt.datetime.now().weekday()
@@ -1264,4 +1256,3 @@ class Smile:
 
     class XMLDataMissingError(PlugwiseError):
         """Raised when xml data is empty."""
-

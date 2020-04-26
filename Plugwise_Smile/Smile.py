@@ -686,13 +686,13 @@ class Smile:
 
                 il_value = i_locator.format(measurement)
                 if appliance.find(il_value) is not None:
-                    measurement = "{}_interval".format(measurement)
+                    name = "{}_interval".format(name)
                     measure = appliance.find(il_value).text
 
                     data[name] = self._format_measure(measure)
                 cl_value = c_locator.format(measurement)
                 if appliance.find(cl_value) is not None:
-                    measurement = "{}_cumulative".format(measurement)
+                    name = "{}_cumulative".format(name)
                     measure = appliance.find(cl_value).text
 
                     data[name] = self._format_measure(measure)

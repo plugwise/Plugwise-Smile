@@ -7,3 +7,5 @@ __pycache__
 /build/
 .idea
 tests/__pycache__
+.coverage
+.vscode

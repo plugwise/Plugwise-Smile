@@ -251,6 +251,10 @@ class Smile:
             _LOGGER.error("Timed out reading response from Smile")
             raise self.DeviceTimeoutError
 
+        # Command accepted gives empty body with status 202
+        if resp.status == 202:
+            return
+
         if not result or "error" in result:
             raise self.ResponseError
 

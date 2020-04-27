@@ -268,9 +268,13 @@ class TestPlugwise:
                         )
                         if isinstance(data[measure_key], float):
                             if float(data[measure_key]) < 10:
-                                measure = float("{:.2f}".format(round(float(data[measure_key]), 2)))
+                                measure = float(
+                                    "{:.2f}".format(round(float(data[measure_key]), 2))
+                                )
                             else:
-                                measure = float("{:.1f}".format(round(float(data[measure_key]), 1)))
+                                measure = float(
+                                    "{:.1f}".format(round(float(data[measure_key]), 1))
+                                )
                             assert measure == measure_assert
                         else:
                             assert data[measure_key] == measure_assert

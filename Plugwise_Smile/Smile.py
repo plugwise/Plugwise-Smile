@@ -710,7 +710,7 @@ class Smile:
             measure = int(measure)
         except ValueError:
             try:
-                if measure < float(10):
+                if float(measure) < 10:
                     measure = float("{:.2f}".format(round(float(measure), 2)))
                 else:
                     measure = float("{:.1f}".format(round(float(measure), 1)))

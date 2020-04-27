@@ -370,7 +370,7 @@ class TestPlugwise:
             },
             # Central
             "04e4cbfe7f4340f090f85ec3b9e6a950": {
-                "water_temperature": 23.59,
+                "water_temperature": 23.6,
                 "heating_state": True,
                 "water_pressure": 1.2,
                 "boiler_state": False,
@@ -597,7 +597,7 @@ class TestPlugwise:
                 "illuminance": None,
                 "active_preset": "home",
                 "setpoint": 20.5,  # HA setpoint_temp
-                "temperature": 20.46,  # HA current_temp
+                "temperature": 20.5,  # HA current_temp
             },
             # Central
             "2743216f626f43948deec1f7ab3b3d70": {
@@ -607,7 +607,7 @@ class TestPlugwise:
             "b128b4bbbd1f47e9bf4d756e8fb5ee94": {"outdoor_temperature": 11.9,},
             # Plug MediaCenter
             "aa6b0002df0a46e1b1eb94beb61eddfe": {
-                "electricity_consumed": 10.31,
+                "electricity_consumed": 10.3,
                 "relay": True,
             },
         }
@@ -653,12 +653,12 @@ class TestPlugwise:
             # Floor WK
             "b310b72a0e354bfab43089919b9a88bf": {
                 "setpoint": 21.5,
-                "temperature": 26.22,
+                "temperature": 26.2,
                 "valve_position": 1.0,
             },
             # CV pomp
             "78d1126fc4c743db81b61c20e88342a7": {
-                "electricity_consumed": 35.81,
+                "electricity_consumed": 35.8,
                 "relay": True,
             },
             # Lisa Bios
@@ -672,7 +672,7 @@ class TestPlugwise:
             "fe799307f1624099878210aa0b9f1475": {"outdoor_temperature": 7.7,},
             # Modem
             "675416a629f343c495449970e2ca37b5": {
-                "electricity_consumed": 12.19,
+                "electricity_consumed": 12.2,
                 "relay": True,
             },
         }
@@ -724,12 +724,12 @@ class TestPlugwise:
             # Floor WK
             "b310b72a0e354bfab43089919b9a88bf": {
                 "setpoint": 21.5,
-                "temperature": 26.04,
+                "temperature": 26.0,
                 "valve_position": 1.0,
             },
             # CV pomp
             "78d1126fc4c743db81b61c20e88342a7": {
-                "electricity_consumed": 35.63,
+                "electricity_consumed": 35.6,
                 "relay": True,
             },
             # Lisa Bios
@@ -743,7 +743,7 @@ class TestPlugwise:
             "fe799307f1624099878210aa0b9f1475": {"outdoor_temperature": 7.8,},
             # Modem
             "675416a629f343c495449970e2ca37b5": {
-                "electricity_consumed": 12.19,
+                "electricity_consumed": 12.2,
                 "relay": True,
             },
         }
@@ -840,7 +840,7 @@ class TestPlugwise:
                 "electricity_consumed_off_peak_cumulative": 551090.0,
                 "electricity_produced_peak_point": 2809.0,
                 "net_electricity_point": -2809.0,
-                "gas_consumed_cumulative": 584.85,
+                "gas_consumed_cumulative": 584.9,
             }
         }
 
@@ -868,7 +868,7 @@ class TestPlugwise:
             # Central
             "1cbf783bb11e4a7c8a6843dee3a86927": {
                 "dhw_state": False,
-                "water_temperature": 29.09,
+                "water_temperature": 29.1,
                 "water_pressure": 1.57,
             },
             "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 18.0,},
@@ -898,7 +898,7 @@ class TestPlugwise:
             # Central
             "1cbf783bb11e4a7c8a6843dee3a86927": {
                 "dhw_state": False,
-                "water_temperature": 24.69,
+                "water_temperature": 24.7,
                 "water_pressure": 1.61,
             },
             "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 21.0,},

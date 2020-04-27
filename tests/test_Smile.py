@@ -266,11 +266,14 @@ class TestPlugwise:
                                 measure_key, measure_assert
                             ),
                         )
-                        if float(data[measure_key]) < 10:
-                            measure = float("{:.2f}".format(round(float(data[measure_key]), 2)))
+                        if isinstance(data[measure_key], float):
+                            if float(data[measure_key]) < 10:
+                                measure = float("{:.2f}".format(round(float(data[measure_key]), 2)))
+                            else:
+                                measure = float("{:.1f}".format(round(float(data[measure_key]), 1)))
+                            assert measure == measure_assert
                         else:
-                            measure = float("{:.1f}".format(round(float(data[measure_key]), 1)))
-                        assert measure == measure_assert
+                            assert data[measure_key] == measure_assert
 
     @pytest.mark.asyncio
     async def tinker_relay(self, smile, dev_ids=None, unhappy=False):
@@ -445,7 +448,7 @@ class TestPlugwise:
             "199aa40f126840f392983d171374ab0b": {
                 "electricity_consumed_peak_point": 368.0,
                 "net_electricity_point": 368.0,
-                "gas_consumed_cumulative": 2637.9,
+                "gas_consumed_cumulative": 2638.0,
                 "electricity_produced_peak_cumulative": 0.0,
             }
         }

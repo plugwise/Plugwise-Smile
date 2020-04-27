@@ -32,9 +32,9 @@ Module providing interfacing with Plugwise:
 
   - [x] Adam
   - [x]  - Floor
-  - [ ]  - Koen
+  - [x]  - Koen (a Koen always comes with a Plug, the Plug is the active part)
   - [x]  - Lisa
-  - [x]  - Plug (each plug must have its own, unique, location-name, otherwise it will not show up) 
+  - [x]  - Plug
   - [x]  - Tom
   - [x] Anna
   - [x]  - v4.0
@@ -43,10 +43,9 @@ Module providing interfacing with Plugwise:
   - [x] Smile P1
   - [x]  - v3.3
   - [x]  - v2.5
-  - [ ] [Home-Assistant](https://home-assistant.io) via 
-  - [ ]  - Native -> 20200311 for now as 'plugwise' but using haanna
-  - [x]  - `custom_component` [Plugwise-HA](https://github.com/plugwise/Plugwise-HA)
-  - [ ]  - `HACS` [Plugwise-HA](https://github.com/plugwise/Plugwise-HA)
+  - [x] [Home-Assistant](https://home-assistant.io) via 
+  - [ ]  - Native -> 20200311 for now as 'plugwise' but using haanna - only supporting anna devices
+  - [x]  - (HACS)[https://hacs.xyz] and `custom_component` [Plugwise-HA](https://github.com/plugwise/plugwise-beta/]
 
 ## License, origins and contributors
 

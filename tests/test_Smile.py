@@ -364,15 +364,15 @@ class TestPlugwise:
         testdata = {
             # Anna
             "0d266432d64443e283b5d708ae98b455": {
-                "thermostat": 20.5,
+                "setpoint": 20.5,
                 "temperature": 20.4,
                 "illuminance": 0.8,
             },
             # Central
             "04e4cbfe7f4340f090f85ec3b9e6a950": {
-                "boiler_temperature": 23.59,
-                "central_heating_state": True,
-                "central_heater_water_pressure": 1.2,
+                "water_temperature": 23.59,
+                "heating_state": True,
+                "water_pressure": 1.2,
                 "boiler_state": False,
             },
         }
@@ -473,9 +473,9 @@ class TestPlugwise:
             },
             # Central
             "cd0e6156b1f04d5f952349ffbe397481": {
-                "central_heating_state": True,
-                "central_heater_water_pressure": 2.1,
-                "boiler_temperature": 52.0,
+                "heating_state": True,
+                "water_pressure": 2.1,
+                "water_temperature": 52.0,
             },
             "0466eae8520144c78afb29628384edeb": {"outdoor_temperature": 7.4,},
         }
@@ -522,7 +522,7 @@ class TestPlugwise:
             },
             "a270735e4ccd45239424badc0578a2b1": {"outdoor_temperature": 10.8,},
             # Central
-            "c46b4794d28149699eacf053deedd003": {"central_heating_state": False,},
+            "c46b4794d28149699eacf053deedd003": {"heating_state": False,},
         }
 
         self.smile_setup = "anna_without_boiler"
@@ -596,13 +596,13 @@ class TestPlugwise:
                 "last_used": "Weekschema",
                 "illuminance": None,
                 "active_preset": "home",
-                "thermostat": 20.5,  # HA setpoint_temp
+                "setpoint": 20.5,  # HA setpoint_temp
                 "temperature": 20.46,  # HA current_temp
             },
             # Central
             "2743216f626f43948deec1f7ab3b3d70": {
-                "central_heating_state": False,
-                "central_heater_water_pressure": 6.0,
+                "heating_state": False,
+                "water_pressure": 6.0,
             },
             "b128b4bbbd1f47e9bf4d756e8fb5ee94": {"outdoor_temperature": 11.9,},
             # Plug MediaCenter
@@ -646,13 +646,13 @@ class TestPlugwise:
         testdata = {
             # Lisa WK
             "b59bcebaf94b499ea7d46e4a66fb62d8": {
-                "thermostat": 21.5,
+                "setpoint": 21.5,
                 "temperature": 21.1,
                 "battery": 0.34,
             },
             # Floor WK
             "b310b72a0e354bfab43089919b9a88bf": {
-                "thermostat": 21.5,
+                "setpoint": 21.5,
                 "temperature": 26.22,
                 "valve_position": 1.0,
             },
@@ -663,12 +663,12 @@ class TestPlugwise:
             },
             # Lisa Bios
             "df4a4a8169904cdb9c03d61a21f42140": {
-                "thermostat": 13.0,
+                "setpoint": 13.0,
                 "temperature": 16.5,
                 "battery": 0.67,
             },
             # Adam
-            "90986d591dcd426cae3ec3e8111ff730": {"central_heating_state": True,},
+            "90986d591dcd426cae3ec3e8111ff730": {"heating_state": True,},
             "fe799307f1624099878210aa0b9f1475": {"outdoor_temperature": 7.7,},
             # Modem
             "675416a629f343c495449970e2ca37b5": {
@@ -717,13 +717,13 @@ class TestPlugwise:
         testdata = {
             # Lisa WK
             "b59bcebaf94b499ea7d46e4a66fb62d8": {
-                "thermostat": 21.5,
+                "setpoint": 21.5,
                 "temperature": 20.9,
                 "battery": 0.34,
             },
             # Floor WK
             "b310b72a0e354bfab43089919b9a88bf": {
-                "thermostat": 21.5,
+                "setpoint": 21.5,
                 "temperature": 26.04,
                 "valve_position": 1.0,
             },
@@ -734,12 +734,12 @@ class TestPlugwise:
             },
             # Lisa Bios
             "df4a4a8169904cdb9c03d61a21f42140": {
-                "thermostat": 13.0,
+                "setpoint": 13.0,
                 "temperature": 16.5,
                 "battery": 0.67,
             },
             # Adam
-            "90986d591dcd426cae3ec3e8111ff730": {"central_heating_state": True,},
+            "90986d591dcd426cae3ec3e8111ff730": {"heating_state": True,},
             "fe799307f1624099878210aa0b9f1475": {"outdoor_temperature": 7.8,},
             # Modem
             "675416a629f343c495449970e2ca37b5": {
@@ -867,9 +867,9 @@ class TestPlugwise:
             },
             # Central
             "1cbf783bb11e4a7c8a6843dee3a86927": {
-                "domestic_hot_water_state": False,
-                "boiler_temperature": 29.09,
-                "central_heater_water_pressure": 1.57,
+                "dhw_state": False,
+                "water_temperature": 29.09,
+                "water_pressure": 1.57,
             },
             "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 18.0,},
         }
@@ -897,9 +897,9 @@ class TestPlugwise:
             },
             # Central
             "1cbf783bb11e4a7c8a6843dee3a86927": {
-                "domestic_hot_water_state": False,
-                "boiler_temperature": 24.69,
-                "central_heater_water_pressure": 1.61,
+                "dhw_state": False,
+                "water_temperature": 24.69,
+                "water_pressure": 1.61,
             },
             "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 21.0,},
         }

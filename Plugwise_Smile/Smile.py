@@ -39,27 +39,27 @@ HOME_MEASUREMENTS = {
 # Excluded:
 # zone_thermosstat 'temperature_offset'
 # radiator_valve 'uncorrected_temperature', 'temperature_offset'
-DEVICE_MEASUREMENTS = [
-    "thermostat",  # HA setpoint
-    "temperature",  # HA current_temperature
-    "schedule_temperature",  # only present on legacy_anna and anna_v3
-    "battery",
-    "valve_position",
-    "temperature_difference",
-    "electricity_consumed",
-    "electricity_produced",
-    "relay",
-    "outdoor_temperature",
-    "domestic_hot_water_state",
-    "boiler_temperature",
-    "central_heating_state",
-    "central_heater_water_pressure",
-    "cooling_state",  # marcelveldt
-    "boiler_state",  # a legacy Anna user has this as heating-is-on indication
-    "slave_boiler_state",  # marcelveldt
-    "compressor_state",  # marcelveldt
-    "flame_state",  # added to reliably detect a gas-type local heater device
-]
+DEVICE_MEASUREMENTS = {
+    "thermostat": "setpoint",  # HA setpoint
+    "temperature": "temperature",  # HA current_temperature
+    "schedule_temperature": "schedule_temperature",  # only present on legacy_anna and anna_v3
+    "battery": "battery",
+    "valve_position": "valve_position",
+    "temperature_difference": "temperature_difference",
+    "electricity_consumed": "electricity_consumed",
+    "electricity_produced": "electricity_produced",
+    "relay": "relay",
+    "outdoor_temperature": "outdoor_temperature",
+    "domestic_hot_water_state": "dhw_state",
+    "boiler_temperature": "water_temperature",
+    "central_heating_state": "heating_state",
+    "central_heater_water_pressure": "water_pressure",
+    "cooling_state": "cooling_state",  # marcelveldt
+    "boiler_state": "boiler_state",  # a legacy Anna user has this as heating-is-on indication
+    "slave_boiler_state": "slave_boiler_state",  # marcelveldt
+    "compressor_state": "compressor_state",  # marcelveldt
+    "flame_state": "flame_state",  # added to reliably detect a gas-type local heater device
+}
 
 SMILES = {
     "smile_open_therm_v30": {"type": "thermostat", "friendly_name": "Adam",},
@@ -250,6 +250,10 @@ class Smile:
         except asyncio.TimeoutError:
             _LOGGER.error("Timed out reading response from Smile")
             raise self.DeviceTimeoutError
+
+        # Command accepted gives empty body with status 202
+        if resp.status == 202:
+            return
 
         if not result or "error" in result:
             raise self.ResponseError
@@ -674,7 +678,7 @@ class Smile:
         c_locator = ".//logs/cumulative_log[type='{}']/period/measurement"
 
         for appliance in appliances:
-            for measurement in DEVICE_MEASUREMENTS:
+            for measurement, name in DEVICE_MEASUREMENTS.items():
 
                 pl_value = p_locator.format(measurement)
                 if appliance.find(pl_value) is not None:
@@ -682,20 +686,20 @@ class Smile:
                         continue
 
                     measure = appliance.find(pl_value).text
-                    data[measurement] = self._format_measure(measure)
+                    data[name] = self._format_measure(measure)
 
                 il_value = i_locator.format(measurement)
                 if appliance.find(il_value) is not None:
-                    measurement = "{}_interval".format(measurement)
+                    name = "{}_interval".format(name)
                     measure = appliance.find(il_value).text
 
-                    data[measurement] = self._format_measure(measure)
+                    data[name] = self._format_measure(measure)
                 cl_value = c_locator.format(measurement)
                 if appliance.find(cl_value) is not None:
-                    measurement = "{}_cumulative".format(measurement)
+                    name = "{}_cumulative".format(name)
                     measure = appliance.find(cl_value).text
 
-                    data[measurement] = self._format_measure(measure)
+                    data[name] = self._format_measure(measure)
 
         return data
 
@@ -808,7 +812,6 @@ class Smile:
         if self._smile_legacy:
             return self.__get_presets_legacy()
 
-        # _LOGGER.debug("Plugwise locator and id: %s -> %s",locator,dev_id)
         rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
         if rule_ids is None:
             rule_ids = self.get_rule_ids_by_name("Thermostat presets", loc_id)

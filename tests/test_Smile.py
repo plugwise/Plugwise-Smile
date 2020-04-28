@@ -391,9 +391,14 @@ class TestPlugwise:
         self.smile_setup = "legacy_anna"
         server, smile, client = await self.connect_wrapper()
 
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = thermostat")
         assert smile.smile_type == "thermostat"
+        _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "1.8.0"
+        _LOGGER.info(" # Assert legacy")
         assert smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert master thermostat")
         assert smile.single_master_thermostat()
 
         await self.device_test(smile, testdata)
@@ -433,9 +438,14 @@ class TestPlugwise:
 
         self.smile_setup = "smile_p1_v2"
         server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = power")
         assert smile.smile_type == "power"
+        _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "2.5.9"
+        _LOGGER.info(" # Assert legacy")
         assert smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert no master thermostat")
         assert smile.single_master_thermostat() is None  # it's not a thermostat :)
         await self.device_test(smile, testdata)
         await smile.close_connection()
@@ -459,9 +469,14 @@ class TestPlugwise:
 
         self.smile_setup = "smile_p1_v2_2"
         server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = power")
         assert smile.smile_type == "power"
+        _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "2.5.9"
+        _LOGGER.info(" # Assert legacy")
         assert smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert no master thermostat")
         assert smile.single_master_thermostat() is None  # it's not a thermostat :)
         await self.device_test(smile, testdata)
         await smile.close_connection()
@@ -493,10 +508,16 @@ class TestPlugwise:
 
         self.smile_setup = "anna_v4"
         server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = thermostat")
         assert smile.smile_type == "thermostat"
+        _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "4.0.15"
+        _LOGGER.info(" # Assert no legacy")
         assert not smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert master thermostat")
         assert smile.single_master_thermostat()
+
         await self.device_test(smile, testdata)
         await self.tinker_thermostat(
             smile,
@@ -538,9 +559,14 @@ class TestPlugwise:
 
         self.smile_setup = "anna_without_boiler"
         server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = thermostat")
         assert smile.smile_type == "thermostat"
+        _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "3.1.11"
+        _LOGGER.info(" # Assert no legacy")
         assert not smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert master thermostat")
         assert smile.single_master_thermostat()
         await self.device_test(smile, testdata)
         await self.tinker_thermostat(
@@ -625,9 +651,14 @@ class TestPlugwise:
 
         self.smile_setup = "adam_plus_anna"
         server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = thermostat")
         assert smile.smile_type == "thermostat"
+        _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "3.0.15"
+        _LOGGER.info(" # Assert legacy")
         assert not smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert master thermostat")
         assert smile.single_master_thermostat()
         await self.device_test(smile, testdata)
         await self.tinker_thermostat(
@@ -690,9 +721,14 @@ class TestPlugwise:
 
         self.smile_setup = "adam_zone_per_device"
         server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = thermostat")
         assert smile.smile_type == "thermostat"
+        _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "3.0.15"
+        _LOGGER.info(" # Assert legacy")
         assert not smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert master thermostat")
         assert not smile.single_master_thermostat()
         await self.device_test(smile, testdata)
         await self.tinker_thermostat(
@@ -761,9 +797,14 @@ class TestPlugwise:
 
         self.smile_setup = "adam_multiple_devices_per_zone"
         server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = thermostat")
         assert smile.smile_type == "thermostat"
+        _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "3.0.15"
+        _LOGGER.info(" # Assert legacy")
         assert not smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert master thermostat")
         assert not smile.single_master_thermostat()
         await self.device_test(smile, testdata)
         await self.tinker_thermostat(
@@ -807,8 +848,12 @@ class TestPlugwise:
 
         self.smile_setup = "p1v3"
         server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = power")
         assert smile.smile_type == "power"
+        _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "3.3.6"
+        _LOGGER.info(" # Assert no master thermostat")
         assert not smile._smile_legacy  # pylint: disable=protected-access
         assert smile.single_master_thermostat() is None  # it's not a thermostat :)
         await self.device_test(smile, testdata)
@@ -831,9 +876,14 @@ class TestPlugwise:
 
         self.smile_setup = "p1v3solarfake"
         server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = power")
         assert smile.smile_type == "power"
+        _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "3.3.6"
+        _LOGGER.info(" # Assert no legacy")
         assert not smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert nomaster thermostat")
         assert smile.single_master_thermostat() is None  # it's not a thermostat :)
         await self.device_test(smile, testdata)
         await smile.close_connection()
@@ -857,9 +907,14 @@ class TestPlugwise:
 
         self.smile_setup = "p1v3_full_option"
         server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = power")
         assert smile.smile_type == "power"
+        _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "3.3.9"
+        _LOGGER.info(" # Assert legacy")
         assert not smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert no master thermostat")
         assert smile.single_master_thermostat() is None  # it's not a thermostat :)
         await self.device_test(smile, testdata)
         await smile.close_connection()
@@ -887,9 +942,14 @@ class TestPlugwise:
 
         self.smile_setup = "anna_heatpump"
         server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = thermostat")
         assert smile.smile_type == "thermostat"
+        _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "4.0.15"
+        _LOGGER.info(" # Assert no legacy")
         assert not smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert master thermostat")
         assert smile.single_master_thermostat()
         await self.device_test(smile, testdata)
         await smile.close_connection()
@@ -917,9 +977,14 @@ class TestPlugwise:
 
         self.smile_setup = "anna_heatpump_cooling"
         server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = thermostat")
         assert smile.smile_type == "thermostat"
+        _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "4.0.15"
+        _LOGGER.info(" # Assert no legacy")
         assert not smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert master thermostat")
         assert smile.single_master_thermostat()
         await self.device_test(smile, testdata)
         await smile.close_connection()

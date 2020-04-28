@@ -489,7 +489,8 @@ class Smile:
         locations, dummy = self.scan_thermostats()
         for dummy, data in locations.items():
             if "master_prio" in data:
-                count += 1
+                if data.get("master_prio") > 0:
+                    count += 1
 
         if count == 0:
             single_mr_therm = None
@@ -531,8 +532,8 @@ class Smile:
                 appl_class = appliance_details["class"]
                 if (
                     loc_id == appliance_details["location"]
-                    and appl_class in thermo_matching
-                ):
+                    or (self._smile_legacy and not appliance_details["location"])
+                ) and appl_class in thermo_matching:
 
                     # Pre-elect new master
                     if thermo_matching[appl_class] > locations[loc_id]["master_prio"]:

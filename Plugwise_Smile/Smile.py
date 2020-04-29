@@ -429,7 +429,8 @@ class Smile:
         """Determine available locations from inventory."""
         home_location = None
         locations = {}
-        # Legacy Anna has no locations, create one containing all appliances
+
+        # Legacy Anna without outdoor_temp has no locations, create one containing all appliances
         if len(self._locations) == 0 and self._smile_legacy:
             appliances = set([])
             home_location = 0
@@ -467,7 +468,11 @@ class Smile:
             # Legacy P1 right location has 'services' filled
             # test data has 5 for example
             locator = ".//services"
-            if self._smile_legacy and len(location.find(locator)) > 0:
+            if (
+                self._smile_legacy
+                and self.smile_type == "power"
+                and len(location.find(locator)) > 0
+            ):
                 # Override location name found to match
                 location_name = "Home"
                 home_location = location_id
@@ -520,7 +525,7 @@ class Smile:
                 locations[loc_id].update(
                     {"master": None, "master_prio": 0, "slaves": set([])}
                 )
-            elif loc_id == 0 and self._smile_legacy:
+            elif loc_id == home_location and self._smile_legacy:
                 locations[loc_id].update(
                     {"master": None, "master_prio": 0, "slaves": set([])}
                 )

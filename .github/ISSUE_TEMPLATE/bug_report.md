@@ -31,7 +31,7 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-**Home Assistant (please complete the following information):**
+**Home Assistant Core (please complete the following information):**
  - Version: [e.g. `0.108.2`]
  - Deployment: [e.g. 'raspberry/hassio' or 'py-venv']
  - Installed plugwise version: [e.g. 'plugwise-beta or HA-core']

@@ -17,6 +17,7 @@ Intended: (yellow ones means, please submit yours)
  - [![Generic badge](https://img.shields.io/badge/Anna-v4-green.svg)](https://github.com/plugwise/Plugwise-Smile/tree/docs/tests/anna_v4) setup with a boiler
  - [![Generic badge](https://img.shields.io/badge/Anna-v3-green.svg)](https://github.com/plugwise/Plugwise-Smile/tree/docs/tests/anna_without_boiler) without boiler(i.e. attached to city heating)
  - [![Generic badge](https://img.shields.io/badge/Anna-v1-green.svg)](https://github.com/plugwise/Plugwise-Smile/tree/docs/tests/legacy_anna) setup with a boiler, but legacy firmware (1.8)
+ - [![Generic badge](https://img.shields.io/badge/Anna-v1-green.svg)](https://github.com/plugwise/Plugwise-Smile/tree/docs/tests/legacy_anna_2) another setup with a boiler, but legacy firmware (1.8), but with a location
 
  - [![Generic badge](https://img.shields.io/badge/P1-v3-green.svg)](https://github.com/plugwise/Plugwise-Smile/tree/docs/tests/p1v3) electricity only
  - [![Generic badge](https://img.shields.io/badge/P1-v3-green.svg)](https://github.com/plugwise/Plugwise-Smile/tree/docs/tests/p1v3solarfake) electricity only - just the above with added data, please submit **yours**

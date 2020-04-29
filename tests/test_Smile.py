@@ -422,6 +422,60 @@ class TestPlugwise:
         await self.disconnect(server, client)
 
     @pytest.mark.asyncio
+    async def test_connect_legacy_anna_2(self):
+        """Test a legacy Anna device."""
+        # testdata is a dictionary with key ctrl_id_dev_id => keys:values
+        # testdata={
+        #             'ctrl_id': { 'outdoor+temp': 20.0, }
+        #             'ctrl_id:dev_id': { 'type': 'thermostat', 'battery': None, }
+        #         }
+        testdata = {
+            # Anna
+            "9e7377867dc24e51b8098a5ba02bd89d": {
+                "setpoint": 15.0,
+                "temperature": 21.4,
+                "illuminance": 19.5,
+            },
+            # Central
+            "ea5d8a7177e541b0a4b52da815166de4": {
+                "water_pressure": 1.7,
+            },
+        }
+
+        self.smile_setup = "legacy_anna_2"
+        server, smile, client = await self.connect_wrapper()
+
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = thermostat")
+        assert smile.smile_type == "thermostat"
+        _LOGGER.info(" # Assert version")
+        assert smile.smile_version[0] == "1.8.0"
+        _LOGGER.info(" # Assert legacy")
+        assert smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert master thermostat")
+        assert smile.single_master_thermostat()
+
+        await self.device_test(smile, testdata)
+
+        await self.tinker_thermostat(
+            smile,
+            "c34c6864216446528e95d88985e714cc",
+            good_schemas=["Thermostat schedule",],
+        )
+        await smile.close_connection()
+        await self.disconnect(server, client)
+
+        server, smile, client = await self.connect_wrapper(put_timeout=True)
+        await self.tinker_thermostat(
+            smile,
+            "c34c6864216446528e95d88985e714cc",
+            good_schemas=["Thermostat schedule",],
+            unhappy=True,
+        )
+        await smile.close_connection()
+        await self.disconnect(server, client)
+
+    @pytest.mark.asyncio
     async def test_connect_smile_p1_v2(self):
         """Test a legacy P1 device."""
         # testdata dictionary with key ctrl_id_dev_id => keys:values

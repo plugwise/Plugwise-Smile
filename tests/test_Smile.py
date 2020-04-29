@@ -259,6 +259,7 @@ class TestPlugwise:
                             details["name"], dev_id
                         ),
                     )
+                    _LOGGER.info("data: %s", data)
                     for measure_key, measure_assert in measurements.items():
                         _LOGGER.info(
                             "%s",

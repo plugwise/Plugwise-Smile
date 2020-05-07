@@ -56,6 +56,7 @@ DEVICE_MEASUREMENTS = {
     "central_heater_water_pressure": "water_pressure",
     "cooling_state": "cooling_state",  # marcelveldt
     "boiler_state": "boiler_state",  # a legacy Anna user has this as heating-is-on indication
+    "intended_boiler_state": "intended_boiler_state",  # WilbertVerhoeff
     "slave_boiler_state": "slave_boiler_state",  # marcelveldt
     "compressor_state": "compressor_state",  # marcelveldt
     "flame_state": "flame_state",  # added to reliably detect a gas-type local heater device
@@ -620,6 +621,18 @@ class Smile:
 
         device_data = self.get_appliance_data(dev_id)
 
+        if "boiler_state" in device_data:
+            device_data["heating_state"] = (
+                device_data["boiler_state"] 
+                and device_data["intended_boiler_state"]
+            )
+            device_data["dhw_state"] = (
+                device_data["boiler_state"] 
+                and not device_data["intended_boiler_state"]
+            )
+            device_data.pop("boiler_state", None)
+            device_data.pop("intended_boiler_state", None)
+
         # Anna, Lisa, Tom/Floor
         if details["class"] in thermostat_classes:
             device_data["active_preset"] = self.get_preset(details["location"])
@@ -688,8 +701,12 @@ class Smile:
 
                 pl_value = p_locator.format(measurement)
                 if appliance.find(pl_value) is not None:
-                    if self._smile_legacy and measurement == "domestic_hot_water_state":
-                        continue
+                    if self._smile_legacy:
+                        if (
+                            measurement == "domestic_hot_water_state" 
+                            or measurement == "central_heating_state"
+                        ):
+                            continue
 
                     measure = appliance.find(pl_value).text
                     data[name] = self._format_measure(measure)

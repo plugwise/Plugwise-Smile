@@ -630,8 +630,8 @@ class Smile:
                 device_data["boiler_state"] 
                 and not device_data["intended_boiler_state"]
             )
-            device_data.pop["boiler_state"]
-            device_data.pop["intended_boiler_state"]
+            device_data.pop("boiler_state", None)
+            device_data.pop("intended_boiler_state", None)
 
         # Anna, Lisa, Tom/Floor
         if details["class"] in thermostat_classes:

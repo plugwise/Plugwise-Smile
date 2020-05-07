@@ -621,6 +621,18 @@ class Smile:
 
         device_data = self.get_appliance_data(dev_id)
 
+        if "boiler_state" in device_data:
+            device_data["heating_state"] = (
+                device_data["boiler_state"] 
+                and device_data["intended_boiler_state"]
+            )
+            device_data["dhw_state"] = (
+                device_data["boiler_state"] 
+                and not device_data["intended_boiler_state"]
+            )
+            device_data.pop["boiler_state"]
+            device_data.pop["intended_boiler_state"]
+
         # Anna, Lisa, Tom/Floor
         if details["class"] in thermostat_classes:
             device_data["active_preset"] = self.get_preset(details["location"])

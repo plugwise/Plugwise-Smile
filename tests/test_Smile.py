@@ -384,8 +384,8 @@ class TestPlugwise:
             "04e4cbfe7f4340f090f85ec3b9e6a950": {
                 "water_temperature": 23.6,
                 "water_pressure": 1.2,
-                "boiler_state": False,
-                "intended_boiler_state": False,
+                "heating_state": False,
+                "dhw_state": False,
             },
         }
 

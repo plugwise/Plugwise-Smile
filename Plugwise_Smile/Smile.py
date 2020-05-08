@@ -633,6 +633,7 @@ class Smile:
             )
             device_data.pop("boiler_state", None)
             device_data.pop("intended_boiler_state", None)
+            device_data.pop("oem_diag_code", None)
 
         # Anna, Lisa, Tom/Floor
         if details["class"] in thermostat_classes:

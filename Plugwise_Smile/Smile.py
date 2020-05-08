@@ -180,7 +180,7 @@ class Smile:
             _LOGGER.error("Unable to find model or version information")
             raise self.UnsupportedDeviceError
 
-        ver = semver.VersionInfo.parse(smile_version)
+        ver = semver.parse(smile_version)
         target_smile = "{}_v{}{}".format(smile_model, ver["major"], ver["minor"])
 
         _LOGGER.debug("Plugwise identified as %s", target_smile)

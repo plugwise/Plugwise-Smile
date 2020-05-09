@@ -60,6 +60,7 @@ DEVICE_MEASUREMENTS = {
     "slave_boiler_state": "slave_boiler_state",  # marcelveldt
     "compressor_state": "compressor_state",  # marcelveldt
     "flame_state": "flame_state",  # added to reliably detect a gas-type local heater device
+    "open_therm_oem_diagnostic_code": "oem_diag_code",  #  sanderdw - use to show diff between heating and heating + hotwater
 }
 
 SMILES = {
@@ -628,10 +629,11 @@ class Smile:
             )
             device_data["dhw_state"] = (
                 device_data["boiler_state"] 
-                and not device_data["intended_boiler_state"]
+                and (not device_data["intended_boiler_state"] or device_data["oem_diag_code"] == 201)
             )
             device_data.pop("boiler_state", None)
             device_data.pop("intended_boiler_state", None)
+            device_data.pop("oem_diag_code", None)
 
         # Anna, Lisa, Tom/Floor
         if details["class"] in thermostat_classes:

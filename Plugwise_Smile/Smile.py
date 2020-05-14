@@ -73,6 +73,7 @@ SMILES = {
         "friendly_name": "Anna",
         "legacy": True,
     },
+    "smile_v40": {"type": "power", "friendly_name": "P1",},
     "smile_v33": {"type": "power", "friendly_name": "P1",},
     "smile_v25": {"type": "power", "friendly_name": "P1", "legacy": True,},
 }

@@ -296,7 +296,7 @@
 				<last_consecutive_log_date>2020-03-16T15:58:35.722+01:00</last_consecutive_log_date>
 				<boiler_state id='b0f5a4f95bf746a39ad73082e10f469f'/>
 				<period start_date="2020-03-16T19:55:17.183+01:00" end_date="2020-03-16T19:55:17.183+01:00">
-					<measurement log_date="2020-03-16T19:55:17.183+01:00">off</measurement>
+					<measurement log_date="2020-03-16T19:55:17.183+01:00">on</measurement>
 				</period>
 			</point_log>
 			<cumulative_log id='ec39889e078e49369a904b4d57fd28cc'>

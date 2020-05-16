@@ -684,7 +684,7 @@ class Smile:
         data = {}
         search = self._appliances
 
-        if self._smile_legacy and self.smile_type == "power":
+        if self._smile_legacy:  # and self.smile_type == "power":
             search = self._domain_objects
 
         appliances = search.findall('.//appliance[@id="{}"]'.format(dev_id))

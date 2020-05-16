@@ -92,16 +92,19 @@ class Smile:
         username="smile",
         port=80,
         timeout=DEFAULT_TIMEOUT,
-        websession=None,
+        websession: aiohttp.ClientSession = None,
     ):
         """Set the constructor for this class."""
-        if websession is None:
+        if not websession:
 
-            async def _create_session():
+            async def _create_session() -> aiohttp.ClientSession:
                 return aiohttp.ClientSession()
 
             loop = asyncio.get_event_loop()
-            self.websession = loop.run_until_complete(_create_session())
+            if loop.is_running():
+                self.websession = aiohttp.ClientSession()
+            else:
+                self.websession = loop.run_until_complete(_create_session())
         else:
             self.websession = websession
 

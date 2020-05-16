@@ -52,11 +52,13 @@ DEVICE_MEASUREMENTS = {
     "outdoor_temperature": "outdoor_temperature",
     "domestic_hot_water_state": "dhw_state",
     "boiler_temperature": "water_temperature",
+    "intended_boiler_temperature": "intended_boiler_temperature",  # use for legacy_anna to detect heating/dhw?
+    "modulation_level": "modulation_level",  # use for legacy_anna to detect heating/dhw?
     "central_heating_state": "heating_state",
     "central_heater_water_pressure": "water_pressure",
     "cooling_state": "cooling_state",  # marcelveldt
-    "boiler_state": "boiler_state",  # a legacy Anna user has this as heating-is-on indication
-    "intended_boiler_state": "intended_boiler_state",  # WilbertVerhoeff
+    "boiler_state": "boiler_state",  # a legacy Anna user has this as heating-is-on indication - similar to flame-state on Anna/Adam
+    "intended_boiler_state": "intended_boiler_state",  # WilbertVerhoeff - better indication that heating or dhw is active
     "slave_boiler_state": "slave_boiler_state",  # marcelveldt
     "compressor_state": "compressor_state",  # marcelveldt
     "flame_state": "flame_state",  # added to reliably detect a gas-type local heater device

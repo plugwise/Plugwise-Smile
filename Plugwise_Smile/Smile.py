@@ -625,7 +625,7 @@ class Smile:
 
         if "boiler_state" in device_data:
             device_data["heating_state"] = device_data["intended_boiler_state"]
-            device_data["dhw_state"] = None
+            device_data["dhw_state"] = False
                         
             device_data.pop("boiler_state", None)
             device_data.pop("intended_boiler_state", None)

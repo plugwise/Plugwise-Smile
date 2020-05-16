@@ -385,7 +385,7 @@ class TestPlugwise:
                 "water_temperature": 23.6,
                 "water_pressure": 1.2,
                 "heating_state": True,
-                "dhw_state": True,
+                "dhw_state": None,
             },
         }
 

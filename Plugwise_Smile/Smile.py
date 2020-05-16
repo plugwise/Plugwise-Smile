@@ -52,15 +52,16 @@ DEVICE_MEASUREMENTS = {
     "outdoor_temperature": "outdoor_temperature",
     "domestic_hot_water_state": "dhw_state",
     "boiler_temperature": "water_temperature",
+    "intended_boiler_temperature": "intended_boiler_temperature",  # use for legacy_anna to detect heating/dhw?
+    "modulation_level": "modulation_level",  # use for legacy_anna to detect heating/dhw?
     "central_heating_state": "heating_state",
     "central_heater_water_pressure": "water_pressure",
     "cooling_state": "cooling_state",  # marcelveldt
-    "boiler_state": "boiler_state",  # a legacy Anna user has this as heating-is-on indication
-    "intended_boiler_state": "intended_boiler_state",  # WilbertVerhoeff
+    "boiler_state": "boiler_state",  # a legacy Anna user has this as heating-is-on indication - similar to flame-state on Anna/Adam
+    "intended_boiler_state": "intended_boiler_state",  # WilbertVerhoeff - better indication that heating or dhw is active
     "slave_boiler_state": "slave_boiler_state",  # marcelveldt
     "compressor_state": "compressor_state",  # marcelveldt
     "flame_state": "flame_state",  # added to reliably detect a gas-type local heater device
-    "open_therm_oem_diagnostic_code": "oem_diag_code",  #  sanderdw - use to show diff between heating and heating + hotwater
 }
 
 SMILES = {
@@ -623,17 +624,11 @@ class Smile:
         device_data = self.get_appliance_data(dev_id)
 
         if "boiler_state" in device_data:
-            device_data["heating_state"] = (
-                device_data["boiler_state"] 
-                and device_data["intended_boiler_state"]
-            )
-            device_data["dhw_state"] = (
-                device_data["boiler_state"] 
-                and (not device_data["intended_boiler_state"] or device_data["oem_diag_code"] == 201)
-            )
+            device_data["heating_state"] = device_data["intended_boiler_state"]
+            device_data["dhw_state"] = False
+                        
             device_data.pop("boiler_state", None)
             device_data.pop("intended_boiler_state", None)
-            device_data.pop("oem_diag_code", None)
 
         # Anna, Lisa, Tom/Floor
         if details["class"] in thermostat_classes:
@@ -689,7 +684,7 @@ class Smile:
         data = {}
         search = self._appliances
 
-        if self._smile_legacy and self.smile_type == "power":
+        if self._smile_legacy:  # and self.smile_type == "power":
             search = self._domain_objects
 
         appliances = search.findall('.//appliance[@id="{}"]'.format(dev_id))

@@ -743,7 +743,6 @@ class TestPlugwise:
             # Central
             "2743216f626f43948deec1f7ab3b3d70": {
                 "heating_state": False,
-                "water_pressure": 6.0,
             },
             "b128b4bbbd1f47e9bf4d756e8fb5ee94": {"outdoor_temperature": 11.9,},
             # Plug MediaCenter

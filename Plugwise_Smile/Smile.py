@@ -44,31 +44,31 @@ DEVICE_MEASUREMENTS = {
     "thermostat": "setpoint",
     # HA current_temperature
     "temperature": "temperature",
-    # only present on legacy Anna and Anna_v3
+    # Only present on legacy Anna and Anna_v3
     "schedule_temperature": "schedule_temperature",
-    #  Lisa and Tom
+    # Lisa and Tom
     "battery": "battery",
     "valve_position": "valve_position",
     "temperature_difference": "temperature_difference",
-    #  Plug
+    # Plug
     "electricity_consumed": "electricity_consumed",
     "electricity_produced": "electricity_produced",
     "relay": "relay",
-    #  Outdoor temp as reported on the Anna, in the App
+    # Outdoor temp as reported on the Anna, in the App
     "outdoor_temperature": "outdoor_temperature",
     # Anna/Adam: use intended_c_h_state, this key shows the heating-behavior better than c-h_state
     "intended_central_heating_state": "heating_state",
     "domestic_hot_water_state": "dhw_state",
     "boiler_temperature": "water_temperature",
     "central_heater_water_pressure": "water_pressure",  # not present on Adam
-    # Legacy Anna only: similar to flame-state on Anna/Adam
+    # Legacy Anna: similar to flame-state on Anna/Adam
     "boiler_state": "boiler_state",
-    # Legacy Anna ony: shows when heating and/or dhw is active
+    # Legacy Anna: shows when heating and/or dhw is active
     "intended_boiler_state": "intended_boiler_state",
     # Legacy Anna: use the next two keys to detect heating/dhw?
     "intended_boiler_temperature": "intended_boiler_temperature",  # non-zero when heating
     "modulation_level": "modulation_level",  # TBD
-    #  Used with the Elga heatpump - marcelveldt
+    # Used with the Elga heatpump - marcelveldt
     "cooling_state": "cooling_state",
     # Next  3 keys are used to show the state of the heater used next to the Elga heatpump - marcelveldt
     "slave_boiler_state": "slave_boiler_state",  

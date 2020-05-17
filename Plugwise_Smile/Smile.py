@@ -707,6 +707,8 @@ class Smile:
                             continue
 
                     measure = appliance.find(pl_value).text
+                    # In some systems there is a pressure-measurement with an unrealistic value,
+                    # this measurement appears a power-on and is never updated, therefore remove. 
                     if name == "water_pressure" and float(measure) > 3.5:
                         continue
                     data[name] = self._format_measure(measure)

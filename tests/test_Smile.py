@@ -813,7 +813,7 @@ class TestPlugwise:
                 "battery": 0.67,
             },
             # Adam
-            "90986d591dcd426cae3ec3e8111ff730": {"heating_state": True,},
+            "90986d591dcd426cae3ec3e8111ff730": {"heating_state": None,},
             "fe799307f1624099878210aa0b9f1475": {"outdoor_temperature": 7.7,},
             # Modem
             "675416a629f343c495449970e2ca37b5": {

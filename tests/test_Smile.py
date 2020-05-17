@@ -594,7 +594,7 @@ class TestPlugwise:
         await self.disconnect(server, client)
 
     @pytest.mark.asyncio
-    async def test_connect_anna_without_boiler(self):
+    async def test_connect_anna_without_boiler_fw3(self):
         """Test an Anna firmware 3 without a boiler."""
         # testdata is a dictionary with key ctrl_id_dev_id => keys:values
         # testdata={
@@ -613,13 +613,61 @@ class TestPlugwise:
             "c46b4794d28149699eacf053deedd003": {"heating_state": False,},
         }
 
-        self.smile_setup = "anna_without_boiler"
+        self.smile_setup = "anna_without_boiler_fw3"
         server, smile, client = await self.connect_wrapper()
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")
         assert smile.smile_type == "thermostat"
         _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "3.1.11"
+        _LOGGER.info(" # Assert no legacy")
+        assert not smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert master thermostat")
+        assert smile.single_master_thermostat()
+        await self.device_test(smile, testdata)
+        await self.tinker_thermostat(
+            smile, "c34c6864216446528e95d88985e714cc", good_schemas=["Test", "Normal"]
+        )
+        await smile.close_connection()
+        await self.disconnect(server, client)
+
+        server, smile, client = await self.connect_wrapper(put_timeout=True)
+        await self.tinker_thermostat(
+            smile,
+            "c34c6864216446528e95d88985e714cc",
+            good_schemas=["Test", "Normal"],
+            unhappy=True,
+        )
+        await smile.close_connection()
+        await self.disconnect(server, client)
+
+    @pytest.mark.asyncio
+    async def test_connect_anna_without_boiler_fw4(self):
+        """Test an Anna firmware 4 without a boiler."""
+        # testdata is a dictionary with key ctrl_id_dev_id => keys:values
+        # testdata={
+        #             'ctrl_id': { 'outdoor+temp': 20.0, }
+        #             'ctrl_id:dev_id': { 'type': 'thermostat', 'battery': None, }
+        #         }
+        testdata = {
+            # Anna
+            "7ffbb3ab4b6c4ab2915d7510f7bf8fe9": {
+                "selected_schedule": "Normal",
+                "illuminance": 44.8,
+                "active_preset": "home",
+            },
+            "a270735e4ccd45239424badc0578a2b1": {"outdoor_temperature": 16.6,},
+            # Central
+            "c46b4794d28149699eacf053deedd003": {"heating_state": True,},
+        }
+
+        self.smile_setup = "anna_without_boiler_fw4"
+        server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = thermostat")
+        assert smile.smile_type == "thermostat"
+        _LOGGER.info(" # Assert version")
+        assert smile.smile_version[0] == "4.0.15"
         _LOGGER.info(" # Assert no legacy")
         assert not smile._smile_legacy  # pylint: disable=protected-access
         _LOGGER.info(" # Assert master thermostat")

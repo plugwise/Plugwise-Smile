@@ -726,7 +726,11 @@ class Smile:
                     # this measurement appears at power-on and is never updated, therefore remove. 
                     if name == "water_pressure" and float(measure) > 3.5:
                         continue
+
                     data[name] = self._format_measure(measure)
+
+                if name == "heating_state":
+                    data[name] = None
 
                 il_value = i_locator.format(measurement)
                 if appliance.find(il_value) is not None:

@@ -729,7 +729,7 @@ class Smile:
 
                     data[name] = self._format_measure(measure)
 
-                if name == "heating_state":
+                elif name == "heating_state":
                     data[name] = None
 
                 il_value = i_locator.format(measurement)

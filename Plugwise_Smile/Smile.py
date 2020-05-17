@@ -40,28 +40,40 @@ HOME_MEASUREMENTS = {
 # zone_thermosstat 'temperature_offset'
 # radiator_valve 'uncorrected_temperature', 'temperature_offset'
 DEVICE_MEASUREMENTS = {
-    "thermostat": "setpoint",  # HA setpoint
-    "temperature": "temperature",  # HA current_temperature
-    "schedule_temperature": "schedule_temperature",  # only present on legacy_anna and anna_v3
+    # HA setpoint
+    "thermostat": "setpoint",
+    # HA current_temperature
+    "temperature": "temperature",
+    # Only present on legacy Anna and Anna_v3
+    "schedule_temperature": "schedule_temperature",
+    # Lisa and Tom
     "battery": "battery",
     "valve_position": "valve_position",
     "temperature_difference": "temperature_difference",
+    # Plug
     "electricity_consumed": "electricity_consumed",
     "electricity_produced": "electricity_produced",
     "relay": "relay",
+    # Outdoor temp as reported on the Anna, in the App
     "outdoor_temperature": "outdoor_temperature",
+    # Anna/Adam: use intended_c_h_state, this key shows the heating-behavior better than c-h_state
+    "intended_central_heating_state": "heating_state",
     "domestic_hot_water_state": "dhw_state",
     "boiler_temperature": "water_temperature",
-    "intended_boiler_temperature": "intended_boiler_temperature",  # use for legacy_anna to detect heating/dhw?
-    "modulation_level": "modulation_level",  # use for legacy_anna to detect heating/dhw?
-    "central_heating_state": "heating_state",
-    "central_heater_water_pressure": "water_pressure",
-    "cooling_state": "cooling_state",  # marcelveldt
-    "boiler_state": "boiler_state",  # a legacy Anna user has this as heating-is-on indication - similar to flame-state on Anna/Adam
-    "intended_boiler_state": "intended_boiler_state",  # WilbertVerhoeff - better indication that heating or dhw is active
-    "slave_boiler_state": "slave_boiler_state",  # marcelveldt
-    "compressor_state": "compressor_state",  # marcelveldt
-    "flame_state": "flame_state",  # added to reliably detect a gas-type local heater device
+    "central_heater_water_pressure": "water_pressure",  # not present on Adam
+    # Legacy Anna: similar to flame-state on Anna/Adam
+    "boiler_state": "boiler_state",
+    # Legacy Anna: shows when heating and/or dhw is active
+    "intended_boiler_state": "intended_boiler_state",
+    # Legacy Anna: use the next two keys to detect heating/dhw?
+    "intended_boiler_temperature": "intended_boiler_temperature",  # non-zero when heating
+    "modulation_level": "modulation_level",  # TBD
+    # Used with the Elga heatpump - marcelveldt
+    "cooling_state": "cooling_state",
+    # Next  3 keys are used to show the state of the heater used next to the Elga heatpump - marcelveldt
+    "slave_boiler_state": "slave_boiler_state",  
+    "compressor_state": "compressor_state",
+    "flame_state": "flame_state",
 }
 
 SMILES = {
@@ -703,18 +715,19 @@ class Smile:
                 pl_value = p_locator.format(measurement)
                 if appliance.find(pl_value) is not None:
                     if self._smile_legacy:
-                        if (
-                            measurement == "domestic_hot_water_state" 
-                            or measurement == "central_heating_state"
-                        ):
+                        if measurement == "domestic_hot_water_state":
                             continue
 
                     measure = appliance.find(pl_value).text
                     # In some systems there is a pressure-measurement with an unrealistic value,
                     # this measurement appears at power-on and is never updated, therefore remove. 
-                    if name == "water_pressure" and float(measure) > 3.5:
+                    if measurement == "central_heater_water_pressure" and float(measure) > 3.5:
                         continue
+
                     data[name] = self._format_measure(measure)
+
+                elif measurement == "intended_central_heating_state":
+                    data[name] = None
 
                 il_value = i_locator.format(measurement)
                 if appliance.find(il_value) is not None:

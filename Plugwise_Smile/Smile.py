@@ -707,6 +707,8 @@ class Smile:
                             continue
 
                     measure = appliance.find(pl_value).text
+                    if name == "water_pressure" and float(data[name]) > 3.5:
+                        continue
                     data[name] = self._format_measure(measure)
 
                 il_value = i_locator.format(measurement)

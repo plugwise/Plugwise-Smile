@@ -715,21 +715,18 @@ class Smile:
                 pl_value = p_locator.format(measurement)
                 if appliance.find(pl_value) is not None:
                     if self._smile_legacy:
-                        if (
-                            measurement == "domestic_hot_water_state" 
-                            or measurement == "central_heating_state"
-                        ):
+                        if measurement == "domestic_hot_water_state":
                             continue
 
                     measure = appliance.find(pl_value).text
                     # In some systems there is a pressure-measurement with an unrealistic value,
                     # this measurement appears at power-on and is never updated, therefore remove. 
-                    if name == "water_pressure" and float(measure) > 3.5:
+                    if measurement == "central_heater_water_pressure" and float(measure) > 3.5:
                         continue
 
                     data[name] = self._format_measure(measure)
 
-                elif name == "heating_state":
+                elif measurement == "intended_central_heating_state":
                     data[name] = None
 
                 il_value = i_locator.format(measurement)

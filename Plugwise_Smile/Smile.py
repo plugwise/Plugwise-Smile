@@ -726,9 +726,6 @@ class Smile:
 
                     data[name] = self._format_measure(measure)
 
-                elif measurement == "intended_central_heating_state":
-                    data[name] = None
-
                 il_value = i_locator.format(measurement)
                 if appliance.find(il_value) is not None:
                     name = "{}_interval".format(name)

@@ -147,6 +147,8 @@ class Smile:
         try:
             with async_timeout.timeout(self._timeout):
                 resp = await self.websession.get(url, auth=self._auth)
+            if resp.status == 401:
+                raise self.InvalidAuthentication
         except (asyncio.TimeoutError, aiohttp.ClientError):
             if retry < 1:
                 _LOGGER.error("Error connecting to Plugwise", exc_info=True)
@@ -1279,6 +1281,9 @@ class Smile:
 
     class ConnectionFailedError(PlugwiseError):
         """Raised when unable to connect."""
+
+    class InvalidAuthentication(PlugwiseError):
+        """Raised when unable to authenticate."""
 
     class UnsupportedDeviceError(PlugwiseError):
         """Raised when device is not supported."""

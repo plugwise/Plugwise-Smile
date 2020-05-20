@@ -60,7 +60,7 @@ DEVICE_MEASUREMENTS = {
     "intended_central_heating_state": "heating_state",
     "domestic_hot_water_state": "dhw_state",
     "boiler_temperature": "water_temperature",
-    "return_water_temperature": "return_temperature"
+    "return_water_temperature": "return_temperature",
     "central_heater_water_pressure": "water_pressure",  # not present on Adam
     # Legacy Anna: similar to flame-state on Anna/Adam
     "boiler_state": "boiler_state",

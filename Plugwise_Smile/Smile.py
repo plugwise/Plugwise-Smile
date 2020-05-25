@@ -928,9 +928,14 @@ class Smile:
                 "rule[@id='{}']/name".format(rule_id)
             ).text
             if location_id == loc_id:
-                active = True
+                if (
+                    self._domain_objects.find(
+                       "rule[@id='{}']/active".format(rule_id)
+                    ).text
+                    == "true"
+                ):
+                    active = True
             schemas[name] = active
-
             schedules = {}
             days = {
                 "mo": 0,

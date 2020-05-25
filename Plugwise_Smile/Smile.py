@@ -1034,6 +1034,7 @@ class Smile:
                     schema_ids[rule.attrib["id"]] = loc_id
                 else:
                     schema_ids[rule.attrib["id"]] = None
+
         if schema_ids != {}:
             return schema_ids
 
@@ -1045,6 +1046,7 @@ class Smile:
         for rule in rules:
             if rule.find(locator) is not None:
                 schema_ids[rule.attrib["id"]] = loc_id
+
         if schema_ids != {}:
             return schema_ids
 

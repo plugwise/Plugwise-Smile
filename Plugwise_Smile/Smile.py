@@ -923,62 +923,61 @@ class Smile:
             return available, selected, schedule_temperature
 
         for rule_id, location_id in rule_ids.items():
+            active = False
+            name = self._domain_objects.find(
+                "rule[@id='{}']/name".format(rule_id)
+            ).text
             if location_id == loc_id:
-                active = False
-                name = self._domain_objects.find(
-                    "rule[@id='{}']/name".format(rule_id)
-                ).text
                 if (
                     self._domain_objects.find(
-                        "rule[@id='{}']/active".format(rule_id)
+                       "rule[@id='{}']/active".format(rule_id)
                     ).text
                     == "true"
                 ):
                     active = True
-                schemas[name] = active
+            schemas[name] = active
+            schedules = {}
+            days = {
+                "mo": 0,
+                "tu": 1,
+                "we": 2,
+                "th": 3,
+                "fr": 4,
+                "sa": 5,
+                "su": 6,
+            }
+            locator = "rule[@id='{}']/directives".format(rule_id)
+            if self._domain_objects.find(locator) is None:
+                return available, selected, schedule_temperature
 
-                schedules = {}
-                days = {
-                    "mo": 0,
-                    "tu": 1,
-                    "we": 2,
-                    "th": 3,
-                    "fr": 4,
-                    "sa": 5,
-                    "su": 6,
-                }
-                locator = "rule[@id='{}']/directives".format(rule_id)
-                if self._domain_objects.find(locator) is None:
-                    return available, selected, schedule_temperature
+            directives = self._domain_objects.find(locator)
+            for directive in directives:
+                schedule = directive.find("then").attrib
+                keys, dummy = zip(*schedule.items())
+                if str(keys[0]) == "preset":
+                    schedules[directive.attrib["time"]] = float(
+                        self.get_presets(loc_id)[schedule["preset"]][0]
+                    )
+                else:
+                    schedules[directive.attrib["time"]] = float(
+                        schedule["setpoint"]
+                    )
 
-                directives = self._domain_objects.find(locator)
-                for directive in directives:
-                    schedule = directive.find("then").attrib
-                    keys, dummy = zip(*schedule.items())
-                    if str(keys[0]) == "preset":
-                        schedules[directive.attrib["time"]] = float(
-                            self.get_presets(loc_id)[schedule["preset"]][0]
-                        )
-                    else:
-                        schedules[directive.attrib["time"]] = float(
-                            schedule["setpoint"]
-                        )
-
-                for period, temp in schedules.items():
-                    moment_1, moment_2 = period.split(",")
-                    moment_1 = moment_1.replace("[", "").split(" ")
-                    moment_2 = moment_2.replace(")", "").split(" ")
-                    result_1 = days.get(moment_1[0], "None")
-                    result_2 = days.get(moment_2[0], "None")
-                    now = dt.datetime.now().time()
-                    start = dt.datetime.strptime(moment_1[1], "%H:%M").time()
-                    end = dt.datetime.strptime(moment_2[1], "%H:%M").time()
-                    if (
-                        result_1 == dt.datetime.now().weekday()
-                        or result_2 == dt.datetime.now().weekday()
-                    ):
-                        if self.in_between(now, start, end):
-                            schedule_temperature = temp
+            for period, temp in schedules.items():
+                moment_1, moment_2 = period.split(",")
+                moment_1 = moment_1.replace("[", "").split(" ")
+                moment_2 = moment_2.replace(")", "").split(" ")
+                result_1 = days.get(moment_1[0], "None")
+                result_2 = days.get(moment_2[0], "None")
+                now = dt.datetime.now().time()
+                start = dt.datetime.strptime(moment_1[1], "%H:%M").time()
+                end = dt.datetime.strptime(moment_2[1], "%H:%M").time()
+                if (
+                    result_1 == dt.datetime.now().weekday()
+                    or result_2 == dt.datetime.now().weekday()
+                ):
+                    if self.in_between(now, start, end):
+                        schedule_temperature = temp
 
         available, selected = self.determine_selected(available, selected, schemas)
 
@@ -1023,7 +1022,8 @@ class Smile:
                     schema_time = parse(schema_date)
                     schemas[schema_name] = (schema_time - epoch).total_seconds()
 
-            last_modified = sorted(schemas.items(), key=lambda kv: kv[1])[-1][0]
+            if schemas != {}:
+                last_modified = sorted(schemas.items(), key=lambda kv: kv[1])[-1][0]
 
         return last_modified
 
@@ -1034,8 +1034,12 @@ class Smile:
         locator1 = './/template[@tag="{}"]'.format(tag)
         locator2 = './/contexts/context/zone/location[@id="{}"]'.format(loc_id)
         for rule in rules:
-            if rule.find(locator1) is not None and rule.find(locator2) is not None:
-                schema_ids[rule.attrib["id"]] = loc_id
+            if rule.find(locator1) is not None:
+                if rule.find(locator2) is not None:
+                    schema_ids[rule.attrib["id"]] = loc_id
+                else:
+                    schema_ids[rule.attrib["id"]] = None
+
         if schema_ids != {}:
             return schema_ids
 
@@ -1047,6 +1051,7 @@ class Smile:
         for rule in rules:
             if rule.find(locator) is not None:
                 schema_ids[rule.attrib["id"]] = loc_id
+
         if schema_ids != {}:
             return schema_ids
 

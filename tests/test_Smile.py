@@ -386,7 +386,6 @@ class TestPlugwise:
                 "water_pressure": 1.2,
                 "modulation_level": 0.0,
                 "heating_state": True,
-                "dhw_state": False,
             },
         }
 

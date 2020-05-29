@@ -642,12 +642,15 @@ class Smile:
 
         device_data = self.get_appliance_data(dev_id)
 
+        # Legacy_anna: create  heating_state and leave out dhw_state
         if "boiler_state" in device_data:
             device_data["heating_state"] = device_data["intended_boiler_state"]
-            device_data["dhw_state"] = False
-                        
             device_data.pop("boiler_state", None)
             device_data.pop("intended_boiler_state", None)
+
+        # Fix for Adam + Anna
+        if "setpoint" in device_data:
+            device_data.pop("heating_state", None)
 
         # Anna, Lisa, Tom/Floor
         if details["class"] in thermostat_classes:
@@ -722,7 +725,7 @@ class Smile:
                             continue
 
                     measure = appliance.find(pl_value).text
-                    # In some systems there is a pressure-measurement with an unrealistic value,
+                    # Fix for Adam + Anna: there is a pressure-measurement with an unrealistic value,
                     # this measurement appears at power-on and is never updated, therefore remove. 
                     if measurement == "central_heater_water_pressure" and float(measure) > 3.5:
                         continue

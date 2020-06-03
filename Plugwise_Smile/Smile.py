@@ -525,7 +525,7 @@ class Smile:
             return None
         if count == 1:
             return True
-        return = False
+        return False
 
     def scan_thermostats(self, debug_text="missing text"):
         """Update locations with actual master/slave thermostats."""

@@ -905,6 +905,7 @@ class Smile:
                 "appliance[type='thermostat']/logs/point_log[type='{}']/period/measurement".format(
                     log_type
                 )
+            )
             active = False
             if self._domain_objects.find(locator) is not None:
                 active = self._domain_objects.find(locator).text == "on"

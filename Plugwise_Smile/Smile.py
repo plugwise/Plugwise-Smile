@@ -1088,16 +1088,15 @@ class Smile:
         for schema_rule_id, location_id in schema_rule_ids.items():
             template_id = None
             if location_id == loc_id:
+                state = str(state)
                 locator = ".//*[@id='{}']/template".format(schema_rule_id)
                 for rule in self._domain_objects.findall(locator):
                     template_id = rule.attrib["id"]
 
                 uri = "{};id={}".format(RULES, schema_rule_id)
-
-                state = str(state)
                 data = (
                     '<rules><rule id="{}"><name><![CDATA[{}]]></name>'
-                    '<template id="{}" /><active>{}</active></rule>'
+                    '<template id="{}"/><active>{}</active></rule>'
                     "</rules>".format(schema_rule_id, name, template_id, state)
                 )
 
@@ -1118,23 +1117,11 @@ class Smile:
             return False
 
         uri = "{};id={}".format(LOCATIONS, loc_id)
-
         data = (
-            "<locations>"
-            + '<location id="'
-            + loc_id
-            + '">'
-            + "<name>"
-            + location_name
-            + "</name>"
-            + "<type>"
-            + location_type
-            + "</type>"
-            + "<preset>"
-            + preset
-            + "</preset>"
-            + "</location>"
-            + "</locations>"
+            '<locations><location id="{}"><name>{}</name><type>{}</type>'
+            "<preset>{}</preset></location></locations>".format(
+                loc_id, location_name, location_type, preset
+                )
         )
 
         await self.request(uri, method="put", data=data)
@@ -1142,8 +1129,8 @@ class Smile:
 
     async def set_temperature(self, loc_id, temperature):
         """Send temperature-set request to the locations thermostat."""
-        uri = self.__get_temperature_uri(loc_id)
         temperature = str(temperature)
+        uri = self.__get_temperature_uri(loc_id)
         data = (
             "<thermostat_functionality><setpoint>{}</setpoint></thermostat_functionality>".format(
                 temperature
@@ -1159,19 +1146,13 @@ class Smile:
             return self.__get_temperature_uri_legacy()
 
         locator = (
-            "location[@id='{}']/actuator_functionalities/thermostat_functionality"
+            'location[@id="{}"]/actuator_functionalities/thermostat_functionality'
         ).format(loc_id)
         thermostat_functionality_id = self._locations.find(locator).attrib["id"]
 
-        temperature_uri = (
-            LOCATIONS
-            + ";id="
-            + loc_id
-            + "/thermostat;id="
-            + thermostat_functionality_id
-        )
-
-        return temperature_uri
+        return "{};id={}/thermostat;id={}".format(
+            LOCATIONS, loc_id, thermostat_functionality_id
+            )
 
     async def set_relay_state(self, appl_id, state):
         """Switch the Plug off/on."""
@@ -1179,7 +1160,7 @@ class Smile:
             appl_id
         )
         relay_functionality_id = self._appliances.find(locator).attrib["id"]
-        uri = APPLIANCES + ";id=" + appl_id + "/relay;id=" + relay_functionality_id
+        uri = "{};id={}/relay;id={}".format(APPLIANCES, appl_id, relay_functionality_id)
         state = str(state)
         data = "<relay_functionality><state>{}</state></relay_functionality>".format(
             state
@@ -1205,6 +1186,7 @@ class Smile:
                     float(directive.attrib["temperature"]),
                     0,
                 ]
+
         return preset_dictionary
 
     async def set_preset_legacy(self, preset):
@@ -1215,26 +1197,20 @@ class Smile:
             return False
 
         uri = "{}".format(RULES)
-
         data = (
-            "<rules>"
-            + '<rule id="'
-            + rule.attrib["id"]
-            + '">'
-            + "<active>true</active>"
-            + "</rule>"
-            + "</rules>"
+            '<rules><rule id="{}"><active>true</active></rule>'
+            "</rules>".format(rule.attrib["id"])
         )
 
         await self.request(uri, method="put", data=data)
-
         return True
 
     def __get_temperature_uri_legacy(self):
         """Determine the location-set_temperature uri - from APPLIANCES."""
         locator = ".//appliance[type='thermostat']"
         appliance_id = self._appliances.find(locator).attrib["id"]
-        return APPLIANCES + ";id=" + appliance_id + "/thermostat"
+
+        return "{};id={}/thermostat".format(APPLIANCES, appliance_id)
 
     async def set_schedule_state_legacy(self, name, state):
         """Send a set request to the schema with the given name."""
@@ -1247,13 +1223,12 @@ class Smile:
             return False
 
         template_id = None
+        state = str(state)
         locator = ".//*[@id='{}']/template".format(schema_rule_id)
         for rule in self._domain_objects.findall(locator):
             template_id = rule.attrib["id"]
 
         uri = "{};id={}".format(RULES, schema_rule_id)
-
-        state = str(state)
         data = (
             '<rules><rule id="{}"><name><![CDATA[{}]]></name>'
             '<template id="{}" /><active>{}</active></rule>'

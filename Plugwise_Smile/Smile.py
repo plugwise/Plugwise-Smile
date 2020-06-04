@@ -779,7 +779,7 @@ class Smile:
             search = self._domain_objects
             t_string = "tariff_indicator"
 
-        loc_logs = search.find(f'.//location[@id="{loc_id}"]/logs'
+        loc_logs = search.find(f'.//location[@id="{loc_id}"]/logs')
 
         if loc_logs is None:
             return

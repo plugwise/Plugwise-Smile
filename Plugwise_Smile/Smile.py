@@ -72,7 +72,7 @@ DEVICE_MEASUREMENTS = {
     # Used with the Elga heatpump - marcelveldt
     "cooling_state": "cooling_state",
     # Next  3 keys are used to show the state of the heater used next to the Elga heatpump - marcelveldt
-    "slave_boiler_state": "slave_boiler_state",  
+    "slave_boiler_state": "slave_boiler_state",
     "compressor_state": "compressor_state",
     "flame_state": "flame_state",
 }
@@ -725,7 +725,7 @@ class Smile:
 
                     measure = appliance.find(pl_value).text
                     # Fix for Adam + Anna: there is a pressure-measurement with an unrealistic value,
-                    # this measurement appears at power-on and is never updated, therefore remove. 
+                    # this measurement appears at power-on and is never updated, therefore remove.
                     if measurement == "central_heater_water_pressure" and float(measure) > 3.5:
                         continue
 
@@ -932,7 +932,7 @@ class Smile:
             if location_id == loc_id:
                 if (
                     self._domain_objects.find(
-                       "rule[@id='{}']/active".format(rule_id)
+                        "rule[@id='{}']/active".format(rule_id)
                     ).text
                     == "true"
                 ):
@@ -1262,7 +1262,6 @@ class Smile:
 
         await self.request(uri, method="put", data=data)
         return True
-
 
     class PlugwiseError(Exception):
         """Plugwise exceptions class."""

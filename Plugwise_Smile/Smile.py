@@ -866,7 +866,7 @@ class Smile:
                 return None
 
         for rule_id in rule_ids:
-            directives = self._domain_objects.find(f'rule[@id="{rule_id}"]/directives`)
+            directives = self._domain_objects.find(f'rule[@id="{rule_id}"]/directives')
 
             for directive in directives:
                 preset = directive.find("then").attrib
@@ -1096,7 +1096,7 @@ class Smile:
         if self._smile_legacy:
             return await self.set_preset_legacy(preset)
 
-        current_location = self._locations.find(f'location[@id="{loc_id}"]'
+        current_location = self._locations.find(f'location[@id="{loc_id}"]')
         location_name = current_location.find("name").text
         location_type = current_location.find("type").text
 

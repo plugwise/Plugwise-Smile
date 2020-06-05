@@ -787,8 +787,10 @@ class Smile:
         for measurement in HOME_MEASUREMENTS:
             for log_type in log_list:
                 for peak_select in peak_list:
-                    locator = f'.//{log_type}[type="{measurement}"]/period/measurement[@{t_string}="{peak_select}"]'
-                    
+                    locator = (
+                        f'.//{log_type}[type="{measurement}"]/period/'
+                        f'measurement[@{t_string}="{peak_select}"]'
+                    )
                     # Only once try to find P1 Legacy values
                     if loc_logs.find(locator) is None and self.smile_type == "power":
                         locator = f'.//{log_type}[type="{measurement}"]/period/measurement'
@@ -1045,8 +1047,10 @@ class Smile:
         if self._smile_legacy and self.smile_type == "power":
             search = self._domain_objects
 
-        locator = f'.//{obj_type}[@id="{appl_id}"]/logs/point_log[type="{measurement}"]/period/measurement'
-
+        locator = (
+            f'.//{obj_type}[@id="{appl_id}"]/logs/point_log'
+            f'[type="{measurement}"]/period/measurement'
+        )
         if search.find(locator) is not None:
             val = float(f"{round(float(search.find(locator).text), 1):.1f}")
 

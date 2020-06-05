@@ -710,9 +710,6 @@ class Smile:
 
         appliances = search.findall(f'.//appliance[@id="{dev_id}"]')
 
-        i_locator = ".//logs/interval_log[type='{}']/period/measurement"
-        c_locator = ".//logs/cumulative_log[type='{}']/period/measurement"
-
         for appliance in appliances:
             for measurement, name in DEVICE_MEASUREMENTS.items():
 
@@ -730,17 +727,17 @@ class Smile:
 
                     data[name] = self._format_measure(measure)
 
-                il_value = i_locator.format(measurement)
-                if appliance.find(il_value) is not None:
+                i_locator = f'.//logs/interval_log[type="{measurement}"]/period/measurement'
+                if appliance.find(i_locator) is not None:
                     name = f"{name}_interval"
-                    measure = appliance.find(il_value).text
+                    measure = appliance.find(i_locator).text
 
                     data[name] = self._format_measure(measure)
 
-                cl_value = c_locator.format(measurement)
-                if appliance.find(cl_value) is not None:
+                c_locator = f'.//logs/cumulative_log[type="{measurement}"]/period/measurement'
+                if appliance.find(c_locator) is not None:
                     name = f"{name}_cumulative"
-                    measure = appliance.find(cl_value).text
+                    measure = appliance.find(c_locator).text
 
                     data[name] = self._format_measure(measure)
 
@@ -786,19 +783,15 @@ class Smile:
         log_list = ["point_log", "cumulative_log", "interval_log"]
         peak_list = ["nl_peak", "nl_offpeak"]
 
-        lt_string = ".//{}[type='{}']/period/measurement[@{}=\"{}\"]"
-        l_string = ".//{}[type='{}']/period/measurement"
         # meter_string = ".//{}[type='{}']/"
         for measurement in HOME_MEASUREMENTS:
             for log_type in log_list:
                 for peak_select in peak_list:
-                    locator = lt_string.format(
-                        log_type, measurement, t_string, peak_select
-                    )
-
+                    locator = f'.//{log_type}[type="{measurement}"]/period/measurement[@{t_string}="{peak_select}"]'
+                    
                     # Only once try to find P1 Legacy values
                     if loc_logs.find(locator) is None and self.smile_type == "power":
-                        locator = l_string.format(log_type, measurement)
+                        locator = f'.//{log_type}[type="{measurement}"]/period/measurement'
 
                         # Skip peak if not split (P1 Legacy)
                         if peak_select == "nl_offpeak":

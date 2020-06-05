@@ -710,15 +710,14 @@ class Smile:
 
         appliances = search.findall(f'.//appliance[@id="{dev_id}"]')
 
-        p_locator = ".//logs/point_log[type='{}']/period/measurement"
+        p_locator = f'".//logs/point_log[type='{measurement}']/period/measurement"'
         i_locator = ".//logs/interval_log[type='{}']/period/measurement"
         c_locator = ".//logs/cumulative_log[type='{}']/period/measurement"
 
         for appliance in appliances:
             for measurement, name in DEVICE_MEASUREMENTS.items():
 
-                pl_value = p_locator.format(measurement)
-                if appliance.find(pl_value) is not None:
+                if appliance.find(p_locator) is not None:
                     if self._smile_legacy:
                         if measurement == "domestic_hot_water_state":
                             continue

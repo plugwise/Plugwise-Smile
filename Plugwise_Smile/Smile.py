@@ -717,7 +717,7 @@ class Smile:
             for measurement, name in DEVICE_MEASUREMENTS.items():
 
                 #p_locator = f'".//logs/point_log[type=\'{measurement}\']/period/measurement"'
-                if appliance.find(f'".//logs/point_log[type=\'{measurement}\']/period/measurement"') is not None:
+                if appliance.find(f'.//logs/point_log[type="{measurement}"]/period/measurement') is not None:
                     if self._smile_legacy:
                         if measurement == "domestic_hot_water_state":
                             continue

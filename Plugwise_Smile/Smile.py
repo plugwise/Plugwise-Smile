@@ -716,13 +716,13 @@ class Smile:
         for appliance in appliances:
             for measurement, name in DEVICE_MEASUREMENTS.items():
 
-                #p_locator = f'".//logs/point_log[type=\'{measurement}\']/period/measurement"'
-                if appliance.find(f'.//logs/point_log[type="{measurement}"]/period/measurement') is not None:
+                p_locator = f'.//logs/point_log[type="{measurement}"]/period/measurement'
+                if appliance.find(p_locator) is not None:
                     if self._smile_legacy:
                         if measurement == "domestic_hot_water_state":
                             continue
 
-                    measure = appliance.find(pl_value).text
+                    measure = appliance.find(p_locator).text
                     # Fix for Adam + Anna: there is a pressure-measurement with an unrealistic value,
                     # this measurement appears at power-on and is never updated, therefore remove.
                     if measurement == "central_heater_water_pressure" and float(measure) > 3.5:

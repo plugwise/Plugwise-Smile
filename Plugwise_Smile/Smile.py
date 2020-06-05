@@ -1075,7 +1075,9 @@ class Smile:
 
                 uri = f"{RULES};id={schema_rule_id}"
                 data = (
-                    f'<rules><rule id="{schema_rule_id}"><name><![CDATA[{name}]]></name><template id="{template_id}"/><active>{state}</active></rule></rules>'
+                    "<rules><rule"
+                    f' id="{schema_rule_id}"><name><![CDATA[{name}]]></name><template'
+                    f' id="{template_id}"/><active>{state}</active></rule></rules>'
                 )
 
                 await self.request(uri, method="put", data=data)
@@ -1096,7 +1098,9 @@ class Smile:
 
         uri = f"{LOCATIONS};id={loc_id}"
         data = (
-            f'<locations><location id="{loc_id}"><name>{location_name}</name><type>{location_type}</type><preset>{preset}</preset></location></locations>'
+            "<locations><location"
+            f' id="{loc_id}"><name>{location_name}</name><type>{location_type}'
+            f'</type><preset>{preset}</preset></location></locations>'
         )
 
         await self.request(uri, method="put", data=data)
@@ -1107,7 +1111,8 @@ class Smile:
         temperature = str(temperature)
         uri = self.__get_temperature_uri(loc_id)
         data = (
-            f"<thermostat_functionality><setpoint>{temperature}</setpoint></thermostat_functionality>"
+            "<thermostat_functionality><setpoint>"
+            f"{temperature}</setpoint></thermostat_functionality>"
         )
 
         await self.request(uri, method="put", data=data)
@@ -1196,7 +1201,9 @@ class Smile:
 
         uri = f"{RULES};id={schema_rule_id}"
         data = (
-            f'<rules><rule id="{schema_rule_id}"><name><![CDATA[{name}]]></name><template id="{template_id}" /><active>{state}</active></rule></rules>'
+            "<rules><rule"
+            f' id="{schema_rule_id}"><name><![CDATA[{name}]]></name><template'
+            f' id="{template_id}" /><active>{state}</active></rule></rules>'
         )
 
         await self.request(uri, method="put", data=data)

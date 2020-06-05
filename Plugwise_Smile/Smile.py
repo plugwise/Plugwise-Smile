@@ -755,9 +755,9 @@ class Smile:
         except ValueError:
             try:
                 if float(measure) < 10:
-                    measure = float("{:.2f}".format(round(float(measure), 2)))
+                    measure = float(f"{round(float(measure), 2):.2f}")
                 else:
-                    measure = float("{:.1f}".format(round(float(measure), 1)))
+                    measure = float(f"{round(float(measure), 1):.1f}")
             except ValueError:
                 if measure == "on":
                     measure = True
@@ -1056,9 +1056,8 @@ class Smile:
         locator = f'.//{obj_type}[@id="{appl_id}"]/logs/point_log[type="{measurement}"]/period/measurement'
 
         if search.find(locator) is not None:
-            data = search.find(locator).text
-            val = float(data)
-            val = float("{:.1f}".format(round(val, 1)))
+            val = float(f"{round(float(search.find(locator).text), 1):.1f}")
+
             return val
 
     async def set_schedule_state(self, loc_id, name, state):

@@ -710,7 +710,6 @@ class Smile:
 
         appliances = search.findall(f'.//appliance[@id="{dev_id}"]')
 
-        dummy = None
         p_locator = f'".//logs/point_log[type=\'{dummy}\']/period/measurement"'
         i_locator = ".//logs/interval_log[type='{}']/period/measurement"
         c_locator = ".//logs/cumulative_log[type='{}']/period/measurement"

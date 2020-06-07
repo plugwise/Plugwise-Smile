@@ -124,7 +124,7 @@ class Smile:
         self._auth = aiohttp.BasicAuth(username, password=password)
 
         self._timeout = timeout
-        self._endpoint = "http://" + host + ":" + str(port)
+        self._endpoint = f"http://{host}:{str(port)}"
         self._appliances = None
         self._direct_objects = None
         self._domain_objects = None
@@ -144,7 +144,7 @@ class Smile:
     async def connect(self, retry=2):
         """Connect to Plugwise device."""
         # pylint: disable=too-many-return-statements
-        url = self._endpoint + DOMAIN_OBJECTS
+        url = f"{self._endpoint}{DOMAIN_OBJECTS}"
         try:
             with async_timeout.timeout(self._timeout):
                 resp = await self.websession.get(url, auth=self._auth)
@@ -241,7 +241,7 @@ class Smile:
         """Request data."""
         # pylint: disable=too-many-return-statements
 
-        url = self._endpoint + command
+        url = f"{self._endpoint}{command}"
 
         if headers is None:
             headers = {"Content-type": "text/xml"}

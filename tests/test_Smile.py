@@ -438,9 +438,7 @@ class TestPlugwise:
                 "illuminance": 19.5,
             },
             # Central
-            "ea5d8a7177e541b0a4b52da815166de4": {
-                "water_pressure": 1.7,
-            },
+            "ea5d8a7177e541b0a4b52da815166de4": {"water_pressure": 1.7,},
         }
 
         self.smile_setup = "legacy_anna_2"
@@ -740,9 +738,7 @@ class TestPlugwise:
                 "temperature": 20.5,  # HA current_temp
             },
             # Central
-            "2743216f626f43948deec1f7ab3b3d70": {
-                "heating_state": False,
-            },
+            "2743216f626f43948deec1f7ab3b3d70": {"heating_state": False,},
             "b128b4bbbd1f47e9bf4d756e8fb5ee94": {"outdoor_temperature": 11.9,},
             # Plug MediaCenter
             "aa6b0002df0a46e1b1eb94beb61eddfe": {

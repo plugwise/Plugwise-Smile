@@ -713,7 +713,9 @@ class Smile:
         for appliance in appliances:
             for measurement, name in DEVICE_MEASUREMENTS.items():
 
-                p_locator = f'.//logs/point_log[type="{measurement}"]/period/measurement'
+                p_locator = (
+                    f'.//logs/point_log[type="{measurement}"]/period/measurement'
+                )
                 if appliance.find(p_locator) is not None:
                     if self._smile_legacy:
                         if measurement == "domestic_hot_water_state":
@@ -722,19 +724,26 @@ class Smile:
                     measure = appliance.find(p_locator).text
                     # Fix for Adam + Anna: there is a pressure-measurement with an unrealistic value,
                     # this measurement appears at power-on and is never updated, therefore remove.
-                    if measurement == "central_heater_water_pressure" and float(measure) > 3.5:
+                    if (
+                        measurement == "central_heater_water_pressure"
+                        and float(measure) > 3.5
+                    ):
                         continue
 
                     data[name] = self._format_measure(measure)
 
-                i_locator = f'.//logs/interval_log[type="{measurement}"]/period/measurement'
+                i_locator = (
+                    f'.//logs/interval_log[type="{measurement}"]/period/measurement'
+                )
                 if appliance.find(i_locator) is not None:
                     name = f"{name}_interval"
                     measure = appliance.find(i_locator).text
 
                     data[name] = self._format_measure(measure)
 
-                c_locator = f'.//logs/cumulative_log[type="{measurement}"]/period/measurement'
+                c_locator = (
+                    f'.//logs/cumulative_log[type="{measurement}"]/period/measurement'
+                )
                 if appliance.find(c_locator) is not None:
                     name = f"{name}_cumulative"
                     measure = appliance.find(c_locator).text
@@ -793,7 +802,9 @@ class Smile:
                     )
                     # Only once try to find P1 Legacy values
                     if loc_logs.find(locator) is None and self.smile_type == "power":
-                        locator = f'.//{log_type}[type="{measurement}"]/period/measurement'
+                        locator = (
+                            f'.//{log_type}[type="{measurement}"]/period/measurement'
+                        )
 
                         # Skip peak if not split (P1 Legacy)
                         if peak_select == "nl_offpeak":
@@ -893,9 +904,7 @@ class Smile:
                         name = rule_name
 
             log_type = "schedule_state"
-            locator = (
-                f"appliance[type='thermostat']/logs/point_log[type='{log_type}']/period/measurement"
-            )
+            locator = f"appliance[type='thermostat']/logs/point_log[type='{log_type}']/period/measurement"
             active = False
             if self._domain_objects.find(locator) is not None:
                 active = self._domain_objects.find(locator).text == "on"
@@ -919,7 +928,8 @@ class Smile:
             name = self._domain_objects.find(f'rule[@id="{rule_id}"]/name').text
             if location_id == loc_id:
                 if (
-                    self._domain_objects.find(f'rule[@id="{rule_id}"]/active').text == "true"
+                    self._domain_objects.find(f'rule[@id="{rule_id}"]/active').text
+                    == "true"
                 ):
                     active = True
             schemas[name] = active
@@ -946,9 +956,7 @@ class Smile:
                         self.get_presets(loc_id)[schedule["preset"]][0]
                     )
                 else:
-                    schedules[directive.attrib["time"]] = float(
-                        schedule["setpoint"]
-                    )
+                    schedules[directive.attrib["time"]] = float(schedule["setpoint"])
 
             for period, temp in schedules.items():
                 moment_1, moment_2 = period.split(",")
@@ -1104,7 +1112,7 @@ class Smile:
         data = (
             "<locations><location"
             f' id="{loc_id}"><name>{location_name}</name><type>{location_type}'
-            f'</type><preset>{preset}</preset></location></locations>'
+            f"</type><preset>{preset}</preset></location></locations>"
         )
 
         await self.request(uri, method="put", data=data)
@@ -1127,16 +1135,16 @@ class Smile:
         if self._smile_legacy:
             return self.__get_temperature_uri_legacy()
 
-        locator = (
-            f'location[@id="{loc_id}"]/actuator_functionalities/thermostat_functionality'
-        )
+        locator = f'location[@id="{loc_id}"]/actuator_functionalities/thermostat_functionality'
         thermostat_functionality_id = self._locations.find(locator).attrib["id"]
 
         return f"{LOCATIONS};id={loc_id}/thermostat;id={thermostat_functionality_id}"
 
     async def set_relay_state(self, appl_id, state):
         """Switch the Plug off/on."""
-        locator = f'appliance[@id="{appl_id}"]/actuator_functionalities/relay_functionality'
+        locator = (
+            f'appliance[@id="{appl_id}"]/actuator_functionalities/relay_functionality'
+        )
         relay_functionality_id = self._appliances.find(locator).attrib["id"]
         uri = f"{APPLIANCES};id={appl_id}/relay;id={relay_functionality_id}"
         state = str(state)
@@ -1173,9 +1181,7 @@ class Smile:
             return False
 
         uri = f"{RULES}"
-        data = (
-            f'<rules><rule id="{rule.attrib["id"]}"><active>true</active></rule></rules>'
-        )
+        data = f'<rules><rule id="{rule.attrib["id"]}"><active>true</active></rule></rules>'
 
         await self.request(uri, method="put", data=data)
         return True

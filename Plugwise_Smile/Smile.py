@@ -278,6 +278,7 @@ class Smile:
             return
 
         if not result or "error" in result:
+            _LOGGER.error("Smile response empty or error in %s", result)
             raise self.ResponseError
 
         try:

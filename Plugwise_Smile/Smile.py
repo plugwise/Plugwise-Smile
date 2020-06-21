@@ -294,7 +294,7 @@ class Smile:
             try:
                 notification = notifications.find("message").text
                 _LOGGER.warning("Smile error notification detected: %s", notification)
-            except etree.XMLSyntaxError:
+            except AttributeError:
                 _LOGGER.error(
                     "Smile error notification detected but unable to process, manually investigate: %s",
                     url,

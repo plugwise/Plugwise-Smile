@@ -277,7 +277,7 @@ class Smile:
         if resp.status == 202:
             return
 
-        if not result or "error" in result:
+        if not result or "<error>" in result:
             _LOGGER.error("Smile response empty or error in %s", result)
             raise self.ResponseError
 
@@ -287,6 +287,19 @@ class Smile:
         except etree.XMLSyntaxError:
             _LOGGER.error("Smile returns invalid XML for %s", self._endpoint)
             raise self.InvalidXMLError
+
+        # If error notifications present
+        notifications = xml.find('.//notification[type="error"]')
+        if notifications is not None:
+            try:
+                notification = notifications.find("message").text
+                _LOGGER.warning("Smile error notification detected: %s", notification)
+            except etree.XMLSyntaxError:
+                _LOGGER.error(
+                    "Smile error notification detected but unable to process, manually investigate: %s",
+                    url,
+                )
+                raise self.InvalidXMLError
 
         return xml
 

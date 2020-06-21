@@ -293,9 +293,9 @@ class Smile:
         if notifications is not None:
             try:
                 notification = notifications.find("message").text
-                _LOGGER.debug("Plugwise System Error Notification: %s", notification)
+                _LOGGER.info("Plugwise System Error Notification: %s", notification)
             except AttributeError:
-                _LOGGER.debug(
+                _LOGGER.info(
                     "Plugwise System Error Notification present but unable to process, manually investigate: %s",
                     url,
                 )

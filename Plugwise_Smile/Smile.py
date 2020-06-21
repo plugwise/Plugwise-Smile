@@ -293,13 +293,12 @@ class Smile:
         if notifications is not None:
             try:
                 notification = notifications.find("message").text
-                _LOGGER.warning("Smile error notification detected: %s", notification)
+                _LOGGER.debug("Smile error notification detected: %s", notification)
             except AttributeError:
-                _LOGGER.error(
+                _LOGGER.debug(
                     "Smile error notification detected but unable to process, manually investigate: %s",
                     url,
                 )
-                raise self.InvalidXMLError
 
         return xml
 

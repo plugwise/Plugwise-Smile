@@ -1107,19 +1107,6 @@ class TestPlugwise:
         await smile.close_connection()
         await self.disconnect(server, client)
 
-    @pytest.mark.asyncio
-    async def test_connect_adam_plus_anna_copy_with_error_domain_added_without_message(
-        self,
-    ):
-        """Test erronous domain_objects file from user with purposely broken error notification."""
-        # testdata dictionary with key ctrl_id_dev_id => keys:values
-
-        self.smile_setup = "adam_plus_anna_copy_with_error_domain_added_without_message"
-        with pytest.raises(Exception):
-            server, smile, client = await self.connect_wrapper()
-            await smile.close_connection()
-            await self.disconnect(server, client)
-
     class PlugwiseTestError(Exception):
         """Plugwise test exceptions class."""
 

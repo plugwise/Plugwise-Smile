@@ -31,7 +31,6 @@ class TestPlugwise:
 
     def _write_pickle(self, call, data):
         """Store JSON data to per-setup files for HA component testing."""
-
         path = os.path.join(os.path.dirname(__file__), "testdata/" + self.smile_setup)
         datafile = os.path.join(path, call + ".pickle")
         if not os.path.exists(path):
@@ -460,9 +459,7 @@ class TestPlugwise:
                 "illuminance": 19.5,
             },
             # Central
-            "ea5d8a7177e541b0a4b52da815166de4": {
-                "water_pressure": 1.7,
-            },
+            "ea5d8a7177e541b0a4b52da815166de4": {"water_pressure": 1.7,},
         }
 
         self.smile_setup = "legacy_anna_2"
@@ -762,9 +759,7 @@ class TestPlugwise:
                 "temperature": 20.5,  # HA current_temp
             },
             # Central
-            "2743216f626f43948deec1f7ab3b3d70": {
-                "heating_state": False,
-            },
+            "2743216f626f43948deec1f7ab3b3d70": {"heating_state": False,},
             "b128b4bbbd1f47e9bf4d756e8fb5ee94": {"outdoor_temperature": 11.9,},
             # Plug MediaCenter
             "aa6b0002df0a46e1b1eb94beb61eddfe": {
@@ -1111,6 +1106,25 @@ class TestPlugwise:
         _LOGGER.info(" # Assert master thermostat")
         assert smile.single_master_thermostat()
         await self.device_test(smile, testdata)
+        await smile.close_connection()
+        await self.disconnect(server, client)
+
+    @pytest.mark.asyncio
+    async def test_connect_adam_plus_anna_copy_with_error_domain_added(self):
+        """Test erronous domain_objects file from user."""
+        # testdata dictionary with key ctrl_id_dev_id => keys:values
+
+        self.smile_setup = "adam_plus_anna_copy_with_error_domain_added"
+        server, smile, client = await self.connect_wrapper()
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = thermostat")
+        assert smile.smile_type == "thermostat"
+        _LOGGER.info(" # Assert version")
+        assert smile.smile_version[0] == "3.0.23"
+        _LOGGER.info(" # Assert legacy")
+        assert not smile._smile_legacy  # pylint: disable=protected-access
+        _LOGGER.info(" # Assert master thermostat")
+        assert smile.single_master_thermostat()
         await smile.close_connection()
         await self.disconnect(server, client)
 

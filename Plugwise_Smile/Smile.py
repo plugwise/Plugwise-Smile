@@ -72,7 +72,7 @@ DEVICE_MEASUREMENTS = {
     # Used with the Elga heatpump - marcelveldt
     "cooling_state": "cooling_state",
     # Next  3 keys are used to show the state of the heater used next to the Elga heatpump - marcelveldt
-    "slave_boiler_state": "slave_boiler_state",  
+    "slave_boiler_state": "slave_boiler_state",
     "compressor_state": "compressor_state",
     "flame_state": "flame_state",
 }
@@ -124,7 +124,7 @@ class Smile:
         self._auth = aiohttp.BasicAuth(username, password=password)
 
         self._timeout = timeout
-        self._endpoint = "http://" + host + ":" + str(port)
+        self._endpoint = f"http://{host}:{str(port)}"
         self._appliances = None
         self._direct_objects = None
         self._domain_objects = None
@@ -144,7 +144,7 @@ class Smile:
     async def connect(self, retry=2):
         """Connect to Plugwise device."""
         # pylint: disable=too-many-return-statements
-        url = self._endpoint + DOMAIN_OBJECTS
+        url = f"{self._endpoint}{DOMAIN_OBJECTS}"
         try:
             with async_timeout.timeout(self._timeout):
                 resp = await self.websession.get(url, auth=self._auth)
@@ -201,7 +201,7 @@ class Smile:
             raise self.UnsupportedDeviceError
 
         ver = semver.parse(smile_version)
-        target_smile = "{}_v{}{}".format(smile_model, ver["major"], ver["minor"])
+        target_smile = f"{smile_model}_v{ver['major']}{ver['minor']}"
 
         _LOGGER.debug("Plugwise identified as %s", target_smile)
 
@@ -241,7 +241,7 @@ class Smile:
         """Request data."""
         # pylint: disable=too-many-return-statements
 
-        url = self._endpoint + command
+        url = f"{self._endpoint}{command}"
 
         if headers is None:
             headers = {"Content-type": "text/xml"}
@@ -277,7 +277,8 @@ class Smile:
         if resp.status == 202:
             return
 
-        if not result or "error" in result:
+        if not result or "<error>" in result:
+            _LOGGER.error("Smile response empty or error in %s", result)
             raise self.ResponseError
 
         try:
@@ -286,6 +287,18 @@ class Smile:
         except etree.XMLSyntaxError:
             _LOGGER.error("Smile returns invalid XML for %s", self._endpoint)
             raise self.InvalidXMLError
+
+        # If error notifications present
+        notifications = xml.find('.//notification[type="error"]')
+        if notifications is not None:
+            try:
+                notification = notifications.find("message").text
+                _LOGGER.info("Plugwise System Error Notification: %s", notification)
+            except AttributeError:
+                _LOGGER.info(
+                    "Plugwise System Error Notification present but unable to process, manually investigate: %s",
+                    url,
+                )
 
         return xml
 
@@ -352,7 +365,7 @@ class Smile:
         """Detect types within locations from logs."""
         types = set([])
         for measure, measure_type in HOME_MEASUREMENTS.items():
-            locator = './/logs/point_log[type="{}"]'.format(measure)
+            locator = f".//logs/point_log[type='{measure}']"
             if data.find(locator) is not None:
                 log = data.find(locator)
 
@@ -445,6 +458,7 @@ class Smile:
                 "class": appliance_class,
                 "location": appliance_location,
             }
+
         return appliances
 
     def get_all_locations(self):
@@ -508,6 +522,7 @@ class Smile:
             }
 
         self._home_location = home_location
+
         return locations, home_location
 
     def single_master_thermostat(self):
@@ -520,13 +535,10 @@ class Smile:
                     count += 1
 
         if count == 0:
-            single_mr_therm = None
-        elif count == 1:
-            single_mr_therm = True
-        else:
-            single_mr_therm = False
-
-        return single_mr_therm
+            return None
+        if count == 1:
+            return True
+        return False
 
     def scan_thermostats(self, debug_text="missing text"):
         """Update locations with actual master/slave thermostats."""
@@ -612,7 +624,6 @@ class Smile:
         devices = {}
 
         appliances = self.get_all_appliances()
-        # locations, home_location = self.get_all_locations()
         thermo_locations, home_location = self.scan_thermostats()
 
         for appliance, details in appliances.items():
@@ -627,6 +638,7 @@ class Smile:
                         details["class"] = "thermo_sensor"
 
             devices[appliance] = details
+
         return devices
 
     def get_device_data(self, dev_id):
@@ -706,42 +718,48 @@ class Smile:
         data = {}
         search = self._appliances
 
-        if self._smile_legacy:  # and self.smile_type == "power":
+        if self._smile_legacy:
             search = self._domain_objects
 
-        appliances = search.findall('.//appliance[@id="{}"]'.format(dev_id))
-
-        p_locator = ".//logs/point_log[type='{}']/period/measurement"
-        i_locator = ".//logs/interval_log[type='{}']/period/measurement"
-        c_locator = ".//logs/cumulative_log[type='{}']/period/measurement"
+        appliances = search.findall(f'.//appliance[@id="{dev_id}"]')
 
         for appliance in appliances:
             for measurement, name in DEVICE_MEASUREMENTS.items():
 
-                pl_value = p_locator.format(measurement)
-                if appliance.find(pl_value) is not None:
+                p_locator = (
+                    f'.//logs/point_log[type="{measurement}"]/period/measurement'
+                )
+                if appliance.find(p_locator) is not None:
                     if self._smile_legacy:
                         if measurement == "domestic_hot_water_state":
                             continue
 
-                    measure = appliance.find(pl_value).text
+                    measure = appliance.find(p_locator).text
                     # Fix for Adam + Anna: there is a pressure-measurement with an unrealistic value,
-                    # this measurement appears at power-on and is never updated, therefore remove. 
-                    if measurement == "central_heater_water_pressure" and float(measure) > 3.5:
+                    # this measurement appears at power-on and is never updated, therefore remove.
+                    if (
+                        measurement == "central_heater_water_pressure"
+                        and float(measure) > 3.5
+                    ):
                         continue
 
                     data[name] = self._format_measure(measure)
 
-                il_value = i_locator.format(measurement)
-                if appliance.find(il_value) is not None:
-                    name = "{}_interval".format(name)
-                    measure = appliance.find(il_value).text
+                i_locator = (
+                    f'.//logs/interval_log[type="{measurement}"]/period/measurement'
+                )
+                if appliance.find(i_locator) is not None:
+                    name = f"{name}_interval"
+                    measure = appliance.find(i_locator).text
 
                     data[name] = self._format_measure(measure)
-                cl_value = c_locator.format(measurement)
-                if appliance.find(cl_value) is not None:
-                    name = "{}_cumulative".format(name)
-                    measure = appliance.find(cl_value).text
+
+                c_locator = (
+                    f'.//logs/cumulative_log[type="{measurement}"]/period/measurement'
+                )
+                if appliance.find(c_locator) is not None:
+                    name = f"{name}_cumulative"
+                    measure = appliance.find(c_locator).text
 
                     data[name] = self._format_measure(measure)
 
@@ -755,9 +773,9 @@ class Smile:
         except ValueError:
             try:
                 if float(measure) < 10:
-                    measure = float("{:.2f}".format(round(float(measure), 2)))
+                    measure = float(f"{round(float(measure), 2):.2f}")
                 else:
-                    measure = float("{:.1f}".format(round(float(measure), 1)))
+                    measure = float(f"{round(float(measure), 1):.1f}")
             except ValueError:
                 if measure == "on":
                     measure = True
@@ -779,7 +797,7 @@ class Smile:
             search = self._domain_objects
             t_string = "tariff_indicator"
 
-        loc_logs = search.find(".//location[@id='{}']/logs".format(loc_id))
+        loc_logs = search.find(f'.//location[@id="{loc_id}"]/logs')
 
         if loc_logs is None:
             return
@@ -787,19 +805,19 @@ class Smile:
         log_list = ["point_log", "cumulative_log", "interval_log"]
         peak_list = ["nl_peak", "nl_offpeak"]
 
-        lt_string = ".//{}[type='{}']/period/measurement[@{}=\"{}\"]"
-        l_string = ".//{}[type='{}']/period/measurement"
         # meter_string = ".//{}[type='{}']/"
         for measurement in HOME_MEASUREMENTS:
             for log_type in log_list:
                 for peak_select in peak_list:
-                    locator = lt_string.format(
-                        log_type, measurement, t_string, peak_select
+                    locator = (
+                        f'.//{log_type}[type="{measurement}"]/period/'
+                        f'measurement[@{t_string}="{peak_select}"]'
                     )
-
                     # Only once try to find P1 Legacy values
                     if loc_logs.find(locator) is None and self.smile_type == "power":
-                        locator = l_string.format(log_type, measurement)
+                        locator = (
+                            f'.//{log_type}[type="{measurement}"]/period/measurement'
+                        )
 
                         # Skip peak if not split (P1 Legacy)
                         if peak_select == "nl_offpeak":
@@ -846,7 +864,7 @@ class Smile:
                 return "none"
             return active_rule.attrib["icon"]
 
-        locator = ".//location[@id='{}']/preset".format(loc_id)
+        locator = f'.//location[@id="{loc_id}"]/preset'
         preset = self._domain_objects.find(locator)
         if preset is not None:
             return preset.text
@@ -866,9 +884,7 @@ class Smile:
                 return None
 
         for rule_id in rule_ids:
-            directives = self._domain_objects.find(
-                "rule[@id='{}']/directives".format(rule_id)
-            )
+            directives = self._domain_objects.find(f'rule[@id="{rule_id}"]/directives')
 
             for directive in directives:
                 preset = directive.find("then").attrib
@@ -893,20 +909,15 @@ class Smile:
 
         # Legacy schemas
         if self._smile_legacy:  # Only one schedule allowed
-            schedules = self._domain_objects.findall(".//rule")
             name = None
-            for schema in schedules:
+            for schema in self._domain_objects.findall(".//rule"):
                 rule_name = schema.find("name").text
                 if rule_name:
                     if "preset" not in rule_name:
                         name = rule_name
 
             log_type = "schedule_state"
-            locator = (
-                "appliance[type='thermostat']/logs/point_log[type='"
-                + log_type
-                + "']/period/measurement"
-            )
+            locator = f"appliance[type='thermostat']/logs/point_log[type='{log_type}']/period/measurement"
             active = False
             if self._domain_objects.find(locator) is not None:
                 active = self._domain_objects.find(locator).text == "on"
@@ -927,14 +938,10 @@ class Smile:
 
         for rule_id, location_id in rule_ids.items():
             active = False
-            name = self._domain_objects.find(
-                "rule[@id='{}']/name".format(rule_id)
-            ).text
+            name = self._domain_objects.find(f'rule[@id="{rule_id}"]/name').text
             if location_id == loc_id:
                 if (
-                    self._domain_objects.find(
-                       "rule[@id='{}']/active".format(rule_id)
-                    ).text
+                    self._domain_objects.find(f'rule[@id="{rule_id}"]/active').text
                     == "true"
                 ):
                     active = True
@@ -949,7 +956,7 @@ class Smile:
                 "sa": 5,
                 "su": 6,
             }
-            locator = "rule[@id='{}']/directives".format(rule_id)
+            locator = f'rule[@id="{rule_id}"]/directives'
             if self._domain_objects.find(locator) is None:
                 return available, selected, schedule_temperature
 
@@ -962,9 +969,7 @@ class Smile:
                         self.get_presets(loc_id)[schedule["preset"]][0]
                     )
                 else:
-                    schedules[directive.attrib["time"]] = float(
-                        schedule["setpoint"]
-                    )
+                    schedules[directive.attrib["time"]] = float(schedule["setpoint"])
 
             for period, temp in schedules.items():
                 moment_1, moment_2 = period.split(",")
@@ -1017,10 +1022,10 @@ class Smile:
             for rule_id, location_id in rule_ids.items():
                 if location_id == loc_id:
                     schema_name = self._domain_objects.find(
-                        "rule[@id='{}']/name".format(rule_id)
+                        f'rule[@id="{rule_id}"]/name'
                     ).text
                     schema_date = self._domain_objects.find(
-                        "rule[@id='{}']/modified_date".format(rule_id)
+                        f'rule[@id="{rule_id}"]/modified_date'
                     ).text
                     schema_time = parse(schema_date)
                     schemas[schema_name] = (schema_time - epoch).total_seconds()
@@ -1033,10 +1038,9 @@ class Smile:
     def get_rule_ids_by_tag(self, tag, loc_id):
         """Obtain the rule_id based on the given template_tag and location_id."""
         schema_ids = {}
-        rules = self._domain_objects.findall(".//rule")
-        locator1 = './/template[@tag="{}"]'.format(tag)
-        locator2 = './/contexts/context/zone/location[@id="{}"]'.format(loc_id)
-        for rule in rules:
+        locator1 = f'.//template[@tag="{tag}"]'
+        locator2 = f'.//contexts/context/zone/location[@id="{loc_id}"]'
+        for rule in self._domain_objects.findall(".//rule"):
             if rule.find(locator1) is not None:
                 if rule.find(locator2) is not None:
                     schema_ids[rule.attrib["id"]] = loc_id
@@ -1049,9 +1053,8 @@ class Smile:
     def get_rule_ids_by_name(self, name, loc_id):
         """Obtain the rule_id on the given name and location_id."""
         schema_ids = {}
-        rules = self._domain_objects.findall('.//rule[name="{}"]'.format(name))
-        locator = './/contexts/context/zone/location[@id="{}"]'.format(loc_id)
-        for rule in rules:
+        locator = f'.//contexts/context/zone/location[@id="{loc_id}"]'
+        for rule in self._domain_objects.findall(f'.//rule[name="{name}"]'):
             if rule.find(locator) is not None:
                 schema_ids[rule.attrib["id"]] = loc_id
 
@@ -1065,14 +1068,13 @@ class Smile:
         if self._smile_legacy and self.smile_type == "power":
             search = self._domain_objects
 
-        locator = ".//{}[@id='{}']/logs/point_log[type='{}']/period/measurement".format(
-            obj_type, appl_id, measurement
+        locator = (
+            f'.//{obj_type}[@id="{appl_id}"]/logs/point_log'
+            f'[type="{measurement}"]/period/measurement'
         )
-
         if search.find(locator) is not None:
-            data = search.find(locator).text
-            val = float(data)
-            val = float("{:.1f}".format(round(val, 1)))
+            val = float(f"{round(float(search.find(locator).text), 1):.1f}")
+
             return val
 
     async def set_schedule_state(self, loc_id, name, state):
@@ -1087,22 +1089,20 @@ class Smile:
         schema_rule_ids = self.get_rule_ids_by_name(str(name), loc_id)
         if schema_rule_ids == {} or schema_rule_ids is None:
             return False
+
         for schema_rule_id, location_id in schema_rule_ids.items():
+            template_id = None
             if location_id == loc_id:
-                templates = self._domain_objects.findall(
-                    ".//*[@id='{}']/template".format(schema_rule_id)
-                )
-                template_id = None
-                for rule in templates:
+                state = str(state)
+                locator = f'.//*[@id="{schema_rule_id}"]/template'
+                for rule in self._domain_objects.findall(locator):
                     template_id = rule.attrib["id"]
 
-                uri = "{};id={}".format(RULES, schema_rule_id)
-
-                state = str(state)
+                uri = f"{RULES};id={schema_rule_id}"
                 data = (
-                    '<rules><rule id="{}"><name><![CDATA[{}]]></name>'
-                    '<template id="{}" /><active>{}</active></rule>'
-                    "</rules>".format(schema_rule_id, name, template_id, state)
+                    "<rules><rule"
+                    f' id="{schema_rule_id}"><name><![CDATA[{name}]]></name><template'
+                    f' id="{template_id}"/><active>{state}</active></rule></rules>'
                 )
 
                 await self.request(uri, method="put", data=data)
@@ -1114,55 +1114,33 @@ class Smile:
         if self._smile_legacy:
             return await self.set_preset_legacy(preset)
 
-        current_location = self._locations.find("location[@id='{}']".format(loc_id))
+        current_location = self._locations.find(f'location[@id="{loc_id}"]')
         location_name = current_location.find("name").text
         location_type = current_location.find("type").text
 
         if preset not in self.get_presets(loc_id):
             return False
 
-        uri = "{};id={}".format(LOCATIONS, loc_id)
-
+        uri = f"{LOCATIONS};id={loc_id}"
         data = (
-            "<locations>"
-            + '<location id="'
-            + loc_id
-            + '">'
-            + "<name>"
-            + location_name
-            + "</name>"
-            + "<type>"
-            + location_type
-            + "</type>"
-            + "<preset>"
-            + preset
-            + "</preset>"
-            + "</location>"
-            + "</locations>"
+            "<locations><location"
+            f' id="{loc_id}"><name>{location_name}</name><type>{location_type}'
+            f"</type><preset>{preset}</preset></location></locations>"
         )
 
-        if uri is not None:
-            await self.request(uri, method="put", data=data)
-        else:
-            return False
-
+        await self.request(uri, method="put", data=data)
         return True
 
     async def set_temperature(self, loc_id, temperature):
         """Send temperature-set request to the locations thermostat."""
-        uri = self.__get_temperature_uri(loc_id)
         temperature = str(temperature)
+        uri = self.__get_temperature_uri(loc_id)
         data = (
             "<thermostat_functionality><setpoint>"
-            + temperature
-            + "</setpoint></thermostat_functionality>"
+            f"{temperature}</setpoint></thermostat_functionality>"
         )
 
-        if uri is not None:
-            await self.request(uri, method="put", data=data)
-        else:
-            return False
-
+        await self.request(uri, method="put", data=data)
         return True
 
     def __get_temperature_uri(self, loc_id):
@@ -1170,38 +1148,22 @@ class Smile:
         if self._smile_legacy:
             return self.__get_temperature_uri_legacy()
 
-        locator = (
-            "location[@id='{}']/actuator_functionalities/thermostat_functionality"
-        ).format(loc_id)
+        locator = f'location[@id="{loc_id}"]/actuator_functionalities/thermostat_functionality'
         thermostat_functionality_id = self._locations.find(locator).attrib["id"]
 
-        temperature_uri = (
-            LOCATIONS
-            + ";id="
-            + loc_id
-            + "/thermostat;id="
-            + thermostat_functionality_id
-        )
-
-        return temperature_uri
+        return f"{LOCATIONS};id={loc_id}/thermostat;id={thermostat_functionality_id}"
 
     async def set_relay_state(self, appl_id, state):
-        """Switch the Plug to off/on."""
-        locator = "appliance[@id='{}']/actuator_functionalities/relay_functionality".format(
-            appl_id
+        """Switch the Plug off/on."""
+        locator = (
+            f'appliance[@id="{appl_id}"]/actuator_functionalities/relay_functionality'
         )
         relay_functionality_id = self._appliances.find(locator).attrib["id"]
-        uri = APPLIANCES + ";id=" + appl_id + "/relay;id=" + relay_functionality_id
+        uri = f"{APPLIANCES};id={appl_id}/relay;id={relay_functionality_id}"
         state = str(state)
-        data = "<relay_functionality><state>{}</state></relay_functionality>".format(
-            state
-        )
+        data = f"<relay_functionality><state>{state}</state></relay_functionality>"
 
-        if uri is not None:
-            await self.request(uri, method="put", data=data)
-        else:
-            return False
-
+        await self.request(uri, method="put", data=data)
         return True
 
     @staticmethod
@@ -1214,76 +1176,61 @@ class Smile:
     def __get_presets_legacy(self):
         """Get presets from domain_objects for legacy Smile."""
         preset_dictionary = {}
-        directives = self._domain_objects.findall("rule/directives/when/then")
-        for directive in directives:
+        for directive in self._domain_objects.findall("rule/directives/when/then"):
             if directive is not None and "icon" in directive.keys():
                 # Ensure list of heating_setpoint, cooling_setpoint
                 preset_dictionary[directive.attrib["icon"]] = [
                     float(directive.attrib["temperature"]),
                     0,
                 ]
+
         return preset_dictionary
 
     async def set_preset_legacy(self, preset):
         """Set the given preset on the thermostat - from DOMAIN_OBJECTS."""
-        locator = "rule/directives/when/then[@icon='{}'].../.../...".format(preset)
+        locator = f'rule/directives/when/then[@icon="{preset}"].../.../...'
         rule = self._domain_objects.find(locator)
         if rule is None:
             return False
 
-        uri = "{}".format(RULES)
-
-        data = (
-            "<rules>"
-            + '<rule id="'
-            + rule.attrib["id"]
-            + '">'
-            + "<active>true</active>"
-            + "</rule>"
-            + "</rules>"
-        )
+        uri = f"{RULES}"
+        data = f'<rules><rule id="{rule.attrib["id"]}"><active>true</active></rule></rules>'
 
         await self.request(uri, method="put", data=data)
-
         return True
 
     def __get_temperature_uri_legacy(self):
         """Determine the location-set_temperature uri - from APPLIANCES."""
         locator = ".//appliance[type='thermostat']"
         appliance_id = self._appliances.find(locator).attrib["id"]
-        return APPLIANCES + ";id=" + appliance_id + "/thermostat"
+
+        return f"{APPLIANCES};id={appliance_id}/thermostat"
 
     async def set_schedule_state_legacy(self, name, state):
         """Send a set request to the schema with the given name."""
-        rules = self._domain_objects.findall("rule")
         schema_rule_id = None
-        for rule in rules:
+        for rule in self._domain_objects.findall("rule"):
             if rule.find("name").text == name:
                 schema_rule_id = rule.attrib["id"]
 
-        if schema_rule_id is not None:
-            templates = self._domain_objects.findall(
-                ".//*[@id='{}']/template".format(schema_rule_id)
-            )
-            template_id = None
-            for rule in templates:
-                template_id = rule.attrib["id"]
+        if schema_rule_id is None:
+            return False
 
-            uri = "{};id={}".format(RULES, schema_rule_id)
+        template_id = None
+        state = str(state)
+        locator = f'.//*[@id="{schema_rule_id}"]/template'
+        for rule in self._domain_objects.findall(locator):
+            template_id = rule.attrib["id"]
 
-            state = str(state)
-            data = (
-                '<rules><rule id="{}"><name><![CDATA[{}]]></name>'
-                '<template id="{}" /><active>{}</active></rule>'
-                "</rules>".format(schema_rule_id, name, template_id, state)
-            )
+        uri = f"{RULES};id={schema_rule_id}"
+        data = (
+            "<rules><rule"
+            f' id="{schema_rule_id}"><name><![CDATA[{name}]]></name><template'
+            f' id="{template_id}" /><active>{state}</active></rule></rules>'
+        )
 
-            await self.request(uri, method="put", data=data)
-            return True
-
-        return False
-
-    # LEGACY P1 functions
+        await self.request(uri, method="put", data=data)
+        return True
 
     class PlugwiseError(Exception):
         """Plugwise exceptions class."""

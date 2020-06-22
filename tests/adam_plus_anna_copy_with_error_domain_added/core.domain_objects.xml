@@ -816,6 +816,18 @@
 		<modified_date>2020-06-18T05:36:37.372+02:00</modified_date>
 		<deleted_date></deleted_date>
 	</notification>
+        <notification id='af82e4ccf9c548528166d38e560662a4'>
+                <type>warning</type>
+                <origin>local</origin>
+                <title>Plug has been unreachable since 23:03 2020-01-18.</title>
+                <message>Node Plug (with MAC address 000D6F000D13CB01, in room &apos;n.a.&apos;) has been unreachable since 23:03 2020-01-18. Please check the connection and restart the device.</message>
+                <valid_from></valid_from>
+                <valid_to></valid_to>
+                <read_date>2020-01-23T10:54:59.710+01:00</read_date>
+                <created_date>2020-01-18T23:03:43.689+01:00</created_date>
+                <modified_date>2020-01-18T23:03:43.749+01:00</modified_date>
+                <deleted_date></deleted_date>
+        </notification>
 	<appliance id='cfd79bf5e3a84630a41e99968a0f103b'>
 		<name>Radiator Woonkamer achter</name>
 		<description>A thermostatic radiator valve allows hot water to be pumped into its radiator based on ambient temperature and the local temperature setpoint.</description>

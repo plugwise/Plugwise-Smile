@@ -137,6 +137,7 @@ class Smile:
 
         self.gateway_id = None
         self.heater_id = None
+        self.notifications = {}
         self.smile_name = None
         self.smile_type = None
         self.smile_version = ()
@@ -289,11 +290,14 @@ class Smile:
             raise self.InvalidXMLError
 
         # If error notifications present
-        notifications = xml.find('.//notification[type="error"]')
-        if notifications is not None:
+        notifications = xml.findall('.//notification')
+        for notification in notifications:
             try:
-                notification = notifications.find("message").text
-                _LOGGER.info("Plugwise System Error Notification: %s", notification)
+                msg_id = notification.attrib["id"]
+                msg_type = notification.find("type").text
+                msg = notification.find("message").text
+                self.notifications.update({msg_id: {msg_type: msg}})
+                _LOGGER.debug("Plugwise System notifications: %s", self.notifications)
             except AttributeError:
                 _LOGGER.info(
                     "Plugwise System Error Notification present but unable to process, manually investigate: %s",

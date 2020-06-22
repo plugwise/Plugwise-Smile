@@ -1,9 +1,9 @@
 # Changelog
 
-## 1.0.1 (upcoming) - HA-core fixtures and error notification fix
+## 1.1.0 - Add HA-core test-fixtures, Plugwise notifications and improvement of error-detection
   - Add exporter for fixtures to be used by HA-core for testing plugwise
   - Improve `error`-detection
-  - Expose error-notifications
+  - Expose Plugwise System notifications (i.e. warnings or errors visible in the app)
   
 ## 1.0.0 - Stable release
   - Just `black`ened code (Python `black`)

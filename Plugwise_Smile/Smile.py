@@ -299,7 +299,6 @@ class Smile:
                     "Plugwise System Error Notification present but unable to process, manually investigate: %s",
                     url,
                 )
-                pass
 
         return xml
 

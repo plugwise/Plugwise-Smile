@@ -137,7 +137,6 @@ class Smile:
 
         self.gateway_id = None
         self.heater_id = None
-        self.notifications = {}
         self.smile_name = None
         self.smile_type = None
         self.smile_version = ()
@@ -290,6 +289,7 @@ class Smile:
             raise self.InvalidXMLError
 
         # If error notifications present
+        self.notifications = {}
         notifications = xml.findall('.//notification')
         for notification in notifications:
             try:

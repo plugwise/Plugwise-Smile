@@ -288,22 +288,6 @@ class Smile:
             _LOGGER.error("Smile returns invalid XML for %s", self._endpoint)
             raise self.InvalidXMLError
 
-        # If error notifications present
-        self.notifications = {}
-        notifications = xml.findall('.//notification')
-        for notification in notifications:
-            try:
-                msg_id = notification.attrib["id"]
-                msg_type = notification.find("type").text
-                msg = notification.find("message").text
-                self.notifications.update({msg_id: {msg_type: msg}})
-                _LOGGER.debug("Plugwise System notifications: %s", self.notifications)
-            except AttributeError:
-                _LOGGER.info(
-                    "Plugwise System Error Notification present but unable to process, manually investigate: %s",
-                    url,
-                )
-
         return xml
 
     async def update_appliances(self):
@@ -329,6 +313,22 @@ class Smile:
         new_data = await self.request(DOMAIN_OBJECTS)
         if new_data is not None:
             self._domain_objects = new_data
+
+        # If error notifications present
+        self.notifications = {}
+        notifications = self._domain_objects.findall('.//notification')
+        for notification in notifications:
+            try:
+                msg_id = notification.attrib["id"]
+                msg_type = notification.find("type").text
+                msg = notification.find("message").text
+                self.notifications.update({msg_id: {msg_type: msg}})
+                _LOGGER.debug("Plugwise System notifications: %s", self.notifications)
+            except AttributeError:
+                _LOGGER.info(
+                    "Plugwise System Error Notification present but unable to process, manually investigate: %s",
+                    url,
+                )
 
     async def update_locations(self):
         """Request locations data."""

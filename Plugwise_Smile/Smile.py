@@ -22,7 +22,6 @@ APPLIANCES = "/core/appliances"
 DIRECT_OBJECTS = "/core/direct_objects"
 DOMAIN_OBJECTS = "/core/domain_objects"
 LOCATIONS = "/core/locations"
-MODULES = "/core/modules"
 RULES = "/core/rules"
 
 DEFAULT_TIMEOUT = 20
@@ -130,11 +129,11 @@ class Smile:
         self._domain_objects = None
         self._home_location = None
         self._locations = None
-        self._modules = None
         self._smile_subtype = None
         self._smile_legacy = False
         self._thermo_master_id = None
 
+        self.dsmrmain_id = None
         self.gateway_id = None
         self.heater_id = None
         self.hostname =  None
@@ -192,6 +191,8 @@ class Smile:
                     # yes we could get this from system_status
                     smile_version = "2.5.9"
                     smile_model = "smile"
+                    dsmrmain = do_xml.find(".//dsmrmain")
+                    self.dsmrmain_id = dsmrmain.attrib["id"]
                 else:
                     _LOGGER.error("Connected but no gateway device information found")
                     raise self.ConnectionFailedError
@@ -416,9 +417,12 @@ class Smile:
             if appliance.find("type").text == "heater_central":
                 self.heater_id = appliance.attrib["id"]
 
-        # for legacy it is the same device
-        if self._smile_legacy and self.smile_type == "thermostat":
-            self.gateway_id = self.heater_id
+        # for legacy Anna it is the same device, for legacy P1 use the dsmrmain id
+        if self._smile_legacy:
+            if self.smile_type == "thermostat":
+                self.gateway_id = self.heater_id
+            if self.smile_type == "power":
+                self.gateway_id = self.dsmrmain_id
 
         for appliance in self._appliances:
             appliance_location = None

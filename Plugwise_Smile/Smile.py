@@ -172,10 +172,11 @@ class Smile:
         # just using request to parse the data
         do_xml = etree.XML(self.escape_illegal_xml_characters(result).encode())
         gateway = do_xml.find(".//gateway")
-        if gateway.find("hostname") is not None:
-            self.hostname = gateway.find("hostname").text
 
-        if gateway is None:
+        if gateway is not None:
+            if gateway.find("hostname") is not None:
+                self.hostname = gateway.find("hostname").text
+        else:
             # Assume legacy
             self._smile_legacy = True
             # Try if it is an Anna, assuming appliance thermostat

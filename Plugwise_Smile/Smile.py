@@ -137,6 +137,7 @@ class Smile:
 
         self.gateway_id = None
         self.heater_id = None
+        self.hostname =  None
         self.smile_name = None
         self.smile_type = None
         self.smile_version = ()
@@ -171,6 +172,8 @@ class Smile:
         # just using request to parse the data
         do_xml = etree.XML(self.escape_illegal_xml_characters(result).encode())
         gateway = do_xml.find(".//gateway")
+        if gateway.find("hostname") is not None:
+            self.hostname = gateway.find("hostname").text
 
         if gateway is None:
             # Assume legacy

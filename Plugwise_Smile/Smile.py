@@ -191,6 +191,7 @@ class Smile:
                     # yes we could get this from system_status
                     smile_version = "2.5.9"
                     smile_model = "smile"
+                    #for legacy P1 use the dsmrmain id as gateway_id
                     dsmrmain = do_xml.find(".//dsmrmain")
                     self.gateway_id = dsmrmain.attrib["id"]
                 else:
@@ -417,12 +418,9 @@ class Smile:
             if appliance.find("type").text == "heater_central":
                 self.heater_id = appliance.attrib["id"]
 
-        # for legacy Anna it is the same device, for legacy P1 use the dsmrmain id
-        if self._smile_legacy:
-            if self.smile_type == "thermostat":
+        # for legacy Anna it is the same device
+        if self._smile_legacy and self.smile_type == "thermostat":
                 self.gateway_id = self.heater_id
-            #if self.smile_type == "power":
-            #    self.gateway_id = self.dsmrmain_id
 
         for appliance in self._appliances:
             appliance_location = None

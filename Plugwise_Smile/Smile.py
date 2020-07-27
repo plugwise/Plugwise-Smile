@@ -192,7 +192,7 @@ class Smile:
                     smile_version = "2.5.9"
                     smile_model = "smile"
                     dsmrmain = do_xml.find(".//dsmrmain")
-                    self.dsmrmain_id = dsmrmain.attrib["id"]
+                    self.gateway_id = dsmrmain.attrib["id"]
                 else:
                     _LOGGER.error("Connected but no gateway device information found")
                     raise self.ConnectionFailedError
@@ -421,8 +421,8 @@ class Smile:
         if self._smile_legacy:
             if self.smile_type == "thermostat":
                 self.gateway_id = self.heater_id
-            if self.smile_type == "power":
-                self.gateway_id = self.dsmrmain_id
+            #if self.smile_type == "power":
+            #    self.gateway_id = self.dsmrmain_id
 
         for appliance in self._appliances:
             appliance_location = None

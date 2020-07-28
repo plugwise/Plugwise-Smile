@@ -418,9 +418,9 @@ class Smile:
             if appliance.find("type").text == "heater_central":
                 self.heater_id = appliance.attrib["id"]
 
-        # for legacy Anna it is the same device
+        # for legacy it is the same device
         if self._smile_legacy and self.smile_type == "thermostat":
-                self.gateway_id = self.heater_id
+            self.gateway_id = self.heater_id
 
         for appliance in self._appliances:
             appliance_location = None

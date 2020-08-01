@@ -22,7 +22,6 @@ APPLIANCES = "/core/appliances"
 DIRECT_OBJECTS = "/core/direct_objects"
 DOMAIN_OBJECTS = "/core/domain_objects"
 LOCATIONS = "/core/locations"
-MODULES = "/core/modules"
 RULES = "/core/rules"
 
 DEFAULT_TIMEOUT = 20
@@ -130,13 +129,14 @@ class Smile:
         self._domain_objects = None
         self._home_location = None
         self._locations = None
-        self._modules = None
         self._smile_subtype = None
         self._smile_legacy = False
         self._thermo_master_id = None
 
+        self.dsmrmain_id = None
         self.gateway_id = None
         self.heater_id = None
+        self.hostname =  None
         self.smile_name = None
         self.smile_type = None
         self.smile_version = ()
@@ -172,7 +172,10 @@ class Smile:
         do_xml = etree.XML(self.escape_illegal_xml_characters(result).encode())
         gateway = do_xml.find(".//gateway")
 
-        if gateway is None:
+        if gateway is not None:
+            if gateway.find("hostname") is not None:
+                self.hostname = gateway.find("hostname").text
+        else:
             # Assume legacy
             self._smile_legacy = True
             # Try if it is an Anna, assuming appliance thermostat
@@ -188,6 +191,9 @@ class Smile:
                     # yes we could get this from system_status
                     smile_version = "2.5.9"
                     smile_model = "smile"
+                    #for legacy P1 use the dsmrmain id as gateway_id
+                    dsmrmain = do_xml.find(".//dsmrmain")
+                    self.gateway_id = dsmrmain.attrib["id"]
                 else:
                     _LOGGER.error("Connected but no gateway device information found")
                     raise self.ConnectionFailedError

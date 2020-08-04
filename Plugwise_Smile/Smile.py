@@ -136,10 +136,11 @@ class Smile:
         self.dsmrmain_id = None
         self.gateway_id = None
         self.heater_id = None
-        self.hostname =  None
+        self.hostname = None
         self.smile_name = None
         self.smile_type = None
         self.smile_version = ()
+        self.notifications = {}
 
     async def connect(self, retry=2):
         """Connect to Plugwise device."""
@@ -191,7 +192,7 @@ class Smile:
                     # yes we could get this from system_status
                     smile_version = "2.5.9"
                     smile_model = "smile"
-                    #for legacy P1 use the dsmrmain id as gateway_id
+                    # for legacy P1 use the dsmrmain id as gateway_id
                     dsmrmain = do_xml.find(".//dsmrmain")
                     self.gateway_id = dsmrmain.attrib["id"]
                 else:
@@ -317,12 +318,13 @@ class Smile:
     async def update_domain_objects(self):
         """Request domain_objects data."""
         new_data = await self.request(DOMAIN_OBJECTS)
+        url = f"{self._endpoint}{DOMAIN_OBJECTS}"
+
         if new_data is not None:
             self._domain_objects = new_data
 
         # If error notifications present
-        self.notifications = {}
-        notifications = self._domain_objects.findall('.//notification')
+        notifications = self._domain_objects.findall(".//notification")
         for notification in notifications:
             try:
                 msg_id = notification.attrib["id"]

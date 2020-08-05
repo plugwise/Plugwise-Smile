@@ -251,7 +251,7 @@ class TestPlugwise:
         location_list, dummy = smile.scan_thermostats()
 
         _LOGGER.info("Gateway id = %s", smile.gateway_id)
-        _LOGGER.info("Hostname = %s", smile.hostname)
+        _LOGGER.info("Hostname = %s", smile.smile_hostname)
         self.show_setup(location_list, device_list)
         pp4 = PrettyPrinter(indent=4)
         pp8 = PrettyPrinter(indent=8)
@@ -413,7 +413,7 @@ class TestPlugwise:
 
         self.smile_setup = "legacy_anna"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname is None
+        assert smile.smile_hostname is None
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")
@@ -468,7 +468,7 @@ class TestPlugwise:
 
         self.smile_setup = "legacy_anna_2"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname is None
+        assert smile.smile_hostname is None
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")
@@ -519,7 +519,7 @@ class TestPlugwise:
 
         self.smile_setup = "smile_p1_v2"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname is None
+        assert smile.smile_hostname is None
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = power")
@@ -555,7 +555,7 @@ class TestPlugwise:
 
         self.smile_setup = "smile_p1_v2_2"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname is None
+        assert smile.smile_hostname is None
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = power")
@@ -599,7 +599,7 @@ class TestPlugwise:
 
         self.smile_setup = "anna_v4"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname == "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")
@@ -654,7 +654,7 @@ class TestPlugwise:
 
         self.smile_setup = "anna_without_boiler_fw3"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname == "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")
@@ -707,7 +707,7 @@ class TestPlugwise:
 
         self.smile_setup = "anna_without_boiler_fw4"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname == "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")
@@ -801,7 +801,7 @@ class TestPlugwise:
 
         self.smile_setup = "adam_plus_anna"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname == "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")
@@ -876,7 +876,7 @@ class TestPlugwise:
 
         self.smile_setup = "adam_zone_per_device"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname == "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")
@@ -957,7 +957,7 @@ class TestPlugwise:
 
         self.smile_setup = "adam_multiple_devices_per_zone"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname == "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")
@@ -1013,7 +1013,7 @@ class TestPlugwise:
 
         self.smile_setup = "p1v3"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname == "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = power")
@@ -1046,7 +1046,7 @@ class TestPlugwise:
 
         self.smile_setup = "p1v3solarfake"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname == "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = power")
@@ -1082,7 +1082,7 @@ class TestPlugwise:
 
         self.smile_setup = "p1v3_full_option"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname == "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = power")
@@ -1122,7 +1122,7 @@ class TestPlugwise:
 
         self.smile_setup = "anna_heatpump"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname == "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")
@@ -1162,7 +1162,7 @@ class TestPlugwise:
 
         self.smile_setup = "anna_heatpump_cooling"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname == "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")
@@ -1187,7 +1187,7 @@ class TestPlugwise:
 
         self.smile_setup = "adam_plus_anna_copy_with_error_domain_added"
         server, smile, client = await self.connect_wrapper()
-        assert smile.hostname == "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")

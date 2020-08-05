@@ -136,7 +136,7 @@ class Smile:
         self.dsmrmain_id = None
         self.gateway_id = None
         self.heater_id = None
-        self.hostname = None
+        self.smile_hostname = None
         self.smile_name = None
         self.smile_type = None
         self.smile_version = ()
@@ -175,7 +175,7 @@ class Smile:
 
         if gateway is not None:
             if gateway.find("hostname") is not None:
-                self.hostname = gateway.find("hostname").text
+                self.smile_hostname = gateway.find("hostname").text
         else:
             # Assume legacy
             self._smile_legacy = True

@@ -5,7 +5,6 @@ pytest-cov
 pytest-coverage
 pytest-aiohttp
 pytest-asyncio
-pprint
 pylint
 pytest>=5.4.0
 pytest-coverage

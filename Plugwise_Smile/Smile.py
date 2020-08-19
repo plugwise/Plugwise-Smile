@@ -323,7 +323,8 @@ class Smile:
         if new_data is not None:
             self._domain_objects = new_data
 
-        # If error notifications present
+        # If Plugwise notifications present:
+        self.notifications = {}
         notifications = self._domain_objects.findall(".//notification")
         for notification in notifications:
             try:

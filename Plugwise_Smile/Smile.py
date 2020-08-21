@@ -23,6 +23,7 @@ DIRECT_OBJECTS = "/core/direct_objects"
 DOMAIN_OBJECTS = "/core/domain_objects"
 LOCATIONS = "/core/locations"
 RULES = "/core/rules"
+SYSTEM = "/system"
 
 DEFAULT_TIMEOUT = 20
 
@@ -89,6 +90,7 @@ SMILES = {
     "smile_v40": {"type": "power", "friendly_name": "P1",},
     "smile_v33": {"type": "power", "friendly_name": "P1",},
     "smile_v25": {"type": "power", "friendly_name": "P1", "legacy": True,},
+    "stretch_v23" : {"type": "stretch", "friendly_name": "Stretch", "legacy": True},
 }
 
 
@@ -101,8 +103,8 @@ class Smile:
         self,
         host,
         password,
-        username="smile",
-        port=80,
+        username,
+        port,
         timeout=DEFAULT_TIMEOUT,
         websession: aiohttp.ClientSession = None,
     ):
@@ -129,7 +131,6 @@ class Smile:
         self._domain_objects = None
         self._home_location = None
         self._locations = None
-        self._smile_subtype = None
         self._smile_legacy = False
         self._thermo_master_id = None
 
@@ -186,7 +187,7 @@ class Smile:
             smile_version = "1.8.0"
             smile_model = "smile_thermo"
             if anna is None:
-                # P1 legacy
+                # P1 legacy:
                 if "<dsmrmain id" in result:
                     # Fake insert version assuming P1
                     # yes we could get this from system_status
@@ -195,10 +196,31 @@ class Smile:
                     # for legacy P1 use the dsmrmain id as gateway_id
                     dsmrmain = do_xml.find(".//dsmrmain")
                     self.gateway_id = dsmrmain.attrib["id"]
+                # Stretch2:
+                elif "<master_controller" in result:
+                    try:
+                        url = f"{self._endpoint}{SYSTEM}"
+                        with async_timeout.timeout(self._timeout):
+                            resp = await self.websession.get(url, auth=self._auth)
+                    except (asyncio.TimeoutError, aiohttp.ClientError):
+                        _LOGGER.error("Error connecting to Plugwise", exc_info=True)
+                        raise self.ConnectionFailedError
+                    system = await resp.text()
+
+                    try:
+                        system_xml = etree.XML(self.escape_illegal_xml_characters(system).encode())
+                    except etree.XMLSyntaxError:
+                        _LOGGER.debug("No XML-data in /system found")
+                        system = None
+
+                    if system is not None:
+                        smile_version = system_xml.find(".//gateway/firmware").text
+                        smile_model = system_xml.find(".//gateway/product").text
+                        self.smile_hostname = system_xml.find(".//gateway/hostname").text
                 else:
                     _LOGGER.error("Connected but no gateway device information found")
                     raise self.ConnectionFailedError
-
+    
         if not self._smile_legacy:
             smile_model = do_xml.find(".//gateway/vendor_model").text
             smile_version = do_xml.find(".//gateway/firmware_version").text
@@ -457,6 +479,8 @@ class Smile:
             if (
                 appliance.find(".//actuator_functionalities/relay_functionality")
                 is not None
+                or
+                appliance.find(".//actuators/relay") is not None
             ):
                 appliance_types.add("plug")
             elif (
@@ -488,11 +512,19 @@ class Smile:
             for appliance in self._appliances:
                 appliances.add(appliance.attrib["id"])
 
-            locations[0] = {
-                "name": "Legacy",
-                "types": set(["temperature"]),
-                "members": appliances,
-            }
+            if self.smile_type == "thermostat":
+                locations[0] = {
+                    "name": "Legacy Anna",
+                    "types": set(["temperature"]),
+                    "members": appliances,
+                }
+            if self.smile_type == "stretch":
+                locations[0] = {
+                    "name": "Legacy Stretch",
+                    "types": set(["power"]),
+                    "members": appliances,
+                }
+
             return locations, home_location
 
         for location in self._locations:

@@ -204,14 +204,15 @@ class Smile:
                 except (asyncio.TimeoutError, aiohttp.ClientError):
                     _LOGGER.error("Error connecting to Plugwise", exc_info=True)
                     raise self.ConnectionFailedError
+                system = await resp.text()
+
+                try:
+                    system_xml = etree.XML(self.escape_illegal_xml_characters(system).encode())
                 except lxml.etree.XMLSyntaxError:
                     _LOGGER.debug("No XML-data in /system found")
                     system = None
 
-                system = await resp.text()
-
                 if system is not None:
-                    system_xml = etree.XML(self.escape_illegal_xml_characters(system).encode())
                     smile_version = system_xml.find(".//gateway/firmware").text
                     smile_model = system_xml.find(".//gateway/product").text
                     self.smile_hostname = system_xml.find(".//gateway/hostname").text

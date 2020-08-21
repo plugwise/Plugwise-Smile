@@ -203,8 +203,10 @@ class Smile:
                         resp = await self.websession.get(url, auth=self._auth)
                 except (asyncio.TimeoutError, aiohttp.ClientError):
                     _LOGGER.error("Error connecting to Plugwise", exc_info=True)
-                    system = None
                     raise self.ConnectionFailedError
+                except lxml.etree.XMLSyntaxError:
+                    _LOGGER.debug("No XML-data in /system found")
+                    system = None
 
                 system = await resp.text()
 

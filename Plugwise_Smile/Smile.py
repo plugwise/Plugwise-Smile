@@ -196,21 +196,17 @@ class Smile:
                     # for legacy P1 use the dsmrmain id as gateway_id
                     dsmrmain = do_xml.find(".//dsmrmain")
                     self.gateway_id = dsmrmain.attrib["id"]
-                else:
-                    _LOGGER.error("Connected but no gateway device information found")
-                    raise self.ConnectionFailedError
                 # Stretch2:
                 try:
                     url = f"{self._endpoint}{SYSTEM}"
-                    try:
-                        with async_timeout.timeout(self._timeout):
-                            resp = await self.websession.get(url, auth=self._auth)
-                    except (asyncio.TimeoutError, aiohttp.ClientError):
-                        _LOGGER.error("Error connecting to Plugwise", exc_info=True)
-                        system = None
-                        raise self.ConnectionFailedError
+                    with async_timeout.timeout(self._timeout):
+                    resp = await self.websession.get(url, auth=self._auth)
+                except (asyncio.TimeoutError, aiohttp.ClientError):
+                    _LOGGER.error("Error connecting to Plugwise", exc_info=True)
+                    system = None
+                    raise self.ConnectionFailedError
 
-                    system = await resp.text()
+                system = await resp.text()
 
                 if system is not None:
                     system_xml = etree.XML(self.escape_illegal_xml_characters(system).encode())

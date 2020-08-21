@@ -167,6 +167,7 @@ class TestPlugwise:
 
         smile = Smile(
             host=server.host,
+            username="smile",
             password="abcdefgh",
             port=server.port,
             websession=websession,

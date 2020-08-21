@@ -122,7 +122,7 @@ class Smile:
         else:
             self.websession = websession
 
-        self._auth = aiohttp.BasicAuth(username=username, password=password)
+        self._auth = aiohttp.BasicAuth(username, password=password)
 
         self._timeout = timeout
         self._endpoint = f"http://{host}:{str(port)}"

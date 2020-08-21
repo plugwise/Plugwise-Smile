@@ -197,25 +197,26 @@ class Smile:
                     dsmrmain = do_xml.find(".//dsmrmain")
                     self.gateway_id = dsmrmain.attrib["id"]
                 # Stretch2:
-                try:
-                    url = f"{self._endpoint}{SYSTEM}"
-                    with async_timeout.timeout(self._timeout):
-                        resp = await self.websession.get(url, auth=self._auth)
-                except (asyncio.TimeoutError, aiohttp.ClientError):
-                    _LOGGER.error("Error connecting to Plugwise", exc_info=True)
-                    raise self.ConnectionFailedError
-                system = await resp.text()
+                elif "<master_controller" in result:
+                    try:
+                        url = f"{self._endpoint}{SYSTEM}"
+                        with async_timeout.timeout(self._timeout):
+                            resp = await self.websession.get(url, auth=self._auth)
+                    except (asyncio.TimeoutError, aiohttp.ClientError):
+                        _LOGGER.error("Error connecting to Plugwise", exc_info=True)
+                        raise self.ConnectionFailedError
+                    system = await resp.text()
 
-                try:
-                    system_xml = etree.XML(self.escape_illegal_xml_characters(system).encode())
-                except etree.XMLSyntaxError:
-                    _LOGGER.debug("No XML-data in /system found")
-                    system = None
+                    try:
+                        system_xml = etree.XML(self.escape_illegal_xml_characters(system).encode())
+                    except etree.XMLSyntaxError:
+                        _LOGGER.debug("No XML-data in /system found")
+                        system = None
 
-                if system is not None:
-                    smile_version = system_xml.find(".//gateway/firmware").text
-                    smile_model = system_xml.find(".//gateway/product").text
-                    self.smile_hostname = system_xml.find(".//gateway/hostname").text
+                    if system is not None:
+                        smile_version = system_xml.find(".//gateway/firmware").text
+                        smile_model = system_xml.find(".//gateway/product").text
+                        self.smile_hostname = system_xml.find(".//gateway/hostname").text
                 else:
                     _LOGGER.error("Connected but no gateway device information found")
                     raise self.ConnectionFailedError

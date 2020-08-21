@@ -200,7 +200,7 @@ class Smile:
                 try:
                     url = f"{self._endpoint}{SYSTEM}"
                     with async_timeout.timeout(self._timeout):
-                    resp = await self.websession.get(url, auth=self._auth)
+                        resp = await self.websession.get(url, auth=self._auth)
                 except (asyncio.TimeoutError, aiohttp.ClientError):
                     _LOGGER.error("Error connecting to Plugwise", exc_info=True)
                     system = None

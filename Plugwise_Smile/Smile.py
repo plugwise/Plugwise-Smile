@@ -208,7 +208,7 @@ class Smile:
 
                 try:
                     system_xml = etree.XML(self.escape_illegal_xml_characters(system).encode())
-                except lxml.etree.XMLSyntaxError:
+                except XMLSyntaxError:
                     _LOGGER.debug("No XML-data in /system found")
                     system = None
 

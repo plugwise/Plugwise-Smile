@@ -476,7 +476,7 @@ class Smile:
                 appliance.find(".//actuator_functionalities/relay_functionality")
                 is not None
                 or
-                appliance.find(".//actuators/relay") is not
+                appliance.find(".//actuators/relay") is not None
             ):
                 appliance_types.add("plug")
             elif (

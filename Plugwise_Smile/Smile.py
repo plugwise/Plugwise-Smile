@@ -91,6 +91,7 @@ SMILES = {
     "smile_v33": {"type": "power", "friendly_name": "P1",},
     "smile_v25": {"type": "power", "friendly_name": "P1", "legacy": True,},
     "stretch_v23" : {"type": "stretch", "friendly_name": "Stretch", "legacy": True},
+    "stretch_v31" : {"type": "stretch", "friendly_name": "Stretch", "legacy": True}
 }
 
 

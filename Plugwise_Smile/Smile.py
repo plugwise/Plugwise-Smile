@@ -124,6 +124,7 @@ class Smile:
             self.websession = websession
 
         self._auth = aiohttp.BasicAuth(username, password=password)
+        self._headers={'Accept-Encoding': 'gzip'}
 
         self._timeout = timeout
         self._endpoint = f"http://{host}:{str(port)}"
@@ -150,7 +151,7 @@ class Smile:
         url = f"{self._endpoint}{DOMAIN_OBJECTS}"
         try:
             with async_timeout.timeout(self._timeout):
-                resp = await self.websession.get(url, auth=self._auth)
+                resp = await self.websession.get(url, auth=self._auth, headers=self._headers)
             if resp.status == 401:
                 raise self.InvalidAuthentication
         except (asyncio.TimeoutError, aiohttp.ClientError):
@@ -202,7 +203,7 @@ class Smile:
                     try:
                         url = f"{self._endpoint}{SYSTEM}"
                         with async_timeout.timeout(self._timeout):
-                            resp = await self.websession.get(url, auth=self._auth)
+                            resp = await self.websession.get(url, auth=self._auth, headers=self._headers)
                     except (asyncio.TimeoutError, aiohttp.ClientError):
                         _LOGGER.error("Error connecting to Plugwise", exc_info=True)
                         raise self.ConnectionFailedError
@@ -279,7 +280,7 @@ class Smile:
         try:
             with async_timeout.timeout(self._timeout):
                 if method == "get":
-                    resp = await self.websession.get(url, auth=self._auth)
+                    resp = await self.websession.get(url, auth=self._auth, headers=self._headers)
                 if method == "put":
                     resp = await self.websession.put(
                         url, data=data, headers=headers, auth=self._auth
@@ -448,58 +449,54 @@ class Smile:
         if self._smile_legacy and self.smile_type == "thermostat":
             self.gateway_id = self.heater_id
 
-        data = self._appliances
-        if self.smile_type == "stretch_v3":
-            data = self._domain_objects
-        for appliance in data:
-            if appliance.tag == "appliance":
-                appliance_location = None
-                appliance_types = set([])
+        for appliance in self._appliances:
+            appliance_location = None
+            appliance_types = set([])
 
-                appliance_id = appliance.attrib["id"]
-                appliance_class = appliance.find("type").text
-                appliance_name = appliance.find("name").text
+            appliance_id = appliance.attrib["id"]
+            appliance_class = appliance.find("type").text
+            appliance_name = appliance.find("name").text
 
-                # Nothing useful in opentherm so skip it
-                if appliance_class == "open_therm_gateway":
-                    continue
+            # Nothing useful in opentherm so skip it
+            if appliance_class == "open_therm_gateway":
+                continue
 
-                # Appliance with location (i.e. a device)
-                if appliance.find("location") is not None:
-                    appliance_location = appliance.find("location").attrib["id"]
-                    for appl_type in self._types_finder(appliance):
-                        appliance_types.add(appl_type)
-                else:
-                    # Return all types applicable to home
-                    appliance_types = locations[home_location]["types"]
-                    # If heater or gatweay override registering
-                    if appliance_class == "heater_central":
-                        appliance_id = self.heater_id
-                        appliance_name = self.smile_name
-                    if appliance_class == "gateway":
-                        appliance_id = self.gateway_id
-                        appliance_name = self.smile_name
+            # Appliance with location (i.e. a device)
+            if appliance.find("location") is not None:
+                appliance_location = appliance.find("location").attrib["id"]
+                for appl_type in self._types_finder(appliance):
+                    appliance_types.add(appl_type)
+            else:
+                # Return all types applicable to home
+                appliance_types = locations[home_location]["types"]
+                # If heater or gatweay override registering
+                if appliance_class == "heater_central":
+                    appliance_id = self.heater_id
+                    appliance_name = self.smile_name
+                if appliance_class == "gateway":
+                    appliance_id = self.gateway_id
+                    appliance_name = self.smile_name
 
-                # Determine appliance_type from funcitonality
-                if (
-                    appliance.find(".//actuator_functionalities/relay_functionality")
-                    is not None
-                    or
-                    appliance.find(".//actuators/relay") is not None
-                ):
-                    appliance_types.add("plug")
-                elif (
-                    appliance.find(".//actuator_functionalities/thermostat_functionality")
-                    is not None
-                ):
-                    appliance_types.add("thermostat")
+            # Determine appliance_type from funcitonality
+            if (
+                appliance.find(".//actuator_functionalities/relay_functionality")
+                is not None
+                or
+                appliance.find(".//actuators/relay") is not None
+            ):
+                appliance_types.add("plug")
+            elif (
+                appliance.find(".//actuator_functionalities/thermostat_functionality")
+                is not None
+            ):
+                appliance_types.add("thermostat")
 
-                appliances[appliance_id] = {
-                    "name": appliance_name,
-                    "types": appliance_types,
-                    "class": appliance_class,
-                    "location": appliance_location,
-                }
+            appliances[appliance_id] = {
+                "name": appliance_name,
+                "types": appliance_types,
+                "class": appliance_class,
+                "location": appliance_location,
+            }
 
         return appliances
 
@@ -523,7 +520,7 @@ class Smile:
                     "types": set(["temperature"]),
                     "members": appliances,
                 }
-            if self.smile_type == "stretch_v2" or self.smile_type == "stretch_v3":
+            if "stretch" in self.smile_type:
                 locations[0] = {
                     "name": "Legacy Stretch",
                     "types": set(["power"]),
@@ -911,7 +908,7 @@ class Smile:
                 "rule[active='true']/directives/when/then"
             )
             if active_rule is None or "icon" not in active_rule.keys():
-                return "none"
+                return
             return active_rule.attrib["icon"]
 
         locator = f'.//location[@id="{loc_id}"]/preset'
@@ -931,7 +928,7 @@ class Smile:
         if rule_ids is None:
             rule_ids = self.get_rule_ids_by_name("Thermostat presets", loc_id)
             if rule_ids is None:
-                return None
+                return presets
 
         for rule_id in rule_ids:
             directives = self._domain_objects.find(f'rule[@id="{rule_id}"]/directives')
@@ -989,12 +986,11 @@ class Smile:
         for rule_id, location_id in rule_ids.items():
             active = False
             name = self._domain_objects.find(f'rule[@id="{rule_id}"]/name').text
-            if location_id == loc_id:
-                if (
-                    self._domain_objects.find(f'rule[@id="{rule_id}"]/active').text
-                    == "true"
-                ):
-                    active = True
+            if (
+                self._domain_objects.find(f'rule[@id="{rule_id}"]/active').text
+                == "true"
+            ):
+                active = True
             schemas[name] = active
             schedules = {}
             days = {
@@ -1068,20 +1064,21 @@ class Smile:
         tag = "zone_preset_based_on_time_and_presence_with_override"
 
         rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
-        if rule_ids is not None:
-            for rule_id, location_id in rule_ids.items():
-                if location_id == loc_id:
-                    schema_name = self._domain_objects.find(
-                        f'rule[@id="{rule_id}"]/name'
-                    ).text
-                    schema_date = self._domain_objects.find(
-                        f'rule[@id="{rule_id}"]/modified_date'
-                    ).text
-                    schema_time = parse(schema_date)
-                    schemas[schema_name] = (schema_time - epoch).total_seconds()
+        if rule_ids is None:
+            return
 
-            if schemas != {}:
-                last_modified = sorted(schemas.items(), key=lambda kv: kv[1])[-1][0]
+        for rule_id, location_id in rule_ids.items():
+            schema_name = self._domain_objects.find(
+                f'rule[@id="{rule_id}"]/name'
+            ).text
+            schema_date = self._domain_objects.find(
+                f'rule[@id="{rule_id}"]/modified_date'
+            ).text
+            schema_time = parse(schema_date)
+            schemas[schema_name] = (schema_time - epoch).total_seconds()
+
+        if schemas != {}:
+            last_modified = sorted(schemas.items(), key=lambda kv: kv[1])[-1][0]
 
         return last_modified
 
@@ -1094,8 +1091,6 @@ class Smile:
             if rule.find(locator1) is not None:
                 if rule.find(locator2) is not None:
                     schema_ids[rule.attrib["id"]] = loc_id
-                else:
-                    schema_ids[rule.attrib["id"]] = None
 
         if schema_ids != {}:
             return schema_ids
@@ -1205,13 +1200,18 @@ class Smile:
 
     async def set_relay_state(self, appl_id, state):
         """Switch the Plug off/on."""
-        locator = (
-            f'appliance[@id="{appl_id}"]/actuator_functionalities/relay_functionality'
-        )
+        actuator = "actuator_functionalities"
+        relay = "relay_functionality"
+        if self.smile_type == "stretch_v2":
+            actuator = "actuators"
+            relay = "relay"
+        locator = (f'appliance[@id="{appl_id}"]/{actuator}/{relay}')
         relay_functionality_id = self._appliances.find(locator).attrib["id"]
         uri = f"{APPLIANCES};id={appl_id}/relay;id={relay_functionality_id}"
+        if self.smile_type == "stretch_v2":
+            uri = f"{APPLIANCES};id={appl_id}/relay"
         state = str(state)
-        data = f"<relay_functionality><state>{state}</state></relay_functionality>"
+        data = f"<{relay}><state>{state}</state></{relay}>"
 
         await self.request(uri, method="put", data=data)
         return True

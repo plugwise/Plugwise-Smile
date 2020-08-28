@@ -1065,20 +1065,21 @@ class Smile:
         tag = "zone_preset_based_on_time_and_presence_with_override"
 
         rule_ids = self.get_rule_ids_by_tag(tag, loc_id)
-        if rule_ids is not None:
-            for rule_id, location_id in rule_ids.items():
-                if location_id == loc_id:
-                    schema_name = self._domain_objects.find(
-                        f'rule[@id="{rule_id}"]/name'
-                    ).text
-                    schema_date = self._domain_objects.find(
-                        f'rule[@id="{rule_id}"]/modified_date'
-                    ).text
-                    schema_time = parse(schema_date)
-                    schemas[schema_name] = (schema_time - epoch).total_seconds()
+        if rule_ids is None:
+            return
 
-            if schemas != {}:
-                last_modified = sorted(schemas.items(), key=lambda kv: kv[1])[-1][0]
+        for rule_id, location_id in rule_ids.items():
+            schema_name = self._domain_objects.find(
+                f'rule[@id="{rule_id}"]/name'
+            ).text
+            schema_date = self._domain_objects.find(
+                f'rule[@id="{rule_id}"]/modified_date'
+            ).text
+            schema_time = parse(schema_date)
+            schemas[schema_name] = (schema_time - epoch).total_seconds()
+
+        if schemas != {}:
+            last_modified = sorted(schemas.items(), key=lambda kv: kv[1])[-1][0]
 
         return last_modified
 

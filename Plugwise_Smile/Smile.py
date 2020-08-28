@@ -520,7 +520,7 @@ class Smile:
                     "types": set(["temperature"]),
                     "members": appliances,
                 }
-            if self.smile_type == "stretch_v2" or self.smile_type == "stretch_v3":
+            if "stretch" in self.smile_type:
                 locations[0] = {
                     "name": "Legacy Stretch",
                     "types": set(["power"]),

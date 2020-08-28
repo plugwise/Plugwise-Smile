@@ -1202,11 +1202,11 @@ class Smile:
 
     async def set_relay_state(self, appl_id, state):
         """Switch the Plug off/on."""
-        actuator = actuator_functionalities
-        relay = relay_functionality
+        actuator = "actuator_functionalities"
+        relay = "relay_functionality"
         if self.smile_type == "stretch_v2":
-            actuator = actuators
-            relay = relay
+            actuator = "actuators"
+            relay = "relay"
         locator = (f'appliance[@id="{appl_id}"]/{actuator}/{relay}')
         relay_functionality_id = self._appliances.find(locator).attrib["id"]
         uri = f"{APPLIANCES};id={appl_id}/relay;id={relay_functionality_id}"

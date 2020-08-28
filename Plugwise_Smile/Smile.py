@@ -24,6 +24,7 @@ DOMAIN_OBJECTS = "/core/domain_objects"
 LOCATIONS = "/core/locations"
 RULES = "/core/rules"
 SYSTEM = "/system"
+STATUS = "/system/status.xml"
 
 DEFAULT_TIMEOUT = 20
 
@@ -90,6 +91,7 @@ SMILES = {
     "smile_v40": {"type": "power", "friendly_name": "P1",},
     "smile_v33": {"type": "power", "friendly_name": "P1",},
     "smile_v25": {"type": "power", "friendly_name": "P1", "legacy": True,},
+    "smile_v21": {"type": "power", "friendly_name": "P1", "legacy": True,},
     "stretch_v23" : {"type": "stretch_v2", "friendly_name": "Stretch", "legacy": True},
     "stretch_v31" : {"type": "stretch_v3", "friendly_name": "Stretch", "legacy": True}
 }
@@ -191,13 +193,25 @@ class Smile:
             if anna is None:
                 # P1 legacy:
                 if "<dsmrmain id" in result:
-                    # Fake insert version assuming P1
-                    # yes we could get this from system_status
-                    smile_version = "2.5.9"
-                    smile_model = "smile"
-                    # for legacy P1 use the dsmrmain id as gateway_id
-                    dsmrmain = do_xml.find(".//dsmrmain")
-                    self.gateway_id = dsmrmain.attrib["id"]
+                    try:
+                        url = f"{self._endpoint}{STATUS}"
+                        with async_timeout.timeout(self._timeout):
+                            resp = await self.websession.get(url, auth=self._auth, headers=self._headers)
+                    except (asyncio.TimeoutError, aiohttp.ClientError):
+                        _LOGGER.error("Error connecting to Plugwise", exc_info=True)
+                        raise self.ConnectionFailedError
+                    status = await resp.text()
+
+                    try:
+                        status_xml = etree.XML(self.escape_illegal_xml_characters(status).encode())
+                    except etree.XMLSyntaxError:
+                        _LOGGER.debug("No XML-data in /system found")
+                        status = None
+
+                    if status is not None:
+                        smile_version = status_xml.find(".//system/version").text
+                        smile_model = status_xml.find(".//system/product").text
+                        self.smile_hostname = status_xml.find(".//network/hostname").text
                 # Stretch:
                 elif "<master_controller" in result:
                     try:

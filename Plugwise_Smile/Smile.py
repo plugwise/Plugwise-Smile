@@ -986,12 +986,11 @@ class Smile:
         for rule_id, location_id in rule_ids.items():
             active = False
             name = self._domain_objects.find(f'rule[@id="{rule_id}"]/name').text
-            if location_id == loc_id:
-                if (
-                    self._domain_objects.find(f'rule[@id="{rule_id}"]/active').text
-                    == "true"
-                ):
-                    active = True
+            if (
+                self._domain_objects.find(f'rule[@id="{rule_id}"]/active').text
+                == "true"
+            ):
+                active = True
             schemas[name] = active
             schedules = {}
             days = {

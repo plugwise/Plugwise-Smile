@@ -908,7 +908,7 @@ class Smile:
                 "rule[active='true']/directives/when/then"
             )
             if active_rule is None or "icon" not in active_rule.keys():
-                return "none"
+                return
             return active_rule.attrib["icon"]
 
         locator = f'.//location[@id="{loc_id}"]/preset'

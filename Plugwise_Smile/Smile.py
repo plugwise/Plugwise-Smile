@@ -928,7 +928,7 @@ class Smile:
         if rule_ids is None:
             rule_ids = self.get_rule_ids_by_name("Thermostat presets", loc_id)
             if rule_ids is None:
-                return None
+                return presets
 
         for rule_id in rule_ids:
             directives = self._domain_objects.find(f'rule[@id="{rule_id}"]/directives')

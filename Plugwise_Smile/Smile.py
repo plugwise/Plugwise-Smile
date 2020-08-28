@@ -124,6 +124,7 @@ class Smile:
             self.websession = websession
 
         self._auth = aiohttp.BasicAuth(username, password=password)
+        self._headers={'Accept-Encoding': 'gzip'}
 
         self._timeout = timeout
         self._endpoint = f"http://{host}:{str(port)}"
@@ -150,7 +151,7 @@ class Smile:
         url = f"{self._endpoint}{DOMAIN_OBJECTS}"
         try:
             with async_timeout.timeout(self._timeout):
-                resp = await self.websession.get(url, auth=self._auth)
+                resp = await self.websession.get(url, auth=self._auth, headers=self._headers)
             if resp.status == 401:
                 raise self.InvalidAuthentication
         except (asyncio.TimeoutError, aiohttp.ClientError):
@@ -202,7 +203,7 @@ class Smile:
                     try:
                         url = f"{self._endpoint}{SYSTEM}"
                         with async_timeout.timeout(self._timeout):
-                            resp = await self.websession.get(url, auth=self._auth)
+                            resp = await self.websession.get(url, auth=self._auth, headers=self._headers)
                     except (asyncio.TimeoutError, aiohttp.ClientError):
                         _LOGGER.error("Error connecting to Plugwise", exc_info=True)
                         raise self.ConnectionFailedError
@@ -279,7 +280,7 @@ class Smile:
         try:
             with async_timeout.timeout(self._timeout):
                 if method == "get":
-                    resp = await self.websession.get(url, auth=self._auth)
+                    resp = await self.websession.get(url, auth=self._auth, headers=self._headers)
                 if method == "put":
                     resp = await self.websession.put(
                         url, data=data, headers=headers, auth=self._auth

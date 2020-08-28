@@ -449,58 +449,54 @@ class Smile:
         if self._smile_legacy and self.smile_type == "thermostat":
             self.gateway_id = self.heater_id
 
-        data = self._appliances
-        if self.smile_type == "stretch_v3":
-            data = self._domain_objects
-        for appliance in data:
-            if appliance.tag == "appliance":
-                appliance_location = None
-                appliance_types = set([])
+        for appliance in self._appliances:
+            appliance_location = None
+            appliance_types = set([])
 
-                appliance_id = appliance.attrib["id"]
-                appliance_class = appliance.find("type").text
-                appliance_name = appliance.find("name").text
+            appliance_id = appliance.attrib["id"]
+            appliance_class = appliance.find("type").text
+            appliance_name = appliance.find("name").text
 
-                # Nothing useful in opentherm so skip it
-                if appliance_class == "open_therm_gateway":
-                    continue
+            # Nothing useful in opentherm so skip it
+            if appliance_class == "open_therm_gateway":
+                continue
 
-                # Appliance with location (i.e. a device)
-                if appliance.find("location") is not None:
-                    appliance_location = appliance.find("location").attrib["id"]
-                    for appl_type in self._types_finder(appliance):
-                        appliance_types.add(appl_type)
-                else:
-                    # Return all types applicable to home
-                    appliance_types = locations[home_location]["types"]
-                    # If heater or gatweay override registering
-                    if appliance_class == "heater_central":
-                        appliance_id = self.heater_id
-                        appliance_name = self.smile_name
-                    if appliance_class == "gateway":
-                        appliance_id = self.gateway_id
-                        appliance_name = self.smile_name
+            # Appliance with location (i.e. a device)
+            if appliance.find("location") is not None:
+                appliance_location = appliance.find("location").attrib["id"]
+                for appl_type in self._types_finder(appliance):
+                    appliance_types.add(appl_type)
+            else:
+                # Return all types applicable to home
+                appliance_types = locations[home_location]["types"]
+                # If heater or gatweay override registering
+                if appliance_class == "heater_central":
+                    appliance_id = self.heater_id
+                    appliance_name = self.smile_name
+                if appliance_class == "gateway":
+                    appliance_id = self.gateway_id
+                    appliance_name = self.smile_name
 
-                # Determine appliance_type from funcitonality
-                if (
-                    appliance.find(".//actuator_functionalities/relay_functionality")
-                    is not None
-                    or
-                    appliance.find(".//actuators/relay") is not None
-                ):
-                    appliance_types.add("plug")
-                elif (
-                    appliance.find(".//actuator_functionalities/thermostat_functionality")
-                    is not None
-                ):
-                    appliance_types.add("thermostat")
+            # Determine appliance_type from funcitonality
+            if (
+                appliance.find(".//actuator_functionalities/relay_functionality")
+                is not None
+                or
+                appliance.find(".//actuators/relay") is not None
+            ):
+                appliance_types.add("plug")
+            elif (
+                appliance.find(".//actuator_functionalities/thermostat_functionality")
+                is not None
+            ):
+                appliance_types.add("thermostat")
 
-                appliances[appliance_id] = {
-                    "name": appliance_name,
-                    "types": appliance_types,
-                    "class": appliance_class,
-                    "location": appliance_location,
-                }
+            appliances[appliance_id] = {
+                "name": appliance_name,
+                "types": appliance_types,
+                "class": appliance_class,
+                "location": appliance_location,
+            }
 
         return appliances
 

@@ -147,25 +147,14 @@ class Smile:
         self.smile_version = ()
         self.notifications = {}
 
-    async def connect(self, retry=2):
+    async def connect(self):
         """Connect to Plugwise device."""
-        # pylint: disable=too-many-return-statements
-        url = f"{self._endpoint}{DOMAIN_OBJECTS}"
-        try:
-            with async_timeout.timeout(self._timeout):
-                resp = await self.websession.get(url, auth=self._auth, headers=self._headers)
-            if resp.status == 401:
-                raise self.InvalidAuthentication
-        except (asyncio.TimeoutError, aiohttp.ClientError):
-            if retry < 1:
-                _LOGGER.error("Error connecting to Plugwise", exc_info=True)
-                raise self.ConnectionFailedError
-            return await self.connect(retry - 1)
-
-        result = await resp.text()
-
-        if "<vendor_name>Plugwise</vendor_name>" not in result:
-            if "<dsmrmain id" not in result:
+        #pylint: disable=too-many-return-statements
+        result = await self.request(DOMAIN_OBJECTS)
+        if "Plugwise" not in result.findall("vendor_name"):
+            dsmrmain = result.find(".//module/protocols/dsmrmain")
+            master_controller = result.find(".//module/protocols/master_controller")
+            if dsmrmain is None:
                 _LOGGER.error(
                     "Connected but expected text not returned, \
                               we got %s",
@@ -175,8 +164,7 @@ class Smile:
 
         # TODO creat this as another function NOT part of connect!
         # just using request to parse the data
-        do_xml = etree.XML(self.escape_illegal_xml_characters(result).encode())
-        gateway = do_xml.find(".//gateway")
+        gateway = result.find(".//gateway")
 
         if gateway is not None:
             if gateway.find("hostname") is not None:
@@ -185,50 +173,23 @@ class Smile:
             # Assume legacy
             self._smile_legacy = True
             # Try if it is an Anna, assuming appliance thermostat
-            anna = do_xml.find('.//appliance[type="thermostat"]')
+            anna = result.find('.//appliance[type="thermostat"]')
             # Fake insert version assuming Anna
             # couldn't find another way to identify as legacy Anna
             smile_version = "1.8.0"
             smile_model = "smile_thermo"
             if anna is None:
                 # P1 legacy:
-                if "<dsmrmain id" in result:
-                    try:
-                        url = f"{self._endpoint}{STATUS}"
-                        with async_timeout.timeout(self._timeout):
-                            resp = await self.websession.get(url, auth=self._auth, headers=self._headers)
-                    except (asyncio.TimeoutError, aiohttp.ClientError):
-                        _LOGGER.error("Error connecting to Plugwise", exc_info=True)
-                        raise self.ConnectionFailedError
-                    status = await resp.text()
-
-                    try:
-                        status_xml = etree.XML(self.escape_illegal_xml_characters(status).encode())
-                    except etree.XMLSyntaxError:
-                        _LOGGER.debug("No XML-data in /system found")
-                        status = None
-
+                if dsmrmain is not None:
+                    status = await self.request(STATUS)
                     if status is not None:
-                        smile_version = status_xml.find(".//system/version").text
-                        smile_model = status_xml.find(".//system/product").text
-                        self.smile_hostname = status_xml.find(".//network/hostname").text
+                        smile_version = status.find(".//system/version").text
+                        smile_model = status.find(".//system/product").text
+                        self.smile_hostname = status.find(".//network/hostname").text
+
                 # Stretch:
-                elif "<master_controller" in result:
-                    try:
-                        url = f"{self._endpoint}{SYSTEM}"
-                        with async_timeout.timeout(self._timeout):
-                            resp = await self.websession.get(url, auth=self._auth, headers=self._headers)
-                    except (asyncio.TimeoutError, aiohttp.ClientError):
-                        _LOGGER.error("Error connecting to Plugwise", exc_info=True)
-                        raise self.ConnectionFailedError
-                    system = await resp.text()
-
-                    try:
-                        system_xml = etree.XML(self.escape_illegal_xml_characters(system).encode())
-                    except etree.XMLSyntaxError:
-                        _LOGGER.debug("No XML-data in /system found")
-                        system = None
-
+                elif master_controller is not None:
+                    system = await self.request(SYSTEM)
                     if system is not None:
                         smile_version = system_xml.find(".//gateway/firmware").text
                         smile_model = system_xml.find(".//gateway/product").text
@@ -332,6 +293,7 @@ class Smile:
         except etree.XMLSyntaxError:
             _LOGGER.error("Smile returns invalid XML for %s", self._endpoint)
             raise self.InvalidXMLError
+            return None
 
         return xml
 

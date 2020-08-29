@@ -1013,7 +1013,7 @@ class TestPlugwise:
         testdata = {
             # Gateway / P1 itself
             "ba4de7613517478da82dd9b6abea36af": {
-                "electricity_consumed_peak_point": 650.0, #644.0,
+                "electricity_consumed_peak_point": 644.0,
                 "electricity_produced_peak_cumulative": 0.0,
                 "electricity_consumed_off_peak_cumulative": 10263159.0,
             }
@@ -1045,7 +1045,7 @@ class TestPlugwise:
         testdata = {
             # Gateway / P1 itself
             "ba4de7613517478da82dd9b6abea36af": {
-                "electricity_consumed_peak_point": 650, #644.0,
+                "electricity_consumed_peak_point": 644.0,
                 "electricity_produced_peak_cumulative": 20000.0,
                 "electricity_consumed_off_peak_cumulative": 10263159.0,
                 "net_electricity_point": 244.0,

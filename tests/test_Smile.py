@@ -528,7 +528,7 @@ class TestPlugwise:
 
         self.smile_setup = "smile_p1_v2"
         server, smile, client = await self.connect_wrapper()
-        assert smile.smile_hostname is "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = power")
@@ -564,7 +564,7 @@ class TestPlugwise:
 
         self.smile_setup = "smile_p1_v2_2"
         server, smile, client = await self.connect_wrapper()
-        assert smile.smile_hostname is "smile000000"
+        assert smile.smile_hostname == "smile000000"
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = power")

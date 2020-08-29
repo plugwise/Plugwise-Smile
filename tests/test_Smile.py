@@ -1082,8 +1082,8 @@ class TestPlugwise:
                 "electricity_consumed_peak_point": 0.0,
                 "electricity_produced_peak_cumulative": 396559.0,
                 "electricity_consumed_off_peak_cumulative": 551090.0,
-                "electricity_produced_peak_point": 2809.0,
-                "net_electricity_point": -2809.0,
+                "electricity_produced_peak_point": 2761.0,
+                "net_electricity_point": -2761.0,
                 "gas_consumed_cumulative": 584.9,
             }
         }
@@ -1125,7 +1125,7 @@ class TestPlugwise:
                 "water_temperature": 29.1,
                 "water_pressure": 1.57,
             },
-            "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 18.0,},
+            "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 20.2,},
         }
 
         self.smile_setup = "anna_heatpump"

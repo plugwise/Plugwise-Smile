@@ -264,6 +264,8 @@ class Smile:
                     resp = await self.websession.put(
                         url, data=data, headers=headers, auth=self._auth
                     )
+            if resp.status == 401:
+                raise self.InvalidAuthentication
 
         except asyncio.TimeoutError:
             if retry < 1:

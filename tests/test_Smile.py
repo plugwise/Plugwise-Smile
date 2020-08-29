@@ -1165,7 +1165,7 @@ class TestPlugwise:
                 "water_temperature": 24.7,
                 "water_pressure": 1.61,
             },
-            "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 21.0,},
+            "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 22.0,},
         }
 
         self.smile_setup = "anna_heatpump_cooling"

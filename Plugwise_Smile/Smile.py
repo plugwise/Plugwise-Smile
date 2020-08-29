@@ -203,8 +203,8 @@ class Smile:
                     raise self.ConnectionFailedError
     
         if not self._smile_legacy:
-            smile_model = do_xml.find(".//gateway/vendor_model").text
-            smile_version = do_xml.find(".//gateway/firmware_version").text
+            smile_model = result.find(".//gateway/vendor_model").text
+            smile_version = result.find(".//gateway/firmware_version").text
 
         if smile_model is None or smile_version is None:
             _LOGGER.error("Unable to find model or version information")

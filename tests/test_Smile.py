@@ -1013,7 +1013,7 @@ class TestPlugwise:
         testdata = {
             # Gateway / P1 itself
             "ba4de7613517478da82dd9b6abea36af": {
-                "electricity_consumed_peak_point": 644.0,
+                "electricity_consumed_peak_point": 650.0,
                 "electricity_produced_peak_cumulative": 0.0,
                 "electricity_consumed_off_peak_cumulative": 10263159.0,
             }
@@ -1048,7 +1048,7 @@ class TestPlugwise:
                 "electricity_consumed_peak_point": 644.0,
                 "electricity_produced_peak_cumulative": 20000.0,
                 "electricity_consumed_off_peak_cumulative": 10263159.0,
-                "net_electricity_point": 244.0,
+                "net_electricity_point": -3356.0,
             }
         }
 
@@ -1156,7 +1156,7 @@ class TestPlugwise:
             # Anna
             "3cb70739631c4d17a86b8b12e8a5161b": {
                 "selected_schedule": None,
-                "illuminance": 25.5,
+                "illuminance": 24.5,
                 "active_preset": "home",
             },
             # Central

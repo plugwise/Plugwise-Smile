@@ -151,7 +151,11 @@ class Smile:
         """Connect to Plugwise device."""
         #pylint: disable=too-many-return-statements
         result = await self.request(DOMAIN_OBJECTS)
-        if "Plugwise" not in result.findall("vendor_name"):
+        names = []
+        vendor_names = result.findall(".//module/vendor_name")
+        for name in vendor_names:
+            names.append(name.text)
+        if "Plugwise" not in names:
             dsmrmain = result.find(".//module/protocols/dsmrmain")
             master_controller = result.find(".//module/protocols/master_controller")
             if dsmrmain is None:

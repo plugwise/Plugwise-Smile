@@ -1,6 +1,5 @@
-
-<!-- saved from url=(0037)http://127.0.0.1/system/status/xml -->
-<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252"></head><body><status>
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<status>
 <system>
 <product>smile</product>
 <mode>p1</mode>
@@ -22,4 +21,4 @@
 <mac_address>0123456789AB</mac_address>
 </network>
 </status>
-</body></html>
+

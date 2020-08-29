@@ -47,7 +47,7 @@ class TestPlugwise:
         """Create mock webserver for Smile to interface with."""
         app = aiohttp.web.Application()
         app.router.add_get("/core/appliances", self.smile_appliances)
-        app.router.add_get("/core/direct_objects", self.smile_direct_objects)
+        #app.router.add_get("/core/direct_objects", self.smile_direct_objects)
         app.router.add_get("/core/domain_objects", self.smile_domain_objects)
         app.router.add_get("/core/modules", self.smile_modules)
         app.router.add_get("/system/status.xml", self.smile_status)
@@ -84,12 +84,12 @@ class TestPlugwise:
         f.close()
         return aiohttp.web.Response(text=data)
 
-    async def smile_direct_objects(self, request):
-        """Render setup specific direct objects endpoint."""
-        f = open("tests/{}/core.direct_objects.xml".format(self.smile_setup), "r")
-        data = f.read()
-        f.close()
-        return aiohttp.web.Response(text=data)
+    #async def smile_direct_objects(self, request):
+    #    """Render setup specific direct objects endpoint."""
+    #    f = open("tests/{}/core.direct_objects.xml".format(self.smile_setup), "r")
+    #    data = f.read()
+    #    f.close()
+    #    return aiohttp.web.Response(text=data)
 
     async def smile_domain_objects(self, request):
         """Render setup specific domain objects endpoint."""

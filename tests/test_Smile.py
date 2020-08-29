@@ -50,6 +50,7 @@ class TestPlugwise:
         app.router.add_get("/core/direct_objects", self.smile_direct_objects)
         app.router.add_get("/core/domain_objects", self.smile_domain_objects)
         app.router.add_get("/core/modules", self.smile_modules)
+        app.router.add_get("/system/status.xml", self.smile_status)
 
         if broken:
             app.router.add_get("/core/locations", self.smile_broken)
@@ -107,6 +108,13 @@ class TestPlugwise:
     async def smile_modules(self, request):
         """Render setup specific modules endpoint."""
         f = open("tests/{}/core.modules.xml".format(self.smile_setup), "r")
+        data = f.read()
+        f.close()
+        return aiohttp.web.Response(text=data)
+
+    async def smile_status(self, request):
+        """Render setup specific status endpoint."""
+        f = open("tests/{}/system_status_xml.xml".format(self.smile_setup), "r")
         data = f.read()
         f.close()
         return aiohttp.web.Response(text=data)

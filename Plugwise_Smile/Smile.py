@@ -410,7 +410,7 @@ class Smile:
             # Inject home_location as dev_id for legacy so
             # get_appliance_data can use loc_id for dev_id.
             appliances[self._home_location] = {
-                "name": "Smile P1",
+                "name": "P1",
                 "types": set(["power", "home"]),
                 "class": "gateway",
                 "location": home_location,

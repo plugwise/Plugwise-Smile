@@ -32,10 +32,8 @@ setup(
     license="MIT",
     packages=["Plugwise_Smile"],
     install_requires=[
-        "asyncio",
         "aiohttp",
         "async_timeout",
-        "datetime",
         "lxml",
         "pytz",
         "python-dateutil",

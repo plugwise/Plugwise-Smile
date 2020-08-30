@@ -166,6 +166,8 @@ class Smile:
                     result,
                 )
                 raise self.ConnectionFailedError
+            if master_controller is None:
+                _LOGGER.error("Key master_controller not found")
 
         # TODO creat this as another function NOT part of connect!
         # just using request to parse the data
@@ -195,6 +197,8 @@ class Smile:
                 # Stretch:
                 elif master_controller is not None:
                     system = await self.request(SYSTEM)
+                    if system is None:
+                        _LOGGER.error("SYSTEM = None")
                     if system is not None:
                         smile_version = system.find(".//gateway/firmware").text
                         smile_model = system.find(".//gateway/product").text

@@ -34,7 +34,8 @@ HOME_MEASUREMENTS = {
     "electricity_consumed": "power",
     "electricity_produced": "power",
     "gas_consumed": "gas",
-    "outdoor_temperature": "temperature",
+    # Outdoor temp as reported on the Anna, in the App
+    "outdoor_temperature": "temperature"
 }
 
 # Excluded:
@@ -55,8 +56,6 @@ DEVICE_MEASUREMENTS = {
     "electricity_consumed": "electricity_consumed",
     "electricity_produced": "electricity_produced",
     "relay": "relay",
-    # Outdoor temp as reported on the Anna, in the App
-    "outdoor_temperature": "outdoor_temperature",
     # Anna/Adam: use intended_c_h_state, this key shows the heating-behavior better than c-h_state
     "intended_central_heating_state": "heating_state",
     "domestic_hot_water_state": "dhw_state",
@@ -75,7 +74,7 @@ DEVICE_MEASUREMENTS = {
     # Next  3 keys are used to show the state of the heater used next to the Elga heatpump - marcelveldt
     "slave_boiler_state": "slave_boiler_state",
     "compressor_state": "compressor_state",
-    "flame_state": "flame_state",
+    "flame_state": "flame_state"
 }
 
 SMILES = {
@@ -92,8 +91,8 @@ SMILES = {
     "smile_v33": {"type": "power", "friendly_name": "P1",},
     "smile_v25": {"type": "power", "friendly_name": "P1", "legacy": True,},
     "smile_v21": {"type": "power", "friendly_name": "P1", "legacy": True,},
-    "stretch_v23" : {"type": "stretch_v2", "friendly_name": "Stretch", "legacy": True},
-    "stretch_v31" : {"type": "stretch_v3", "friendly_name": "Stretch", "legacy": True}
+    "stretch_v31" : {"type": "stretch_v3", "friendly_name": "Stretch", "legacy": True},
+    "stretch_v23" : {"type": "stretch_v2", "friendly_name": "Stretch", "legacy": True}
 }
 
 
@@ -126,12 +125,12 @@ class Smile:
             self.websession = websession
 
         self._auth = aiohttp.BasicAuth(username, password=password)
+        ### Work-around for Stretchv2-aiohttp-deflate-error, can be removed for aiohttp v3.7:
         self._headers={'Accept-Encoding': 'gzip'}
 
         self._timeout = timeout
         self._endpoint = f"http://{host}:{str(port)}"
         self._appliances = None
-        self._direct_objects = None
         self._domain_objects = None
         self._home_location = None
         self._locations = None
@@ -261,6 +260,7 @@ class Smile:
         try:
             with async_timeout.timeout(self._timeout):
                 if method == "get":
+                    ### Work-around, see above, can be removed for aiohttp v3.7:
                     resp = await self.websession.get(url, auth=self._auth, headers=self._headers)
                 if method == "put":
                     resp = await self.websession.put(
@@ -314,15 +314,6 @@ class Smile:
         if new_data is not None:
             self._appliances = new_data
 
-    async def update_direct_objects(self):
-        """Request direct_objects data."""
-        if self._smile_legacy and self.smile_type == "power":
-            return True
-
-        new_data = await self.request(DIRECT_OBJECTS)
-        if new_data is not None:
-            self._direct_objects = new_data
-
     async def update_domain_objects(self):
         """Request domain_objects data."""
         new_data = await self.request(DOMAIN_OBJECTS)
@@ -361,14 +352,6 @@ class Smile:
             self.smile_type == "power" and not self._smile_legacy
         ):
             _LOGGER.error("Appliance data missing")
-            raise self.XMLDataMissingError
-
-        await self.update_direct_objects()
-        # P1 legacy has no direct_objects
-        if self._direct_objects is None and (
-            self.smile_type == "power" and not self._smile_legacy
-        ):
-            _LOGGER.error("Direct_objects data missing")
             raise self.XMLDataMissingError
 
         await self.update_domain_objects()
@@ -718,26 +701,21 @@ class Smile:
 
         # Anna specific
         if details["class"] in ["thermostat"]:
-            device_data["illuminance"] = self.get_object_value(
-                "appliance", dev_id, "illuminance"
-            )
+            illuminance = self.get_object_value("appliance", dev_id, "illuminance")
+            if illuminance is not None:
+                device_data["illuminance"] = illuminance
 
         # Generic
         if details["class"] == "gateway" or dev_id == self.gateway_id:
-
             # Try to get P1 data
-            power_data = self.get_direct_objects_from_location(details["location"])
+            power_data = self.get_power_data_from_location(details["location"])
             if power_data is not None:
                 device_data.update(power_data)
 
-            heater_data = self.get_appliance_data(self.heater_id)
-            outdoor_temperature = heater_data.get("outdoor_temperature")
-            if outdoor_temperature is None:
-                outdoor_temperature = self.get_object_value(
-                    "location", self._home_location, "outdoor_temperature"
-                )
-
-            if outdoor_temperature:
+            outdoor_temperature = self.get_object_value(
+                "location", self._home_location, "outdoor_temperature"
+            )
+            if outdoor_temperature is not None:
                 device_data["outdoor_temperature"] = outdoor_temperature
 
         return device_data
@@ -816,18 +794,12 @@ class Smile:
                     measure = False
         return measure
 
-    def get_direct_objects_from_location(self, loc_id):
-        """
-        Obtain the appliance-data from appliances without a location.
-
-        Determined from DIRECT_OBJECTS.
-        """
+    def get_power_data_from_location(self, loc_id):
+        """Obtain the power-data from domain_objects based on location."""
         direct_data = {}
-        search = self._direct_objects
+        search = self._domain_objects
         t_string = "tariff"
-
         if self._smile_legacy and self.smile_type == "power":
-            search = self._domain_objects
             t_string = "tariff_indicator"
 
         loc_logs = search.find(f'.//location[@id="{loc_id}"]/logs')
@@ -1092,21 +1064,19 @@ class Smile:
         if schema_ids != {}:
             return schema_ids
 
-    def get_object_value(self, obj_type, appl_id, measurement):
-        """Obtain the illuminance value from the thermostat."""
-        search = self._direct_objects
-
-        if self._smile_legacy and self.smile_type == "power":
-            search = self._domain_objects
+    def get_object_value(self, obj_type, obj_id, measurement):
+        """Obtain the object-value from the thermostat."""
+        search = self._domain_objects
 
         locator = (
-            f'.//{obj_type}[@id="{appl_id}"]/logs/point_log'
+            f'.//{obj_type}[@id="{obj_id}"]/logs/point_log'
             f'[type="{measurement}"]/period/measurement'
         )
         if search.find(locator) is not None:
             val = float(f"{round(float(search.find(locator).text), 1):.1f}")
-
             return val
+
+        return None
 
     async def set_schedule_state(self, loc_id, name, state):
         """

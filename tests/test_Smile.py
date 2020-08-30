@@ -47,7 +47,6 @@ class TestPlugwise:
         """Create mock webserver for Smile to interface with."""
         app = aiohttp.web.Application()
         app.router.add_get("/core/appliances", self.smile_appliances)
-        app.router.add_get("/core/direct_objects", self.smile_direct_objects)
         app.router.add_get("/core/domain_objects", self.smile_domain_objects)
         app.router.add_get("/core/modules", self.smile_modules)
         app.router.add_get("/system/status.xml", self.smile_status)
@@ -80,13 +79,6 @@ class TestPlugwise:
     async def smile_appliances(self, request):
         """Render setup specific appliances endpoint."""
         f = open("tests/{}/core.appliances.xml".format(self.smile_setup), "r")
-        data = f.read()
-        f.close()
-        return aiohttp.web.Response(text=data)
-
-    async def smile_direct_objects(self, request):
-        """Render setup specific direct objects endpoint."""
-        f = open("tests/{}/core.direct_objects.xml".format(self.smile_setup), "r")
         data = f.read()
         f.close()
         return aiohttp.web.Response(text=data)
@@ -793,7 +785,6 @@ class TestPlugwise:
             "ee62cad889f94e8ca3d09021f03a660b": {
                 "selected_schedule": "Weekschema",
                 "last_used": "Weekschema",
-                "illuminance": None,
                 "active_preset": "home",
                 "setpoint": 20.5,  # HA setpoint_temp
                 "temperature": 20.5,  # HA current_temp
@@ -1014,7 +1005,7 @@ class TestPlugwise:
         testdata = {
             # Gateway / P1 itself
             "ba4de7613517478da82dd9b6abea36af": {
-                "electricity_consumed_peak_point": 644.0,
+                "electricity_consumed_peak_point": 650.0,
                 "electricity_produced_peak_cumulative": 0.0,
                 "electricity_consumed_off_peak_cumulative": 10263159.0,
             }
@@ -1049,7 +1040,7 @@ class TestPlugwise:
                 "electricity_consumed_peak_point": 644.0,
                 "electricity_produced_peak_cumulative": 20000.0,
                 "electricity_consumed_off_peak_cumulative": 10263159.0,
-                "net_electricity_point": 244.0,
+                "net_electricity_point": 244,
             }
         }
 
@@ -1083,8 +1074,8 @@ class TestPlugwise:
                 "electricity_consumed_peak_point": 0.0,
                 "electricity_produced_peak_cumulative": 396559.0,
                 "electricity_consumed_off_peak_cumulative": 551090.0,
-                "electricity_produced_peak_point": 2809.0,
-                "net_electricity_point": -2809.0,
+                "electricity_produced_peak_point": 2761.0,
+                "net_electricity_point": -2761.0,
                 "gas_consumed_cumulative": 584.9,
             }
         }
@@ -1126,7 +1117,7 @@ class TestPlugwise:
                 "water_temperature": 29.1,
                 "water_pressure": 1.57,
             },
-            "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 18.0,},
+            "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 20.2,},
         }
 
         self.smile_setup = "anna_heatpump"
@@ -1157,7 +1148,7 @@ class TestPlugwise:
             # Anna
             "3cb70739631c4d17a86b8b12e8a5161b": {
                 "selected_schedule": None,
-                "illuminance": 25.5,
+                "illuminance": 24.5,
                 "active_preset": "home",
             },
             # Central
@@ -1166,7 +1157,7 @@ class TestPlugwise:
                 "water_temperature": 24.7,
                 "water_pressure": 1.61,
             },
-            "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 21.0,},
+            "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 22.0,},
         }
 
         self.smile_setup = "anna_heatpump_cooling"

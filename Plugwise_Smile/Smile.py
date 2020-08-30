@@ -218,8 +218,8 @@ class Smile:
                         smile_version = status.find(".//system/version").text
                         smile_model = status.find(".//system/product").text
                         self.smile_hostname = status.find(".//network/hostname").text
-                    except self.InvalidXMLError:
-                        raise self.ConnectionFailedError
+                    except self.XMLDataMissingError:
+                        status = None
 
                 # Stretch:
                 elif master_controller is not None:
@@ -228,9 +228,8 @@ class Smile:
                         smile_version = system.find(".//gateway/firmware").text
                         smile_model = system.find(".//gateway/product").text
                         self.smile_hostname = system.find(".//gateway/hostname").text
-                    except self.InvalidXMLError:
-                        raise self.ConnectionFailedError
-
+                    except self.XMLDataMissingError:
+                        status = None
                 else:
                     _LOGGER.error("Connected but no gateway device information found")
                     raise self.ConnectionFailedError

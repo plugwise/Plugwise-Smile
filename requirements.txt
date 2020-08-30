@@ -1,3 +1,4 @@
+aiohttp
 async_timeout
 lxml
 pytz

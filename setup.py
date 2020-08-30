@@ -32,7 +32,7 @@ setup(
     license="MIT",
     packages=["Plugwise_Smile"],
     install_requires=[
-        "aiohttp",
+        "asyncio",
         "async_timeout",
         "lxml",
         "pytz",

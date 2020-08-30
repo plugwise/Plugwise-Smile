@@ -1,8 +1,6 @@
 asyncio
+async_timeout
 lxml
 pytz
-aiohttp
-async_timeout
-datetime
 python-dateutil
 semver

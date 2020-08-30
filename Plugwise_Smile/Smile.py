@@ -149,16 +149,14 @@ class Smile:
     async def connect(self):
         """Connect to Plugwise device."""
         #pylint: disable=too-many-return-statements
-        result = await self.request(DOMAIN_OBJECTS)
         names = []
-        dsmrmain = None
-        master_controller = None
+        result = await self.request(DOMAIN_OBJECTS)
+        dsmrmain = result.find(".//module/protocols/dsmrmain")
+        master_controller = result.find(".//module/protocols/master_controller")
         vendor_names = result.findall(".//module/vendor_name")
         for name in vendor_names:
             names.append(name.text)
         if "Plugwise" not in names:
-            dsmrmain = result.find(".//module/protocols/dsmrmain")
-            master_controller = result.find(".//module/protocols/master_controller")
             if dsmrmain is None:
                 _LOGGER.error(
                     "Connected but expected text not returned, \
@@ -166,8 +164,6 @@ class Smile:
                     result,
                 )
                 raise self.ConnectionFailedError
-            if master_controller is None:
-                _LOGGER.error("Key master_controller not found")
 
         # TODO creat this as another function NOT part of connect!
         # just using request to parse the data
@@ -197,8 +193,6 @@ class Smile:
                 # Stretch:
                 elif master_controller is not None:
                     system = await self.request(SYSTEM)
-                    if system is None:
-                        _LOGGER.error("SYSTEM = None")
                     if system is not None:
                         smile_version = system.find(".//gateway/firmware").text
                         smile_model = system.find(".//gateway/product").text

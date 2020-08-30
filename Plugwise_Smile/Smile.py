@@ -152,6 +152,8 @@ class Smile:
         #pylint: disable=too-many-return-statements
         result = await self.request(DOMAIN_OBJECTS)
         names = []
+        dsmrmain = None
+        master_controller = None
         vendor_names = result.findall(".//module/vendor_name")
         for name in vendor_names:
             names.append(name.text)
@@ -195,9 +197,9 @@ class Smile:
                 elif master_controller is not None:
                     system = await self.request(SYSTEM)
                     if system is not None:
-                        smile_version = system_xml.find(".//gateway/firmware").text
-                        smile_model = system_xml.find(".//gateway/product").text
-                        self.smile_hostname = system_xml.find(".//gateway/hostname").text
+                        smile_version = system.find(".//gateway/firmware").text
+                        smile_model = system.find(".//gateway/product").text
+                        self.smile_hostname = system.find(".//gateway/hostname").text
                 else:
                     _LOGGER.error("Connected but no gateway device information found")
                     raise self.ConnectionFailedError

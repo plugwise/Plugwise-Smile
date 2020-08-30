@@ -415,6 +415,8 @@ class Smile:
                 "class": "gateway",
                 "location": home_location,
             }
+            self.gateway_id = self._home_location
+            
             return appliances
 
         # TODO: add locations with members as appliance as well

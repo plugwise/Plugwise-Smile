@@ -130,7 +130,6 @@ class Smile:
         self._timeout = timeout
         self._endpoint = f"http://{host}:{str(port)}"
         self._appliances = None
-        ### self._direct_objects = None ### REMOVE
         self._domain_objects = None
         self._home_location = None
         self._locations = None

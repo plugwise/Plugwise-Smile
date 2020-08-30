@@ -174,7 +174,7 @@ class Smile:
 
     async def connect(self):
         """Connect to Plugwise device."""
-        #pylint: disable=too-many-return-statements,raise-missing-from
+        # pylint: disable=too-many-return-statements,raise-missing-from
         names = []
 
         result = await self.request(DOMAIN_OBJECTS)

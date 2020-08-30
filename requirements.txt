@@ -1,4 +1,3 @@
-asyncio
 async_timeout
 lxml
 pytz

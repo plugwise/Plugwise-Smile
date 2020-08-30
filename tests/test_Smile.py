@@ -1048,7 +1048,7 @@ class TestPlugwise:
                 "electricity_consumed_peak_point": 644.0,
                 "electricity_produced_peak_cumulative": 20000.0,
                 "electricity_consumed_off_peak_cumulative": 10263159.0,
-                "net_electricity_point": -3356.0,
+                "net_electricity_point": 244,
             }
         }
 

@@ -851,7 +851,7 @@ class Smile:
                     direct_data[key_string] = val
 
         if direct_data != {}:
-              return direct_data
+            return direct_data
 
     def get_preset(self, loc_id):
         """

@@ -107,10 +107,13 @@ class TestPlugwise:
 
     async def smile_status(self, request):
         """Render setup specific status endpoint."""
-        f = open("tests/{}/system_status_xml.xml".format(self.smile_setup), "r")
-        data = f.read()
-        f.close()
-        return aiohttp.web.Response(text=data)
+        try:
+            f = open("tests/{}/system_status_xml.xml".format(self.smile_setup), "r")
+            data = f.read()
+            f.close()
+            return aiohttp.web.Response(text=data)
+        except OSError:
+            raise self.ConnectError
 
     async def smile_set_temp_or_preset(self, request):
         """Render generic API calling endpoint."""
@@ -1237,6 +1240,15 @@ class TestPlugwise:
 
         await smile.close_connection()
         await self.disconnect(server, client)
+
+    @pytest.mark.asyncio
+    async def test_fail_legacy_system(self):
+        self.smile_setup = 'faulty_stretch'
+        try:
+            server, smile, client = await self.connect_wrapper()
+            assert False
+        except Smile.ConnectionFailedError:
+            assert True
 
     class PlugwiseTestError(Exception):
         """Plugwise test exceptions class."""

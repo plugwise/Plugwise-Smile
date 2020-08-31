@@ -48,8 +48,8 @@ class TestPlugwise:
         app = aiohttp.web.Application()
         app.router.add_get("/core/appliances", self.smile_appliances)
         app.router.add_get("/core/domain_objects", self.smile_domain_objects)
-        app.router.add_get("/core/modules", self.smile_modules)
         app.router.add_get("/system/status.xml", self.smile_status)
+        app.router.add_get("/system", self.smile_status)
 
         if broken:
             app.router.add_get("/core/locations", self.smile_broken)
@@ -97,19 +97,15 @@ class TestPlugwise:
         f.close()
         return aiohttp.web.Response(text=data)
 
-    async def smile_modules(self, request):
-        """Render setup specific modules endpoint."""
-        f = open("tests/{}/core.modules.xml".format(self.smile_setup), "r")
-        data = f.read()
-        f.close()
-        return aiohttp.web.Response(text=data)
-
     async def smile_status(self, request):
         """Render setup specific status endpoint."""
-        f = open("tests/{}/system_status_xml.xml".format(self.smile_setup), "r")
-        data = f.read()
-        f.close()
-        return aiohttp.web.Response(text=data)
+        try:
+            f = open("tests/{}/system_status_xml.xml".format(self.smile_setup), "r")
+            data = f.read()
+            f.close()
+            return aiohttp.web.Response(text=data)
+        except OSError:
+            raise self.ConnectError
 
     async def smile_set_temp_or_preset(self, request):
         """Render generic API calling endpoint."""
@@ -1203,6 +1199,48 @@ class TestPlugwise:
 
         await smile.close_connection()
         await self.disconnect(server, client)
+
+    @pytest.mark.asyncio
+    async def test_connect_stretch_v31(self):
+        """Test erronous domain_objects file from user."""
+        # testdata dictionary with key ctrl_id_dev_id => keys:values
+        testdata = {
+            # Koelkast
+            "e1c884e7dede431dadee09506ec4f859": {
+                "electricity_consumed": 53.2,
+                "relay": True,
+            },
+            # Droger
+            "cfe95cf3de1948c0b8955125bf754614": {
+                "electricity_consumed_interval": 1.06,
+            },
+        }
+
+        self.smile_setup = "stretch_v31"
+        server, smile, client = await self.connect_wrapper()
+        assert smile.smile_hostname == "stretch000000"
+
+        _LOGGER.info("Basics:")
+        _LOGGER.info(" # Assert type = thermostat")
+        assert smile.smile_type == "stretch_v3"
+        _LOGGER.info(" # Assert version")
+        assert smile.smile_version[0] == "3.1.11"
+        _LOGGER.info(" # Assert legacy")
+        assert smile._smile_legacy  # pylint: disable=protected-access
+
+        await self.device_test(smile, testdata)
+
+        await smile.close_connection()
+        await self.disconnect(server, client)
+
+    @pytest.mark.asyncio
+    async def test_fail_legacy_system(self):
+        self.smile_setup = 'faulty_stretch'
+        try:
+            server, smile, client = await self.connect_wrapper()
+            assert False
+        except Smile.ConnectionFailedError:
+            assert True
 
     class PlugwiseTestError(Exception):
         """Plugwise test exceptions class."""

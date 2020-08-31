@@ -48,7 +48,6 @@ class TestPlugwise:
         app = aiohttp.web.Application()
         app.router.add_get("/core/appliances", self.smile_appliances)
         app.router.add_get("/core/domain_objects", self.smile_domain_objects)
-        app.router.add_get("/core/modules", self.smile_modules)
         app.router.add_get("/system/status.xml", self.smile_status)
         app.router.add_get("/system", self.smile_status)
 
@@ -94,13 +93,6 @@ class TestPlugwise:
     async def smile_locations(self, request):
         """Render setup specific locations endpoint."""
         f = open("tests/{}/core.locations.xml".format(self.smile_setup), "r")
-        data = f.read()
-        f.close()
-        return aiohttp.web.Response(text=data)
-
-    async def smile_modules(self, request):
-        """Render setup specific modules endpoint."""
-        f = open("tests/{}/core.modules.xml".format(self.smile_setup), "r")
         data = f.read()
         f.close()
         return aiohttp.web.Response(text=data)

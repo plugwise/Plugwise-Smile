@@ -330,7 +330,7 @@ class Smile:
         if resp.status == 202:
             return
         # Cornercase for stretch not responsing 202
-        if method = 'put' and resp.status == 200:
+        if method == 'put' and resp.status == 200:
             return
 
         if not result or "<error>" in result:

@@ -179,7 +179,7 @@ class Smile:
 
         result = await self.request(DOMAIN_OBJECTS)
         dsmrmain = result.find(".//module/protocols/dsmrmain")
-        master_controller = result.find(".//module/protocols/master_controller")
+        network = result.find(".//module/protocols/network_router/network")
 
         vendor_names = result.findall(".//module/vendor_name")
         for name in vendor_names:
@@ -222,12 +222,13 @@ class Smile:
                         raise self.ConnectionFailedError
 
                 # Stretch:
-                elif master_controller is not None:
+                elif network is not None:
                     try:
                         system = await self.request(SYSTEM)
                         smile_version = system.find(".//gateway/firmware").text
                         smile_model = system.find(".//gateway/product").text
                         self.smile_hostname = system.find(".//gateway/hostname").text
+                        self.gateway_id = network.attrib["id"]
                     except self.InvalidXMLError:
                         raise self.ConnectionFailedError
                 else:

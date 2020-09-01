@@ -510,7 +510,7 @@ class Smile:
         home_location = None
         locations = {}
 
-        # Legacy Anna without outdoor_temp has no locations, create one containing all appliances
+        # Legacy Anna without outdoor_temp and Stretches have no locations, create one containing all appliances
         if len(self._locations) == 0 and self._smile_legacy:
             appliances = set([])
             home_location = 0
@@ -531,6 +531,8 @@ class Smile:
                     "types": set(["power"]),
                     "members": appliances,
                 }
+
+            self._home_location = home_location
 
             return locations, home_location
 

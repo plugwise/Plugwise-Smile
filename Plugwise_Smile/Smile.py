@@ -26,7 +26,7 @@ RULES = "/core/rules"
 SYSTEM = "/system"
 STATUS = "/system/status.xml"
 
-DEFAULT_TIMEOUT = 20
+DEFAULT_TIMEOUT = 30
 
 _LOGGER = logging.getLogger(__name__)
 

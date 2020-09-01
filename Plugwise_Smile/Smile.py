@@ -328,6 +328,9 @@ class Smile:
         # Command accepted gives empty body with status 202
         if resp.status == 202:
             return
+        # Cornercase for stretch not responsing 202
+        if method = 'put' and resp.status == 200:
+            return
 
         if not result or "<error>" in result:
             _LOGGER.error("Smile response empty or error in %s", result)

@@ -762,7 +762,7 @@ class Smile:
                     "location", self._home_location, "outdoor_temperature"
                 )
 
-            if outdoor_temperatureis not None:
+            if outdoor_temperature is not None:
                 device_data["outdoor_temperature"] = outdoor_temperature
 
         return device_data

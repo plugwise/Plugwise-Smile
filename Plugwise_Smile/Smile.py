@@ -750,11 +750,6 @@ class Smile:
 
         # Generic
         if details["class"] == "gateway" or dev_id == self.gateway_id:
-            # Try to get P1 data
-            power_data = self.get_power_data_from_location(details["location"])
-            if power_data is not None:
-                device_data.update(power_data)
-
             heater_data = self.get_appliance_data(self.heater_id)
             outdoor_temperature = heater_data.get("outdoor_temperature")
             if outdoor_temperature is None:
@@ -764,6 +759,11 @@ class Smile:
 
             if outdoor_temperature is not None:
                 device_data["outdoor_temperature"] = outdoor_temperature
+
+            # Try to get P1 data and 2nd outdoor_temperature, when present
+            power_data = self.get_power_data_from_location(details["location"])
+            if power_data is not None:
+                device_data.update(power_data)
 
         return device_data
 

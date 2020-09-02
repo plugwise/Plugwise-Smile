@@ -756,14 +756,14 @@ class Smile:
                 device_data.update(power_data)
 
             heater_data = self.get_appliance_data(self.heater_id)
-            outdoor_temperature_1 = heater_data.get("outdoor_temperature")
-            outdoor_temperature_2  = self.get_object_value(
-                "location", self._home_location, "outdoor_temperature"
-            )
+            outdoor_temperature = heater_data.get("outdoor_temperature")
+            if outdoor_temperature is None:
+                outdoor_temperature  = self.get_object_value(
+                    "location", self._home_location, "outdoor_temperature"
+                )
 
-            device_data["outdoor_temperature"] = outdoor_temperature_1
-            if outdoor_temperature_2 is not None:
-                device_data["outdoor_temperature"] = outdoor_temperature_2
+            if outdoor_temperatureis not None:
+                device_data["outdoor_temperature"] = outdoor_temperature
 
         return device_data
 

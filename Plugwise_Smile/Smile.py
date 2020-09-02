@@ -34,7 +34,6 @@ HOME_MEASUREMENTS = {
     "electricity_consumed": "power",
     "electricity_produced": "power",
     "gas_consumed": "gas",
-    # Outdoor temp as reported on the Anna, in the App
     "outdoor_temperature": "temperature",
 }
 
@@ -56,6 +55,8 @@ DEVICE_MEASUREMENTS = {
     "electricity_consumed": "electricity_consumed",
     "electricity_produced": "electricity_produced",
     "relay": "relay",
+    # Outdoor temp as reported on the Anna, in the App
+    "outdoor_temperature": "outdoor_temperature",
     # Anna/Adam: use intended_c_h_state, this key shows the heating-behavior better than c-h_state
     "intended_central_heating_state": "heating_state",
     "domestic_hot_water_state": "dhw_state",
@@ -754,9 +755,13 @@ class Smile:
             if power_data is not None:
                 device_data.update(power_data)
 
-            outdoor_temperature = self.get_object_value(
-                "location", self._home_location, "outdoor_temperature"
-            )
+            heater_data = self.get_appliance_data(self.heater_id)
+            outdoor_temperature = heater_data.get("outdoor_temperature")
+            if outdoor_temperature is None:
+                outdoor_temperature = self.get_object_value(
+                    "location", self._home_location, "outdoor_temperature"
+                )
+
             if outdoor_temperature is not None:
                 device_data["outdoor_temperature"] = outdoor_temperature
 

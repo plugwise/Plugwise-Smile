@@ -746,7 +746,7 @@ class Smile:
         if details["class"] in ["thermostat"]:
             illuminance = self.get_object_value("appliance", dev_id, "illuminance")
             if illuminance is not None:
-                device_data["illuminance"] = illuminance
+                device_data["illuminance"] = self._format_measure(illuminance)
 
         # Generic
         if details["class"] == "gateway" or dev_id == self.gateway_id:

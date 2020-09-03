@@ -885,7 +885,7 @@ class Smile:
                         key_string = f"{measurement}_{log_found}"
                     net_string = f"net_electricity_{log_found}"
                     val = float(loc_logs.find(locator).text)
-                    val = self._format_measure(val)
+                    val = float(f"{round(val, 1):.1f}")
                     if "electricity" in measurement:
                         val = int(round(val))
 

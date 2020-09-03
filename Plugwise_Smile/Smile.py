@@ -830,8 +830,10 @@ class Smile:
             try:
                 if float(measure) < 10:
                     measure = float(f"{round(float(measure), 2):.2f}")
-                else:
+                elif float(measure) >= 10 and float(measure) < 100:
                     measure = float(f"{round(float(measure), 1):.1f}")
+                elif float(measure) >= 100:
+                    measure = int(round(float(measure))
             except ValueError:
                 if measure == "on":
                     measure = True

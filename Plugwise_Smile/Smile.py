@@ -883,10 +883,13 @@ class Smile:
                         peak = "off_peak"
                     log_found = log_type.split("_")[0]
                     key_string = f"{measurement}_{peak}_{log_found}"
-                    if "gas" in measurement:
-                        key_string = f"{measurement}_{log_found}"
                     net_string = f"net_electricity_{log_found}"
-                    val = self._format_measure(loc_logs.find(locator).text)
+                    val = loc_logs.find(locator).text
+                    f_val = self._format_measure(val)
+                    if "gas" in measurement:
+                        key_string = f"{measurement}_{log_found}
+                        f_val = float(f"{round(float(val), 1):.1f}")
+
                     if "electricity" in measurement:
                         val = int(round(val))
 
@@ -899,7 +902,7 @@ class Smile:
                             direct_data[net_string] = int()
                         direct_data[net_string] += int(val * diff)
 
-                    direct_data[key_string] = val
+                    direct_data[key_string] = f_val
 
         if direct_data != {}:
             return direct_data

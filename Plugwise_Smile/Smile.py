@@ -746,7 +746,7 @@ class Smile:
         if details["class"] in ["thermostat"]:
             illuminance = self.get_object_value("appliance", dev_id, "illuminance")
             if illuminance is not None:
-                device_data["illuminance"] = self._format_measure(float(illuminance))
+                device_data["illuminance"] = illuminance
 
         # Generic
         if details["class"] == "gateway" or dev_id == self.gateway_id:
@@ -1121,7 +1121,8 @@ class Smile:
             f'[type="{measurement}"]/period/measurement'
         )
         if search.find(locator) is not None:
-            val = float(f"{round(float(search.find(locator).text), 1):.1f}")
+            val = float(search.find(locator).text)
+            val = self._format_measure(val)
             return val
 
         return None

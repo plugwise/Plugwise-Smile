@@ -887,7 +887,7 @@ class Smile:
                     val = loc_logs.find(locator).text
                     f_val = self._format_measure(val)
                     if "gas" in measurement:
-                        key_string = f"{measurement}_{log_found}
+                        key_string = f"{measurement}_{log_found}"
                         f_val = float(f"{round(float(val), 1):.1f}")
 
                     if "electricity" in measurement:

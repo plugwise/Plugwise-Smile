@@ -397,7 +397,7 @@ class TestPlugwise:
             "0d266432d64443e283b5d708ae98b455": {
                 "setpoint": 20.5,
                 "temperature": 20.4,
-                "illuminance": 150,
+                "illuminance": 151,
             },
             # Central
             "04e4cbfe7f4340f090f85ec3b9e6a950": {

@@ -830,8 +830,10 @@ class Smile:
             try:
                 if float(measure) < 10:
                     measure = float(f"{round(float(measure), 2):.2f}")
-                else:
+                elif float(measure) >= 10 and float(measure) < 100:
                     measure = float(f"{round(float(measure), 1):.1f}")
+                elif float(measure) >= 100:
+                    measure = int(round(float(measure)))
             except ValueError:
                 if measure == "on":
                     measure = True
@@ -881,21 +883,24 @@ class Smile:
                         peak = "off_peak"
                     log_found = log_type.split("_")[0]
                     key_string = f"{measurement}_{peak}_{log_found}"
+                    net_string = f"net_electricity_{log_found}"
+                    val = loc_logs.find(locator).text
+                    f_val = self._format_measure(val)
                     if "gas" in measurement:
                         key_string = f"{measurement}_{log_found}"
-                    net_string = f"net_electricity_{log_found}"
-                    val = float(loc_logs.find(locator).text)
+                        f_val = float(f"{round(float(val), 1):.1f}")
 
                     # Energy differential
                     if "electricity" in measurement:
+                        val = int(round(float(val)))
                         diff = 1
                         if "produced" in measurement:
                             diff = -1
                         if net_string not in direct_data:
-                            direct_data[net_string] = float()
-                        direct_data[net_string] += float(val * diff)
+                            direct_data[net_string] = int()
+                        direct_data[net_string] += int(val * diff)
 
-                    direct_data[key_string] = val
+                    direct_data[key_string] = f_val
 
         if direct_data != {}:
             return direct_data
@@ -1116,7 +1121,7 @@ class Smile:
             f'[type="{measurement}"]/period/measurement'
         )
         if search.find(locator) is not None:
-            val = float(f"{round(float(search.find(locator).text), 1):.1f}")
+            val = self._format_measure(search.find(locator).text)
             return val
 
         return None

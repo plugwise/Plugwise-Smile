@@ -188,7 +188,7 @@
 				<last_consecutive_log_date>2020-03-16T19:49:56.942+01:00</last_consecutive_log_date>
 				<illuminance_meter id='bdc76e5a81604df39dc8c5c6adf58339'/>
 				<period start_date="2020-03-16T19:49:56.942+01:00" end_date="2020-03-16T19:49:56.942+01:00">
-					<measurement log_date="2020-03-16T19:49:56.942+01:00">0.75</measurement>
+					<measurement log_date="2020-03-16T19:49:56.942+01:00">150.8</measurement>
 				</period>
 			</point_log>
 			<point_log id='70773456977b402e88e4ec7c3e842d67'>

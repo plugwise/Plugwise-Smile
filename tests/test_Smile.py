@@ -397,7 +397,7 @@ class TestPlugwise:
             "0d266432d64443e283b5d708ae98b455": {
                 "setpoint": 20.5,
                 "temperature": 20.4,
-                "illuminance": 0.8,
+                "illuminance": 151,
             },
             # Central
             "04e4cbfe7f4340f090f85ec3b9e6a950": {
@@ -591,7 +591,7 @@ class TestPlugwise:
                 "water_pressure": 2.1,
                 "water_temperature": 52.0,
             },
-            "0466eae8520144c78afb29628384edeb": {"outdoor_temperature": 7.4,},
+            "0466eae8520144c78afb29628384edeb": {"outdoor_temperature": 7.44,},
         }
 
         self.smile_setup = "anna_v4"
@@ -862,7 +862,7 @@ class TestPlugwise:
             },
             # Adam
             "90986d591dcd426cae3ec3e8111ff730": {"intended_boiler_temperature": 70.0},
-            "fe799307f1624099878210aa0b9f1475": {"outdoor_temperature": 7.7,},
+            "fe799307f1624099878210aa0b9f1475": {"outdoor_temperature": 7.69,},
             # Modem
             "675416a629f343c495449970e2ca37b5": {
                 "electricity_consumed": 12.2,
@@ -943,7 +943,7 @@ class TestPlugwise:
             },
             # Adam
             "90986d591dcd426cae3ec3e8111ff730": {"intended_boiler_temperature": 70.0},
-            "fe799307f1624099878210aa0b9f1475": {"outdoor_temperature": 7.8,},
+            "fe799307f1624099878210aa0b9f1475": {"outdoor_temperature": 7.81,},
             # Modem
             "675416a629f343c495449970e2ca37b5": {
                 "electricity_consumed": 12.2,

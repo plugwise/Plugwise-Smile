@@ -170,7 +170,7 @@ class TestPlugwise:
         )
 
         if not timeout:
-            assert smile._timeout == 20  # pylint: disable=protected-access
+            assert smile._timeout == 30  # pylint: disable=protected-access
         assert smile._domain_objects is None  # pylint: disable=protected-access
         assert smile.smile_type is None
 

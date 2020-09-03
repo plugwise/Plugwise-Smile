@@ -26,7 +26,7 @@ RULES = "/core/rules"
 SYSTEM = "/system"
 STATUS = "/system/status.xml"
 
-DEFAULT_TIMEOUT = 20
+DEFAULT_TIMEOUT = 30
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,7 +34,6 @@ HOME_MEASUREMENTS = {
     "electricity_consumed": "power",
     "electricity_produced": "power",
     "gas_consumed": "gas",
-    # Outdoor temp as reported on the Anna, in the App
     "outdoor_temperature": "temperature",
 }
 
@@ -56,6 +55,8 @@ DEVICE_MEASUREMENTS = {
     "electricity_consumed": "electricity_consumed",
     "electricity_produced": "electricity_produced",
     "relay": "relay",
+    # Outdoor temp as reported on the Anna, in the App
+    "outdoor_temperature": "outdoor_temperature",
     # Anna/Adam: use intended_c_h_state, this key shows the heating-behavior better than c-h_state
     "intended_central_heating_state": "heating_state",
     "domestic_hot_water_state": "dhw_state",
@@ -179,7 +180,7 @@ class Smile:
 
         result = await self.request(DOMAIN_OBJECTS)
         dsmrmain = result.find(".//module/protocols/dsmrmain")
-        master_controller = result.find(".//module/protocols/master_controller")
+        network = result.find(".//module/protocols/network_router/network")
 
         vendor_names = result.findall(".//module/vendor_name")
         for name in vendor_names:
@@ -222,12 +223,13 @@ class Smile:
                         raise self.ConnectionFailedError
 
                 # Stretch:
-                elif master_controller is not None:
+                elif network is not None:
                     try:
                         system = await self.request(SYSTEM)
                         smile_version = system.find(".//gateway/firmware").text
                         smile_model = system.find(".//gateway/product").text
                         self.smile_hostname = system.find(".//gateway/hostname").text
+                        self.gateway_id = network.attrib["id"]
                     except self.InvalidXMLError:
                         raise self.ConnectionFailedError
                 else:
@@ -327,6 +329,9 @@ class Smile:
 
         # Command accepted gives empty body with status 202
         if resp.status == 202:
+            return
+        # Cornercase for stretch not responsing 202
+        if method == 'put' and resp.status == 200:
             return
 
         if not result or "<error>" in result:
@@ -510,7 +515,7 @@ class Smile:
         home_location = None
         locations = {}
 
-        # Legacy Anna without outdoor_temp has no locations, create one containing all appliances
+        # Legacy Anna without outdoor_temp and Stretches have no locations, create one containing all appliances
         if len(self._locations) == 0 and self._smile_legacy:
             appliances = set([])
             home_location = 0
@@ -531,6 +536,8 @@ class Smile:
                     "types": set(["power"]),
                     "members": appliances,
                 }
+
+            self._home_location = home_location
 
             return locations, home_location
 
@@ -743,16 +750,18 @@ class Smile:
 
         # Generic
         if details["class"] == "gateway" or dev_id == self.gateway_id:
-            # Try to get P1 data
+            #Anna: outdoor_temperature only present in domain_objects
+            if "outdoor_temperature" not in device_data:
+                outdoor_temperature  = self.get_object_value(
+                   "location", self._home_location, "outdoor_temperature"
+               )
+            if outdoor_temperature is not None:
+                device_data["outdoor_temperature"] = outdoor_temperature
+
+            # Try to get P1 data and 2nd outdoor_temperature, when present
             power_data = self.get_power_data_from_location(details["location"])
             if power_data is not None:
                 device_data.update(power_data)
-
-            outdoor_temperature = self.get_object_value(
-                "location", self._home_location, "outdoor_temperature"
-            )
-            if outdoor_temperature is not None:
-                device_data["outdoor_temperature"] = outdoor_temperature
 
         return device_data
 

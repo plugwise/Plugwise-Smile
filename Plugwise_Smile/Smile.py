@@ -885,6 +885,9 @@ class Smile:
                         key_string = f"{measurement}_{log_found}"
                     net_string = f"net_electricity_{log_found}"
                     val = float(loc_logs.find(locator).text)
+                    val = self._format_measure(val)
+                    if "electricity" in measurement:
+                        val = int(round(val))
 
                     # Energy differential
                     if "electricity" in measurement:
@@ -892,8 +895,8 @@ class Smile:
                         if "produced" in measurement:
                             diff = -1
                         if net_string not in direct_data:
-                            direct_data[net_string] = float()
-                        direct_data[net_string] += float(val * diff)
+                            direct_data[net_string] = int()
+                        direct_data[net_string] += int(val * diff)
 
                     direct_data[key_string] = val
 

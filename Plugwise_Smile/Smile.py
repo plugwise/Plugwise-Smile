@@ -833,7 +833,7 @@ class Smile:
                 elif float(measure) >= 10 and float(measure) < 100:
                     measure = float(f"{round(float(measure), 1):.1f}")
                 elif float(measure) >= 100:
-                    measure = int(round(float(measure))
+                    measure = int(round(float(measure)))
             except ValueError:
                 if measure == "on":
                     measure = True

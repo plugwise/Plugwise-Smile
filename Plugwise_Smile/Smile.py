@@ -1121,8 +1121,7 @@ class Smile:
             f'[type="{measurement}"]/period/measurement'
         )
         if search.find(locator) is not None:
-            val = float(search.find(locator).text)
-            val = self._format_measure(val)
+            val = self._format_measure(search.find(locator).text)
             return val
 
         return None

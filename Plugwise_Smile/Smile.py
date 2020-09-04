@@ -27,6 +27,8 @@ SYSTEM = "/system"
 STATUS = "/system/status.xml"
 
 DEFAULT_TIMEOUT = 30
+DEFAULT_USERNAME = "smile"
+DEFAULT_PORT = 80
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -132,8 +134,8 @@ class Smile:
         self,
         host,
         password,
-        username,
-        port,
+        username=DEFAULT_USERNAME,
+        port=DEFAULT_PORT,
         timeout=DEFAULT_TIMEOUT,
         websession: aiohttp.ClientSession = None,
     ):

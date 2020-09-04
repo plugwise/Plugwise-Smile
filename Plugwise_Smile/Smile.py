@@ -321,12 +321,6 @@ class Smile:
             )
             raise self.ErrorSendingCommandError
 
-        try:
-            result = await resp.text()
-        except asyncio.TimeoutError:
-            _LOGGER.error("Timed out reading response from Smile")
-            raise self.DeviceTimeoutError
-
         # Command accepted gives empty body with status 202
         if resp.status == 202:
             return
@@ -334,6 +328,7 @@ class Smile:
         if method == 'put' and resp.status == 200:
             return
 
+        result = await resp.text()
         if not result or "<error>" in result:
             _LOGGER.error("Smile response empty or error in %s", result)
             raise self.ResponseError

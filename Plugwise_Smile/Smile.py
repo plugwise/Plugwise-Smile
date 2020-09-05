@@ -155,7 +155,7 @@ class Smile:
 
         self._auth = aiohttp.BasicAuth(username, password=password)
         # Work-around for Stretchv2-aiohttp-deflate-error, can be removed for aiohttp v3.7
-        self._headers = {"Accept-Encoding": "gzip"}
+        self._headers = {"Accept-Encoding": "gzip", "Connection": "close"}
 
         self._timeout = timeout
         self._endpoint = f"http://{host}:{str(port)}"
@@ -317,11 +317,11 @@ class Smile:
                 raise self.DeviceTimeoutError
             return await self.request(command, retry - 1)
 
-        except aiohttp.ClientError:
-            _LOGGER.error(
-                "Error sending command to Plugwise: %s", command, exc_info=True
-            )
-            raise self.ErrorSendingCommandError
+        #except aiohttp.ClientError:
+        #    _LOGGER.error(
+        #        "Error sending command to Plugwise: %s", command, exc_info=True
+        #    )
+        #    raise self.ErrorSendingCommandError
 
         # Command accepted gives empty body with status 202
         if resp.status == 202:

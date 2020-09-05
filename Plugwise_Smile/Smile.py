@@ -695,7 +695,44 @@ class Smile:
 
             devices[appliance] = details
 
+        group_data = self.get_group_switches()
+        if group_data is not None:
+            devices.update(group_data)
+
         return devices
+
+    def get_group_switches(self):
+        """Provide switching- or pump-groups, from DOMAIN_OBJECTS."""
+        groups = {}
+        search = self._domain_objects
+
+        appliances = search.findall("./appliance")
+        groups = search.findall("./group")
+        
+        for group in groups:
+            group_appl = {}
+            apl_relay_state = {}
+            members = []
+            group_id = group.attrib["id"]
+            group_name = group.find("name").text
+            group_type = group.find("type").text
+            for appliance in appliances:
+                if appliance.find("./groups/group") is not None:
+                    appl_id = appliance.attrib["id"]
+                    apl_gr_id = appliance.find("./groups/group").attrib["id"]
+                    if apl_gr_id == group_id:
+                        members.append(appl_id)
+
+            if group_type == "switching":
+                group_appl[group_id] = {
+                    "name": group_name,
+                    "types": {"switch_group"},
+                    "class": group_type,
+                    "members": members,
+                    "location": None,
+                }
+
+                return group_appl
 
     def get_device_data(self, dev_id):
         """Provide device-data, based on location_id, from APPLIANCES."""
@@ -759,6 +796,18 @@ class Smile:
             power_data = self.get_power_data_from_location(details["location"])
             if power_data is not None:
                 device_data.update(power_data)
+
+        ## Switching Groups
+        if details["class"] == "switching":
+            counter = 0
+            for member in details["members"]:
+                appl_data = self.get_appliance_data(member)
+                if appl_data["relay"] == True:
+                    counter += 1
+
+            device_data["relay"] = True
+            if counter == 0:
+                device_data["relay"] = False
 
         return device_data
 
@@ -1199,23 +1248,37 @@ class Smile:
 
         return f"{LOCATIONS};id={loc_id}/thermostat;id={thermostat_functionality_id}"
 
-    async def set_relay_state(self, appl_id, state):
+    async def set_relay_state(self, appl_id, members, state):
         """Switch the Plug off/on."""
         actuator = "actuator_functionalities"
         relay = "relay_functionality"
         if self.smile_type == "stretch_v2":
             actuator = "actuators"
             relay = "relay"
-        locator = f'appliance[@id="{appl_id}"]/{actuator}/{relay}'
-        relay_functionality_id = self._appliances.find(locator).attrib["id"]
-        uri = f"{APPLIANCES};id={appl_id}/relay;id={relay_functionality_id}"
-        if self.smile_type == "stretch_v2":
-            uri = f"{APPLIANCES};id={appl_id}/relay"
-        state = str(state)
-        data = f"<{relay}><state>{state}</state></{relay}>"
 
-        await self.request(uri, method="put", data=data)
-        return True
+        if members is not None:
+            for member in members:
+                locator = (f'appliance[@id="{member}"]/{actuator}/{relay}')
+                relay_functionality_id = self._appliances.find(locator).attrib["id"]
+                uri = f"{APPLIANCES};id={member}/relay;id={relay_functionality_id}"
+                if self.smile_type == "stretch_v2":
+                    uri = f"{APPLIANCES};id={member}/relay"
+                state = str(state)
+                data = f"<{relay}><state>{state}</state></{relay}>"
+
+                await self.request(uri, method="put", data=data)
+            return True
+        else:
+            locator = (f'appliance[@id="{appl_id}"]/{actuator}/{relay}')
+            relay_functionality_id = self._appliances.find(locator).attrib["id"]
+            uri = f"{APPLIANCES};id={appl_id}/relay;id={relay_functionality_id}"
+            if self.smile_type == "stretch_v2":
+                uri = f"{APPLIANCES};id={appl_id}/relay"
+            state = str(state)
+            data = f"<{relay}><state>{state}</state></{relay}>"
+
+            await self.request(uri, method="put", data=data)
+            return True
 
     @staticmethod
     def escape_illegal_xml_characters(xmldata):

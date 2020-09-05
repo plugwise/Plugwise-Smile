@@ -308,7 +308,7 @@ class TestPlugwise:
             for new_state in [False, True, False]:
                 _LOGGER.info("- Switching %s", new_state)
                 try:
-                    relay_change = await smile.set_relay_state(dev_id, new_state)
+                    relay_change = await smile.set_relay_state(dev_id, None, new_state)
                     assert relay_change
                     _LOGGER.info("  + worked as intended")
                 except (Smile.ErrorSendingCommandError, Smile.ResponseError):

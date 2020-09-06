@@ -938,15 +938,17 @@ class Smile:
 
                     # Energy differential
                     if "electricity" in measurement:
-                        val = int(round(float(val)))
+                        f_val = int(round(float(val)))
                         diff = 1
                         if "produced" in measurement:
                             diff = -1
                         if net_string not in direct_data:
                             direct_data[net_string] = int()
-                        direct_data[net_string] += int(val * diff)
+                        direct_data[net_string] += int(f_val * diff)
+                        _LOGGER.debug("Value:", %s)
 
                     direct_data[key_string] = f_val
+                    _LOGGER.debug("Value:", %s)
 
         if direct_data != {}:
             return direct_data

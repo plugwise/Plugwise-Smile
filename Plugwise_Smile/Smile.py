@@ -944,11 +944,12 @@ class Smile:
                             diff = -1
                         if net_string not in direct_data:
                             direct_data[net_string] = int()
+                            _LOGGER.debug("Value: %s", direct_data[net_string])
                         direct_data[net_string] += int(f_val * diff)
-                        _LOGGER.debug("Value:", %s)
+                        _LOGGER.debug("Value: %s", direct_data[net_string])
 
                     direct_data[key_string] = f_val
-                    _LOGGER.debug("Value:", %s)
+                    _LOGGER.debug("Value: %s", direct_data[key_string])
 
         if direct_data != {}:
             return direct_data

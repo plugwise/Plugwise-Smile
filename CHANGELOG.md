@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.4.0 - Release (pending)
+
+## 1.4.0 - Alpha versions
+
+## 1.3.0 - Never released in favour of 1.4.0
+
+## 1.3.0 - Beta versions
+  - b0: Additional older P1 (DSMR) Legacy (v2) support
+  - b1: Improvements for Stretch
+  - b2: Prevent `None` as `gateway_id` for legacy P1
+  - b4: Use `domain_objects` over `direct_objects` endpoint
+  - b5: Remove internal modules (as requested per #86) for HA-Core
+  - b6: Debugging intermediate for friendly user tests
+  - b7: Code improvements
+  - b8: Stretch v3 tests added
+  - b9: CI-handling adjustments and code cleanup - add Python 3.8 CI-loop
+  - b10: Stretch fixes and outdoor_temperature handling for WTW-systems (e.g. `anna_heatpump`)
+  - b11: Formatting improvements
+  - b12: Code improvements
+  - b13: Code/CI improvements
+
+## 1.3.0 - Alpha versions
+  - a0: Initial legacy Stretch (v2) support
+  - a1: Initial support for Stretch (v3) support
+  - a3: Support gzip encoding
+
+## 1.2.2 - Re-fix notifications
+
+## 1.2.1 - Fix url display, cleanup and adding tests
+
+## 1.2.0 - HA-Core config_flow unique_id fixes
+  - Fix situation where `unique_id` was set to `None` for legacy P1 DSMRs
+  - Introduce using the (discovered) hostname as unique_id
+
+## 1.1.2 - Fix notifications-related bugs
+
 ## 1.1.0 - Add HA-core test-fixtures, Plugwise notifications and improvement of error-detection
   - Add exporter for fixtures to be used by HA-core for testing plugwise
   - Improve `error`-detection

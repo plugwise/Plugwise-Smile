@@ -317,12 +317,6 @@ class Smile:
                 raise self.DeviceTimeoutError
             return await self.request(command, retry - 1)
 
-        #except aiohttp.ClientError:
-        #    _LOGGER.error(
-        #        "Error sending command to Plugwise: %s", command, exc_info=True
-        #    )
-        #    raise self.ErrorSendingCommandError
-
         # Command accepted gives empty body with status 202
         if resp.status == 202:
             return

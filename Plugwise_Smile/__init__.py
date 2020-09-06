@@ -1,5 +1,5 @@
 """Plugwise Smile module."""
 
-__version__ = "1.4.0a4"
+__version__ = "1.4.0a5"
 
 from Plugwise_Smile import Smile

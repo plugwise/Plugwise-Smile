@@ -1,7 +1,7 @@
 # Changelog
 
 ## 1.4.0 - Release
-  - Improve error handling, group switching (Adam).
+  - Improve error handling, add group switching of plugs (Adam).
 
 ## 1.3.0 - Only released in alpha/beta
   - Initial support for Stretch (v2/v3) including tests

@@ -1,30 +1,17 @@
 # Changelog
 
-## 1.4.0 - Release (pending)
+## 1.4.0 - Release
+  - Improve error handling, group switching (Stretch).
 
-## 1.4.0 - Alpha versions
-
-## 1.3.0 - Never released in favour of 1.4.0
-
-## 1.3.0 - Beta versions
-  - b0: Additional older P1 (DSMR) Legacy (v2) support
-  - b1: Improvements for Stretch
-  - b2: Prevent `None` as `gateway_id` for legacy P1
-  - b4: Use `domain_objects` over `direct_objects` endpoint
-  - b5: Remove internal modules (as requested per #86) for HA-Core
-  - b6: Debugging intermediate for friendly user tests
-  - b7: Code improvements
-  - b8: Stretch v3 tests added
-  - b9: CI-handling adjustments and code cleanup - add Python 3.8 CI-loop
-  - b10: Stretch fixes and outdoor_temperature handling for WTW-systems (e.g. `anna_heatpump`)
-  - b11: Formatting improvements
-  - b12: Code improvements
-  - b13: Code/CI improvements
-
-## 1.3.0 - Alpha versions
-  - a0: Initial legacy Stretch (v2) support
-  - a1: Initial support for Stretch (v3) support
-  - a3: Support gzip encoding
+## 1.3.0 - Only released in alpha/beta
+  - Initial support for Stretch (v2/v3) including tests
+  - Support gzip encoding
+  - Improve P1 DSMR legacy support
+  - Ensure `gateway_id` is properly defined (i.e. not `None`)
+  - b4: Use `domain_objects` over `direct_objects` endpoints
+  - Remove py3x internal modules (as requested per #86)
+  - CI-handling improvements and both 3.7 and 3.8 testing
+  - Code cleanup and output formatting improvements
 
 ## 1.2.2 - Re-fix notifications
 

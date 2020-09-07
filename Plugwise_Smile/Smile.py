@@ -697,7 +697,7 @@ class Smile:
 
     def get_group_switches(self):
         """Provide switching- or pump-groups, from DOMAIN_OBJECTS."""
-        groups = {}
+        switch_groups = {}
         search = self._domain_objects
 
         appliances = search.findall("./appliance")
@@ -710,12 +710,17 @@ class Smile:
             group_id = group.attrib["id"]
             group_name = group.find("name").text
             group_type = group.find("type").text
-            for appliance in appliances:
-                if appliance.find("./groups/group") is not None:
-                    appl_id = appliance.attrib["id"]
-                    apl_gr_id = appliance.find("./groups/group").attrib["id"]
-                    if apl_gr_id == group_id:
-                        members.append(appl_id)
+            if "stretch" in self.smile_type:
+                group_appliance = group.findall("appliances/appliance")
+                for dummy in group_appliance:
+                    members.append(dummy.attrib["id"])
+            else:
+                for appliance in appliances:
+                    if appliance.find("./groups/group") is not None:
+                        appl_id = appliance.attrib["id"]
+                        apl_gr_id = appliance.find("./groups/group").attrib["id"]
+                        if apl_gr_id == group_id:
+                            members.append(appl_id)
 
             if group_type == "switching":
                 group_appl[group_id] = {
@@ -726,7 +731,9 @@ class Smile:
                     "location": None,
                 }
 
-                return group_appl
+            switch_groups.update(group_appl)
+
+        return switch_groups
 
     def get_device_data(self, dev_id):
         """Provide device-data, based on location_id, from APPLIANCES."""

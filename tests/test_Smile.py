@@ -10,7 +10,6 @@ import pytest
 
 # Fixture writing
 import io
-import pickle
 import os
 
 import jsonpickle as json
@@ -30,18 +29,6 @@ _LOGGER.setLevel(logging.DEBUG)
 
 class TestPlugwise:
     """Tests for Plugwise Smile."""
-
-    def _write_pickle(self, call, data):
-        """Store JSON data to per-setup files for HA component testing."""
-        path = os.path.join(os.path.dirname(__file__), "testdata/" + self.smile_setup)
-        datafile = os.path.join(path, call + ".pickle")
-        if not os.path.exists(path):
-            os.mkdir(path)
-        if not os.path.exists(os.path.dirname(datafile)):
-            os.mkdir(os.path.dirname(datafile))
-
-        with open(datafile, "wb") as fixture_file:
-            pickle.dump(data, fixture_file)
 
     def _write_json(self, call, data):
         """Store JSON data to per-setup files for HA component testing."""
@@ -257,7 +244,6 @@ class TestPlugwise:
         """Perform basic device tests."""
         _LOGGER.info("Asserting testdata:")
         device_list = smile.get_all_devices()
-        self._write_pickle("get_all_devices", device_list)
         self._write_json("get_all_devices", device_list)
 
         location_list, dummy = smile.scan_thermostats()
@@ -270,7 +256,6 @@ class TestPlugwise:
         _LOGGER.debug("Device list:\n%s", pp4.pformat(device_list))
         for dev_id, details in device_list.items():
             data = smile.get_device_data(dev_id)
-            self._write_pickle("get_device_data/" + dev_id, data)
             self._write_json("get_device_data/" + dev_id, data)
             _LOGGER.debug(
                 "%s",

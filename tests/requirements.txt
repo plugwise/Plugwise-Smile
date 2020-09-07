@@ -11,3 +11,4 @@ pytest-coverage
 pylint_strict_informational
 flake8-black
 black
+jsonpickle

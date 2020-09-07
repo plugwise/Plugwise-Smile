@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.4.0 - Release
+  - Improve error handling, add group switching of plugs (Adam).
+
+## 1.3.0 - Only released in alpha/beta
+  - Initial support for Stretch (v2/v3) including tests
+  - Force gzip encoding, work-around for aiohttp-error
+  - Improve P1 DSMR legacy support
+  - Ensure `gateway_id` is properly defined (i.e. not `None`)
+  - b4: Use `domain_objects` over `direct_objects` endpoints
+  - Remove py3x internal modules (as requested per #86)
+  - CI-handling improvements and both 3.7 and 3.8 testing
+  - Code cleanup and output formatting improvements
+
+## 1.2.2 - Re-fix notifications
+
+## 1.2.1 - Fix url display, cleanup and adding tests
+
+## 1.2.0 - HA-Core config_flow unique_id fixes
+  - Fix situation where `unique_id` was set to `None` for legacy P1 DSMRs
+  - Introduce using the (discovered) hostname as unique_id
+
+## 1.1.2 - Fix notifications-related bugs
+
 ## 1.1.0 - Add HA-core test-fixtures, Plugwise notifications and improvement of error-detection
   - Add exporter for fixtures to be used by HA-core for testing plugwise
   - Improve `error`-detection

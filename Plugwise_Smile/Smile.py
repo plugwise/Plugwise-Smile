@@ -937,7 +937,7 @@ class Smile:
                     f_val = self._format_measure(val)
                     if "gas" in measurement:
                         key_string = f"{measurement}_{log_found}"
-                        f_val = float(f"{round(float(val), 1):.1f}")
+                        f_val = float(f"{round(float(val), 3):.3f}")
 
                     # Energy differential
                     if "electricity" in measurement:

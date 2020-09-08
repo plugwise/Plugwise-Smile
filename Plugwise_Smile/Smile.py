@@ -32,6 +32,8 @@ DEFAULT_PORT = 80
 
 _LOGGER = logging.getLogger(__name__)
 
+SWITCH_GROUP_TYPES = ["switching", "report"]
+
 HOME_MEASUREMENTS = {
     "electricity_consumed": "power",
     "electricity_produced": "power",
@@ -722,7 +724,7 @@ class Smile:
                         if apl_gr_id == group_id:
                             members.append(appl_id)
 
-            if group_type == "switching":
+            if group_type in SWITCH_GROUP_TYPES:
                 group_appl[group_id] = {
                     "name": group_name,
                     "types": {"switch_group"},
@@ -799,7 +801,7 @@ class Smile:
                 device_data.update(power_data)
 
         ## Switching Groups
-        if details["class"] == "switching":
+        if details["class"] in SWITCH_GROUP_TYPES:
             counter = 0
             for member in details["members"]:
                 appl_data = self.get_appliance_data(member)

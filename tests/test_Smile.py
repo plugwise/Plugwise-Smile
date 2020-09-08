@@ -1223,7 +1223,7 @@ class TestPlugwise:
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")
-        assert smile.smile_type == "stretch_v3"
+        assert smile.smile_type == "stretch"
         _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "3.1.11"
         _LOGGER.info(" # Assert legacy")

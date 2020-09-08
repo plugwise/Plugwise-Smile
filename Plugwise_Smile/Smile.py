@@ -122,8 +122,8 @@ SMILES = {
         "friendly_name": "P1",
         "legacy": True,
     },
-    "stretch_v31": {"type": "stretch_v3", "friendly_name": "Stretch", "legacy": True},
-    "stretch_v23": {"type": "stretch_v2", "friendly_name": "Stretch", "legacy": True},
+    "stretch_v31": {"type": "stretch", "friendly_name": "Stretch", "legacy": True},
+    "stretch_v23": {"type": "stretch", "friendly_name": "Stretch", "legacy": True},
 }
 
 
@@ -523,7 +523,7 @@ class Smile:
                     "types": set(["temperature"]),
                     "members": appliances,
                 }
-            if "stretch" in self.smile_type:
+            if self.smile_type == "stretch":
                 locations[0] = {
                     "name": "Legacy Stretch",
                     "types": set(["power"]),
@@ -712,7 +712,7 @@ class Smile:
             group_id = group.attrib["id"]
             group_name = group.find("name").text
             group_type = group.find("type").text
-            if "stretch" in self.smile_type:
+            if self.smile_type == "stretch":
                 group_appliance = group.findall("appliances/appliance")
                 for dummy in group_appliance:
                     members.append(dummy.attrib["id"])
@@ -1255,7 +1255,8 @@ class Smile:
         """Switch the Plug off/on."""
         actuator = "actuator_functionalities"
         relay = "relay_functionality"
-        if self.smile_type == "stretch_v2":
+        stretch_v2 = self.smile_type == "stretch" and self.smile_version[1]["major"] == 2
+        if stretch_v2:
             actuator = "actuators"
             relay = "relay"
 
@@ -1264,7 +1265,7 @@ class Smile:
                 locator = (f'appliance[@id="{member}"]/{actuator}/{relay}')
                 relay_functionality_id = self._appliances.find(locator).attrib["id"]
                 uri = f"{APPLIANCES};id={member}/relay;id={relay_functionality_id}"
-                if self.smile_type == "stretch_v2":
+                if stretch_v2:
                     uri = f"{APPLIANCES};id={member}/relay"
                 state = str(state)
                 data = f"<{relay}><state>{state}</state></{relay}>"
@@ -1275,7 +1276,7 @@ class Smile:
             locator = (f'appliance[@id="{appl_id}"]/{actuator}/{relay}')
             relay_functionality_id = self._appliances.find(locator).attrib["id"]
             uri = f"{APPLIANCES};id={appl_id}/relay;id={relay_functionality_id}"
-            if self.smile_type == "stretch_v2":
+            if stretch_v2:
                 uri = f"{APPLIANCES};id={appl_id}/relay"
             state = str(state)
             data = f"<{relay}><state>{state}</state></{relay}>"

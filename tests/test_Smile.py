@@ -43,7 +43,10 @@ class TestPlugwise:
             fixture_file.write(json.encode(data))
 
     async def setup_app(
-        self, broken=False, timeout=False, put_timeout=False,
+        self,
+        broken=False,
+        timeout=False,
+        put_timeout=False,
     ):
         """Create mock webserver for Smile to interface with."""
         app = aiohttp.web.Application()
@@ -430,7 +433,9 @@ class TestPlugwise:
         await self.tinker_thermostat(
             smile,
             "c34c6864216446528e95d88985e714cc",
-            good_schemas=["Thermostat schedule",],
+            good_schemas=[
+                "Thermostat schedule",
+            ],
         )
         await smile.close_connection()
         await self.disconnect(server, client)
@@ -439,7 +444,9 @@ class TestPlugwise:
         await self.tinker_thermostat(
             smile,
             "c34c6864216446528e95d88985e714cc",
-            good_schemas=["Thermostat schedule",],
+            good_schemas=[
+                "Thermostat schedule",
+            ],
             unhappy=True,
         )
         await smile.close_connection()
@@ -461,7 +468,9 @@ class TestPlugwise:
                 "illuminance": 19.5,
             },
             # Central
-            "ea5d8a7177e541b0a4b52da815166de4": {"water_pressure": 1.7,},
+            "ea5d8a7177e541b0a4b52da815166de4": {
+                "water_pressure": 1.7,
+            },
         }
 
         self.smile_setup = "legacy_anna_2"
@@ -485,7 +494,9 @@ class TestPlugwise:
         await self.tinker_thermostat(
             smile,
             "c34c6864216446528e95d88985e714cc",
-            good_schemas=["Thermostat schedule",],
+            good_schemas=[
+                "Thermostat schedule",
+            ],
         )
         await smile.close_connection()
         await self.disconnect(server, client)
@@ -494,7 +505,9 @@ class TestPlugwise:
         await self.tinker_thermostat(
             smile,
             "c34c6864216446528e95d88985e714cc",
-            good_schemas=["Thermostat schedule",],
+            good_schemas=[
+                "Thermostat schedule",
+            ],
             unhappy=True,
         )
         await smile.close_connection()
@@ -592,7 +605,9 @@ class TestPlugwise:
                 "water_pressure": 2.1,
                 "water_temperature": 52.0,
             },
-            "0466eae8520144c78afb29628384edeb": {"outdoor_temperature": 7.44,},
+            "0466eae8520144c78afb29628384edeb": {
+                "outdoor_temperature": 7.44,
+            },
         }
 
         self.smile_setup = "anna_v4"
@@ -645,9 +660,13 @@ class TestPlugwise:
                 "illuminance": 35.0,
                 "active_preset": "away",
             },
-            "a270735e4ccd45239424badc0578a2b1": {"outdoor_temperature": 10.8,},
+            "a270735e4ccd45239424badc0578a2b1": {
+                "outdoor_temperature": 10.8,
+            },
             # Central
-            "c46b4794d28149699eacf053deedd003": {"heating_state": False,},
+            "c46b4794d28149699eacf053deedd003": {
+                "heating_state": False,
+            },
         }
 
         self.smile_setup = "anna_without_boiler_fw3"
@@ -698,9 +717,13 @@ class TestPlugwise:
                 "illuminance": 44.8,
                 "active_preset": "home",
             },
-            "a270735e4ccd45239424badc0578a2b1": {"outdoor_temperature": 16.6,},
+            "a270735e4ccd45239424badc0578a2b1": {
+                "outdoor_temperature": 16.6,
+            },
             # Central
-            "c46b4794d28149699eacf053deedd003": {"heating_state": True,},
+            "c46b4794d28149699eacf053deedd003": {
+                "heating_state": True,
+            },
         }
 
         self.smile_setup = "anna_without_boiler_fw4"
@@ -787,8 +810,12 @@ class TestPlugwise:
                 "temperature": 20.5,  # HA current_temp
             },
             # Central
-            "2743216f626f43948deec1f7ab3b3d70": {"heating_state": False,},
-            "b128b4bbbd1f47e9bf4d756e8fb5ee94": {"outdoor_temperature": 11.9,},
+            "2743216f626f43948deec1f7ab3b3d70": {
+                "heating_state": False,
+            },
+            "b128b4bbbd1f47e9bf4d756e8fb5ee94": {
+                "outdoor_temperature": 11.9,
+            },
             # Plug MediaCenter
             "aa6b0002df0a46e1b1eb94beb61eddfe": {
                 "electricity_consumed": 10.3,
@@ -863,7 +890,9 @@ class TestPlugwise:
             },
             # Adam
             "90986d591dcd426cae3ec3e8111ff730": {"intended_boiler_temperature": 70.0},
-            "fe799307f1624099878210aa0b9f1475": {"outdoor_temperature": 7.69,},
+            "fe799307f1624099878210aa0b9f1475": {
+                "outdoor_temperature": 7.69,
+            },
             # Modem
             "675416a629f343c495449970e2ca37b5": {
                 "electricity_consumed": 12.2,
@@ -944,7 +973,9 @@ class TestPlugwise:
             },
             # Adam
             "90986d591dcd426cae3ec3e8111ff730": {"intended_boiler_temperature": 70.0},
-            "fe799307f1624099878210aa0b9f1475": {"outdoor_temperature": 7.81,},
+            "fe799307f1624099878210aa0b9f1475": {
+                "outdoor_temperature": 7.81,
+            },
             # Modem
             "675416a629f343c495449970e2ca37b5": {
                 "electricity_consumed": 12.2,
@@ -1114,7 +1145,9 @@ class TestPlugwise:
                 "water_temperature": 29.1,
                 "water_pressure": 1.57,
             },
-            "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 20.2,},
+            "015ae9ea3f964e668e490fa39da3870b": {
+                "outdoor_temperature": 20.2,
+            },
         }
 
         self.smile_setup = "anna_heatpump"
@@ -1154,7 +1187,9 @@ class TestPlugwise:
                 "water_temperature": 24.7,
                 "water_pressure": 1.61,
             },
-            "015ae9ea3f964e668e490fa39da3870b": {"outdoor_temperature": 22.0,},
+            "015ae9ea3f964e668e490fa39da3870b": {
+                "outdoor_temperature": 22.0,
+            },
         }
 
         self.smile_setup = "anna_heatpump_cooling"
@@ -1223,7 +1258,7 @@ class TestPlugwise:
 
         _LOGGER.info("Basics:")
         _LOGGER.info(" # Assert type = thermostat")
-        assert smile.smile_type == "stretch_v3"
+        assert smile.smile_type == "stretch"
         _LOGGER.info(" # Assert version")
         assert smile.smile_version[0] == "3.1.11"
         _LOGGER.info(" # Assert legacy")
@@ -1236,7 +1271,8 @@ class TestPlugwise:
 
     @pytest.mark.asyncio
     async def test_fail_legacy_system(self):
-        self.smile_setup = 'faulty_stretch'
+        """Test erronous legacy stretch system."""
+        self.smile_setup = "faulty_stretch"
         try:
             server, smile, client = await self.connect_wrapper()
             assert False

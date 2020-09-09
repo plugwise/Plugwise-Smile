@@ -32,6 +32,8 @@ DEFAULT_PORT = 80
 
 _LOGGER = logging.getLogger(__name__)
 
+SWITCH_GROUP_TYPES = ["switching", "report"]
+
 HOME_MEASUREMENTS = {
     "electricity_consumed": "power",
     "electricity_produced": "power",
@@ -120,8 +122,8 @@ SMILES = {
         "friendly_name": "P1",
         "legacy": True,
     },
-    "stretch_v31": {"type": "stretch_v3", "friendly_name": "Stretch", "legacy": True},
-    "stretch_v23": {"type": "stretch_v2", "friendly_name": "Stretch", "legacy": True},
+    "stretch_v31": {"type": "stretch", "friendly_name": "Stretch", "legacy": True},
+    "stretch_v23": {"type": "stretch", "friendly_name": "Stretch", "legacy": True},
 }
 
 
@@ -321,7 +323,7 @@ class Smile:
         if resp.status == 202:
             return
         # Cornercase for stretch not responsing 202
-        if method == 'put' and resp.status == 200:
+        if method == "put" and resp.status == 200:
             return
 
         result = await resp.text()
@@ -521,7 +523,7 @@ class Smile:
                     "types": set(["temperature"]),
                     "members": appliances,
                 }
-            if "stretch" in self.smile_type:
+            if self.smile_type == "stretch":
                 locations[0] = {
                     "name": "Legacy Stretch",
                     "types": set(["power"]),
@@ -697,27 +699,31 @@ class Smile:
 
     def get_group_switches(self):
         """Provide switching- or pump-groups, from DOMAIN_OBJECTS."""
-        groups = {}
+        switch_groups = {}
         search = self._domain_objects
 
         appliances = search.findall("./appliance")
         groups = search.findall("./group")
-        
+
         for group in groups:
             group_appl = {}
-            apl_relay_state = {}
             members = []
             group_id = group.attrib["id"]
             group_name = group.find("name").text
             group_type = group.find("type").text
-            for appliance in appliances:
-                if appliance.find("./groups/group") is not None:
-                    appl_id = appliance.attrib["id"]
-                    apl_gr_id = appliance.find("./groups/group").attrib["id"]
-                    if apl_gr_id == group_id:
-                        members.append(appl_id)
+            if self.smile_type == "stretch":
+                group_appliance = group.findall("appliances/appliance")
+                for dummy in group_appliance:
+                    members.append(dummy.attrib["id"])
+            else:
+                for appliance in appliances:
+                    if appliance.find("./groups/group") is not None:
+                        appl_id = appliance.attrib["id"]
+                        apl_gr_id = appliance.find("./groups/group").attrib["id"]
+                        if apl_gr_id == group_id:
+                            members.append(appl_id)
 
-            if group_type == "switching":
+            if group_type in SWITCH_GROUP_TYPES:
                 group_appl[group_id] = {
                     "name": group_name,
                     "types": {"switch_group"},
@@ -726,7 +732,9 @@ class Smile:
                     "location": None,
                 }
 
-                return group_appl
+            switch_groups.update(group_appl)
+
+        return switch_groups
 
     def get_device_data(self, dev_id):
         """Provide device-data, based on location_id, from APPLIANCES."""
@@ -778,11 +786,11 @@ class Smile:
 
         # Generic
         if details["class"] == "gateway" or dev_id == self.gateway_id:
-            #Anna: outdoor_temperature only present in domain_objects
+            # Anna: outdoor_temperature only present in domain_objects
             if "outdoor_temperature" not in device_data:
-                outdoor_temperature  = self.get_object_value(
-                   "location", self._home_location, "outdoor_temperature"
-               )
+                outdoor_temperature = self.get_object_value(
+                    "location", self._home_location, "outdoor_temperature"
+                )
             if outdoor_temperature is not None:
                 device_data["outdoor_temperature"] = outdoor_temperature
 
@@ -792,11 +800,11 @@ class Smile:
                 device_data.update(power_data)
 
         ## Switching Groups
-        if details["class"] == "switching":
+        if details["class"] in SWITCH_GROUP_TYPES:
             counter = 0
             for member in details["members"]:
                 appl_data = self.get_appliance_data(member)
-                if appl_data["relay"] == True:
+                if appl_data["relay"]:
                     counter += 1
 
             device_data["relay"] = True
@@ -928,7 +936,7 @@ class Smile:
                     f_val = self._format_measure(val)
                     if "gas" in measurement:
                         key_string = f"{measurement}_{log_found}"
-                        f_val = float(f"{round(float(val), 1):.1f}")
+                        f_val = float(f"{round(float(val), 3):.3f}")
 
                     # Energy differential
                     if "electricity" in measurement:
@@ -1246,33 +1254,36 @@ class Smile:
         """Switch the Plug off/on."""
         actuator = "actuator_functionalities"
         relay = "relay_functionality"
-        if self.smile_type == "stretch_v2":
+        stretch_v2 = (
+            self.smile_type == "stretch" and self.smile_version[1]["major"] == 2
+        )
+        if stretch_v2:
             actuator = "actuators"
             relay = "relay"
 
         if members is not None:
             for member in members:
-                locator = (f'appliance[@id="{member}"]/{actuator}/{relay}')
+                locator = f'appliance[@id="{member}"]/{actuator}/{relay}'
                 relay_functionality_id = self._appliances.find(locator).attrib["id"]
                 uri = f"{APPLIANCES};id={member}/relay;id={relay_functionality_id}"
-                if self.smile_type == "stretch_v2":
+                if stretch_v2:
                     uri = f"{APPLIANCES};id={member}/relay"
                 state = str(state)
                 data = f"<{relay}><state>{state}</state></{relay}>"
 
                 await self.request(uri, method="put", data=data)
             return True
-        else:
-            locator = (f'appliance[@id="{appl_id}"]/{actuator}/{relay}')
-            relay_functionality_id = self._appliances.find(locator).attrib["id"]
-            uri = f"{APPLIANCES};id={appl_id}/relay;id={relay_functionality_id}"
-            if self.smile_type == "stretch_v2":
-                uri = f"{APPLIANCES};id={appl_id}/relay"
-            state = str(state)
-            data = f"<{relay}><state>{state}</state></{relay}>"
 
-            await self.request(uri, method="put", data=data)
-            return True
+        locator = f'appliance[@id="{appl_id}"]/{actuator}/{relay}'
+        relay_functionality_id = self._appliances.find(locator).attrib["id"]
+        uri = f"{APPLIANCES};id={appl_id}/relay;id={relay_functionality_id}"
+        if stretch_v2:
+            uri = f"{APPLIANCES};id={appl_id}/relay"
+        state = str(state)
+        data = f"<{relay}><state>{state}</state></{relay}>"
+
+        await self.request(uri, method="put", data=data)
+        return True
 
     @staticmethod
     def escape_illegal_xml_characters(xmldata):

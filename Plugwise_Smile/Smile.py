@@ -323,7 +323,7 @@ class Smile:
         if resp.status == 202:
             return
         # Cornercase for stretch not responsing 202
-        if method == 'put' and resp.status == 200:
+        if method == "put" and resp.status == 200:
             return
 
         result = await resp.text()
@@ -704,10 +704,9 @@ class Smile:
 
         appliances = search.findall("./appliance")
         groups = search.findall("./group")
-        
+
         for group in groups:
             group_appl = {}
-            apl_relay_state = {}
             members = []
             group_id = group.attrib["id"]
             group_name = group.find("name").text
@@ -787,11 +786,11 @@ class Smile:
 
         # Generic
         if details["class"] == "gateway" or dev_id == self.gateway_id:
-            #Anna: outdoor_temperature only present in domain_objects
+            # Anna: outdoor_temperature only present in domain_objects
             if "outdoor_temperature" not in device_data:
-                outdoor_temperature  = self.get_object_value(
-                   "location", self._home_location, "outdoor_temperature"
-               )
+                outdoor_temperature = self.get_object_value(
+                    "location", self._home_location, "outdoor_temperature"
+                )
             if outdoor_temperature is not None:
                 device_data["outdoor_temperature"] = outdoor_temperature
 
@@ -805,7 +804,7 @@ class Smile:
             counter = 0
             for member in details["members"]:
                 appl_data = self.get_appliance_data(member)
-                if appl_data["relay"] == True:
+                if appl_data["relay"]:
                     counter += 1
 
             device_data["relay"] = True
@@ -1255,14 +1254,16 @@ class Smile:
         """Switch the Plug off/on."""
         actuator = "actuator_functionalities"
         relay = "relay_functionality"
-        stretch_v2 = self.smile_type == "stretch" and self.smile_version[1]["major"] == 2
+        stretch_v2 = (
+            self.smile_type == "stretch" and self.smile_version[1]["major"] == 2
+        )
         if stretch_v2:
             actuator = "actuators"
             relay = "relay"
 
         if members is not None:
             for member in members:
-                locator = (f'appliance[@id="{member}"]/{actuator}/{relay}')
+                locator = f'appliance[@id="{member}"]/{actuator}/{relay}'
                 relay_functionality_id = self._appliances.find(locator).attrib["id"]
                 uri = f"{APPLIANCES};id={member}/relay;id={relay_functionality_id}"
                 if stretch_v2:
@@ -1272,17 +1273,17 @@ class Smile:
 
                 await self.request(uri, method="put", data=data)
             return True
-        else:
-            locator = (f'appliance[@id="{appl_id}"]/{actuator}/{relay}')
-            relay_functionality_id = self._appliances.find(locator).attrib["id"]
-            uri = f"{APPLIANCES};id={appl_id}/relay;id={relay_functionality_id}"
-            if stretch_v2:
-                uri = f"{APPLIANCES};id={appl_id}/relay"
-            state = str(state)
-            data = f"<{relay}><state>{state}</state></{relay}>"
 
-            await self.request(uri, method="put", data=data)
-            return True
+        locator = f'appliance[@id="{appl_id}"]/{actuator}/{relay}'
+        relay_functionality_id = self._appliances.find(locator).attrib["id"]
+        uri = f"{APPLIANCES};id={appl_id}/relay;id={relay_functionality_id}"
+        if stretch_v2:
+            uri = f"{APPLIANCES};id={appl_id}/relay"
+        state = str(state)
+        data = f"<{relay}><state>{state}</state></{relay}>"
+
+        await self.request(uri, method="put", data=data)
+        return True
 
     @staticmethod
     def escape_illegal_xml_characters(xmldata):

@@ -22,6 +22,7 @@ APPLIANCES = "/core/appliances"
 DIRECT_OBJECTS = "/core/direct_objects"
 DOMAIN_OBJECTS = "/core/domain_objects"
 LOCATIONS = "/core/locations"
+NOTIFICATIONS = "/core/notifications"
 RULES = "/core/rules"
 SYSTEM = "/system"
 STATUS = "/system/status.xml"
@@ -310,6 +311,8 @@ class Smile:
                     resp = await self.websession.put(
                         url, data=data, headers=headers, auth=self._auth
                     )
+                if method == "delete":
+                    resp = await self.websession.delete(url, auth=self._auth)
             if resp.status == 401:
                 raise self.InvalidAuthentication
 
@@ -1350,6 +1353,14 @@ class Smile:
 
         await self.request(uri, method="put", data=data)
         return True
+
+    async def delete_notification(self):
+        """Send a set request to the schema with the given name."""
+        uri = f"{NOTIFICATIONS}"
+        
+        await self.request(uri, method="delete")
+        return True
+
 
     class PlugwiseError(Exception):
         """Plugwise exceptions class."""

@@ -22,7 +22,7 @@ APPLIANCES = "/core/appliances"
 DIRECT_OBJECTS = "/core/direct_objects"
 DOMAIN_OBJECTS = "/core/domain_objects"
 LOCATIONS = "/core/locations"
-NOTIFICATIONS = "/core/notifications"
+PLUGWISE_NOTIFICATIONS = "/core/notifications"
 RULES = "/core/rules"
 SYSTEM = "/system"
 STATUS = "/system/status.xml"
@@ -1356,7 +1356,7 @@ class Smile:
 
     async def delete_notification(self):
         """Send a set request to the schema with the given name."""
-        uri = f"{NOTIFICATIONS}"
+        uri = f"{PLUGWISE_NOTIFICATIONS}"
         
         await self.request(uri, method="delete")
         return True

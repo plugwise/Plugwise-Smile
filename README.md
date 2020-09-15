@@ -28,7 +28,7 @@ Note we currently have a `plugwise` [component](https://github.com/home-assistan
 
 ## Project support status
 
-Module providing interfacing with Plugwise:
+Module providing interfacing with the Plugwise devices:
 
   - [x] Adam
   - [x]  - Floor
@@ -36,13 +36,9 @@ Module providing interfacing with Plugwise:
   - [x]  - Lisa
   - [x]  - Plug
   - [x]  - Tom
-  - [x] Anna
-  - [x]  - v4.0
-  - [x]  - v3.1
-  - [x]  - v1.8 
+  - [x] Anna 
   - [x] Smile P1
-  - [x]  - v3.3
-  - [x]  - v2.5
+  - [x] Stretch
   - [x] [Home-Assistant](https://home-assistant.io) via 
   - [ ]  - Native -> 20200311 for now as 'plugwise' but using haanna - only supporting anna devices
   - [x]  - (HACS)[https://hacs.xyz] and `custom_component` [Plugwise-HA](https://github.com/plugwise/plugwise-beta/]

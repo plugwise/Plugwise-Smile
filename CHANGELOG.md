@@ -1,6 +1,10 @@
 # Changelog
 
-## 1.4.0 - Release
+## 1.5.0 - Add delete_notification service
+  - Add a service to dismiss/delete the Plugwise Notification(s) from within HA Core (plugwise.delete_notification)
+  - Improve detection of switch-groups and add group switching for the Stretch
+
+## 1.4.0 - Stretch and switch-groups
   - Improve error handling, add group switching of plugs (Adam).
 
 ## 1.3.0 - Only released in alpha/beta

@@ -255,14 +255,27 @@ class Smile:
         _LOGGER.debug("Plugwise identified as %s", target_smile)
 
         if target_smile not in SMILES:
-            _LOGGER.error(
-                'Your version Smile identified as "%s" \
-                          seems unsupported by our plugin, please create \
-                          an issue on github.com/plugwise/Plugwise-Smile!\
-                          ',
+            _LOGGER.info('Firmware "%s" not officially supported yet', target_smile)
+            target_smile_major = f"{smile_model}_v{ver['major']}"
+            target_smile = [key for key in SMILES if target_smile_major in key.lower()][
+                0
+            ]
+            if target_smile not in SMILES:
+                _LOGGER.error(
+                    'Your version Smile identified as "%s" \
+                              seems unsupported by our plugin, please create \
+                              an issue on github.com/plugwise/Plugwise-Smile!\
+                              ',
+                    target_smile,
+                )
+                raise self.UnsupportedDeviceError
+
+            _LOGGER.info(
+                'Using "%s" for your smile, please create \
+                        an issue on github.com/plugwise/Plugwise-Smile!\
+                        ',
                 target_smile,
             )
-            raise self.UnsupportedDeviceError
 
         self.smile_name = SMILES[target_smile]["friendly_name"]
         self.smile_type = SMILES[target_smile]["type"]
@@ -1357,10 +1370,9 @@ class Smile:
     async def delete_notification(self):
         """Send a set request to the schema with the given name."""
         uri = f"{NOTIFICATIONS}"
-        
+
         await self.request(uri, method="delete")
         return True
-
 
     class PlugwiseError(Exception):
         """Plugwise exceptions class."""

@@ -84,47 +84,42 @@ DEVICE_MEASUREMENTS = {
 }
 
 SMILES = {
-    "smile_open_therm_v30": {
+    "smile_open_therm_v3": {
         "type": "thermostat",
         "friendly_name": "Adam",
     },
-    "smile_open_therm_v23": {
+    "smile_open_therm_v2": {
         "type": "thermostat",
         "friendly_name": "Adam",
     },
-    "smile_thermo_v40": {
+    "smile_thermo_v4": {
         "type": "thermostat",
         "friendly_name": "Anna",
     },
-    "smile_thermo_v31": {
+    "smile_thermo_v3": {
         "type": "thermostat",
         "friendly_name": "Anna",
     },
-    "smile_thermo_v18": {
+    "smile_thermo_v1": {
         "type": "thermostat",
         "friendly_name": "Anna",
         "legacy": True,
     },
-    "smile_v40": {
+    "smile_v4": {
         "type": "power",
         "friendly_name": "P1",
     },
-    "smile_v33": {
+    "smile_v3": {
         "type": "power",
         "friendly_name": "P1",
     },
-    "smile_v25": {
-        "type": "power",
-        "friendly_name": "P1",
-        "legacy": True,
-    },
-    "smile_v21": {
+    "smile_v2": {
         "type": "power",
         "friendly_name": "P1",
         "legacy": True,
     },
-    "stretch_v31": {"type": "stretch", "friendly_name": "Stretch", "legacy": True},
-    "stretch_v23": {"type": "stretch", "friendly_name": "Stretch", "legacy": True},
+    "stretch_v3": {"type": "stretch", "friendly_name": "Stretch", "legacy": True},
+    "stretch_v2": {"type": "stretch", "friendly_name": "Stretch", "legacy": True},
 }
 
 
@@ -250,7 +245,7 @@ class Smile:
             raise self.UnsupportedDeviceError
 
         ver = semver.parse(smile_version)
-        target_smile = f"{smile_model}_v{ver['major']}{ver['minor']}"
+        target_smile = f"{smile_model}_v{ver['major']}}"
 
         _LOGGER.debug("Plugwise identified as %s", target_smile)
 

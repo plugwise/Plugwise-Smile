@@ -63,18 +63,17 @@ DEVICE_MEASUREMENTS = {
     # Outdoor temp as reported on the Anna, in the App
     "outdoor_temperature": "outdoor_temperature",
     # Anna/Adam: use intended_c_h_state, this key shows the heating-behavior better than c-h_state
+    "intended_boiler_temperature": "intended_boiler_temperature",  # non-zero when heating, zero when dhw-heating
     "intended_central_heating_state": "heating_state",
     "domestic_hot_water_state": "dhw_state",
     "boiler_temperature": "water_temperature",
+    "modulation_level": "modulation_level",
     "return_water_temperature": "return_temperature",
     "central_heater_water_pressure": "water_pressure",  # not present on Adam
     # Legacy Anna: similar to flame-state on Anna/Adam
     "boiler_state": "boiler_state",
-    # Legacy Anna: shows when heating and/or dhw is active
+    # Legacy Anna: shows when heating is active, don't show dhw_state, cannot be determinded reliably
     "intended_boiler_state": "intended_boiler_state",
-    # Legacy Anna: use the next two keys to detect heating/dhw?
-    "intended_boiler_temperature": "intended_boiler_temperature",  # non-zero when heating
-    "modulation_level": "modulation_level",  # TBD
     # Used with the Elga heatpump - marcelveldt
     "cooling_state": "cooling_state",
     # Next  3 keys are used to show the state of the heater used next to the Elga heatpump - marcelveldt
@@ -844,8 +843,11 @@ class Smile:
                         and float(measure) > 3.5
                     ):
                         continue
-
-                    if measurement == "cooling_state" or measurement == "flame_state":
+                    # The presence of either indicates a local active device, e.g. heat-pump or gas-fired heater
+                    if (
+                        measurement == "compressor_state" 
+                        or measurement == "intended_boiler_temperature"
+                    ):
                         self.active_local_device = True
 
                     data[name] = self._format_measure(measure)

@@ -845,7 +845,7 @@ class Smile:
                     ):
                         continue
 
-                    if measurement == "compressor_state" or measurement == "flame_state":
+                    if measurement == "cooling_state" or measurement == "flame_state":
                         self.active_local_device = True
 
                     data[name] = self._format_measure(measure)

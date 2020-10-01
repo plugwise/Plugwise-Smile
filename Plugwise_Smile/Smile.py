@@ -752,7 +752,7 @@ class Smile:
             device_data.pop("boiler_state", None)
             device_data.pop("intended_boiler_state", None)
 
-        # Fix for Adam + Anna
+        # Fix for Adam + Anna: intended_central_heating_state also present under Anna, don't use
         if "setpoint" in device_data:
             device_data.pop("heating_state", None)
 

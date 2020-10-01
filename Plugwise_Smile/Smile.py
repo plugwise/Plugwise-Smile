@@ -164,7 +164,7 @@ class Smile:
         self._smile_legacy = False
         self._thermo_master_id = None
 
-        self.dsmrmain_id = None
+        self.active_local_device = False
         self.gateway_id = None
         self.heater_id = None
         self.smile_hostname = None
@@ -844,6 +844,9 @@ class Smile:
                         and float(measure) > 3.5
                     ):
                         continue
+
+                    if measurement == "compressor_state" or measurement == "flame_state":
+                        self.active_local_device = True
 
                     data[name] = self._format_measure(measure)
 

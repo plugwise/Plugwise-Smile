@@ -773,6 +773,13 @@ class Smile:
         if "setpoint" in device_data:
             device_data.pop("heating_state", None)
 
+        # Indicate heating_state based on valves being open in case of city-provided heating
+        if details["class"] == "heater_central":
+            if not self.active_device_present:
+                device_data["heating_state"] = True
+                if self.get_open_valves == 0:
+                    device_data["heating_state"] = False
+
         # Anna, Lisa, Tom/Floor
         if details["class"] in thermostat_classes:
             device_data["active_preset"] = self.get_preset(details["location"])

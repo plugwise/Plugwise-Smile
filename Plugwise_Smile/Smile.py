@@ -171,7 +171,7 @@ class Smile:
         self.smile_name = None
         self.smile_type = None
         self.smile_version = ()
-        self.valve_open = None
+        self.open_valve_count = 0
 
 
     async def connect(self):
@@ -758,15 +758,6 @@ class Smile:
         if "setpoint" in device_data:
             device_data.pop("heating_state", None)
 
-        # Indicate heating_state based on valves being open in case of city-provided heating
-        if not self.active_device_present:
-            if self.valve_open is not None:
-                if self.valve_open:
-                    device_data["heating_state"] = True
-                else:
-                    device_data["heating_state"] = False
-
-
         # Anna, Lisa, Tom/Floor
         if details["class"] in thermostat_classes:
             device_data["active_preset"] = self.get_preset(details["location"])
@@ -835,6 +826,7 @@ class Smile:
 
         appliances = search.findall(f'.//appliance[@id="{dev_id}"]')
 
+        self.open_valve_count = 0
         for appliance in appliances:
             for measurement, name in DEVICE_MEASUREMENTS.items():
 
@@ -860,6 +852,11 @@ class Smile:
                         or measurement == "flame_state"
                     ):
                         self.active_device_present = True
+                    # Count the amount of open Tom/Floor valves
+                    if measurement == "valve_position":
+                        if not self.active_device_present:
+                            if float(measure) > 0.0:
+                                self.open_valve_count += 1
 
                     data[name] = self._format_measure(measure)
 

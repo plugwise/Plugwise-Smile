@@ -778,7 +778,7 @@ class Smile:
             if details["class"] == "heater_central":
                 if not self.active_device_present:
                     device_data["heating_state"] = True
-                    if self.get_open_valves == 0:
+                    if self.get_open_valves() == 0:
                         device_data["heating_state"] = False
 
         # Anna, Lisa, Tom/Floor

@@ -166,11 +166,13 @@ class Smile:
         self.active_device_present = False
         self.gateway_id = None
         self.heater_id = None
+        self.notifications = {}
         self.smile_hostname = None
         self.smile_name = None
         self.smile_type = None
         self.smile_version = ()
-        self.notifications = {}
+        self.valve_open = False
+
 
     async def connect(self):
         """Connect to Plugwise device."""
@@ -851,6 +853,10 @@ class Smile:
                         self.active_device_present = True
 
                     data[name] = self._format_measure(measure)
+
+                    if measurement == "valve_position":
+                        if data[name] > 0.0 and not self.active_device_present:
+                            self.valve_open = True
 
                 i_locator = (
                     f'.//logs/interval_log[type="{measurement}"]/period/measurement'

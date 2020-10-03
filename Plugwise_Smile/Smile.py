@@ -163,7 +163,7 @@ class Smile:
         self._smile_legacy = False
         self._thermo_master_id = None
 
-        self.active_local_device = False
+        self.active_device_present = False
         self.gateway_id = None
         self.heater_id = None
         self.smile_hostname = None
@@ -846,9 +846,9 @@ class Smile:
                     # The presence of either indicates a local active device, e.g. heat-pump or gas-fired heater
                     if (
                         measurement == "compressor_state" 
-                        or measurement == "intended_boiler_temperature"
+                        or measurement == "flame_state"
                     ):
-                        self.active_local_device = True
+                        self.active_device_present = True
 
                     data[name] = self._format_measure(measure)
 

@@ -852,7 +852,7 @@ class Smile:
                         or measurement == "flame_state"
                     ):
                         self.active_device_present = True
-                    # Count the amount of open Tom/Floor valves
+                    # Count the amount of open Tom/Floor valves, only when no active heating/cooling device present
                     if measurement == "valve_position":
                         if not self.active_device_present:
                             if float(measure) > 0.0:

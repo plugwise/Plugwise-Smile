@@ -171,7 +171,6 @@ class Smile:
         self.smile_name = None
         self.smile_type = None
         self.smile_version = ()
-        self.open_valve_count = 0
 
 
     async def connect(self):
@@ -735,6 +734,22 @@ class Smile:
 
         return switch_groups
 
+    def get_open_valves(self):
+        """Obtain the amount of open valves, from APPLIANCES."""
+        appliances = self._appliances.findall(".//appliance")
+        
+        open_valve_count = 0
+        for appliance in appliances:
+                locator = (
+                    f'.//logs/point_log[type="valve_position"]/period/measurement'
+                )
+                if appliance.find(locator) is not None:
+                    measure = appliance.find(locator).text
+                    if float(measure) > 0.0:
+                        open_valve_count += 1
+
+        return open_valve_count
+
     def get_device_data(self, dev_id):
         """Provide device-data, based on location_id, from APPLIANCES."""
         devices = self.get_all_devices()
@@ -826,7 +841,6 @@ class Smile:
 
         appliances = search.findall(f'.//appliance[@id="{dev_id}"]')
 
-        self.open_valve_count = 0
         for appliance in appliances:
             for measurement, name in DEVICE_MEASUREMENTS.items():
 
@@ -852,19 +866,8 @@ class Smile:
                         or measurement == "flame_state"
                     ):
                         self.active_device_present = True
-                    # Count the amount of open Tom/Floor valves, only when no active heating/cooling device present
-                    if measurement == "valve_position":
-                        if not self.active_device_present:
-                            if float(measure) > 0.0:
-                                self.open_valve_count += 1
 
                     data[name] = self._format_measure(measure)
-
-                    if measurement == "valve_position":
-                        if not self.active_device_present:
-                            self.valve_open = False
-                            if data[name] > 0.0:
-                                self.valve_open = True
 
                 i_locator = (
                     f'.//logs/interval_log[type="{measurement}"]/period/measurement'

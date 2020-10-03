@@ -171,7 +171,7 @@ class Smile:
         self.smile_name = None
         self.smile_type = None
         self.smile_version = ()
-        self.valve_open = False
+        self.valve_open = None
 
 
     async def connect(self):
@@ -758,6 +758,15 @@ class Smile:
         if "setpoint" in device_data:
             device_data.pop("heating_state", None)
 
+        # Indicate heating_state based on valves being open in case of city-provided heating
+        if not self.active_device_present:
+            if self.valve_open is not None:
+                if self.valve_open:
+                    device_data["heating_state"] = True
+                else:
+                    device_data["heating_state"] = False
+
+
         # Anna, Lisa, Tom/Floor
         if details["class"] in thermostat_classes:
             device_data["active_preset"] = self.get_preset(details["location"])
@@ -790,8 +799,8 @@ class Smile:
                 outdoor_temperature = self.get_object_value(
                     "location", self._home_location, "outdoor_temperature"
                 )
-            if outdoor_temperature is not None:
-                device_data["outdoor_temperature"] = outdoor_temperature
+                if outdoor_temperature is not None:
+                    device_data["outdoor_temperature"] = outdoor_temperature
 
             # Try to get P1 data and 2nd outdoor_temperature, when present
             power_data = self.get_power_data_from_location(details["location"])
@@ -855,8 +864,10 @@ class Smile:
                     data[name] = self._format_measure(measure)
 
                     if measurement == "valve_position":
-                        if data[name] > 0.0 and not self.active_device_present:
-                            self.valve_open = True
+                        if not self.active_device_present:
+                            self.valve_open = False
+                            if data[name] > 0.0:
+                                self.valve_open = True
 
                 i_locator = (
                     f'.//logs/interval_log[type="{measurement}"]/period/measurement'

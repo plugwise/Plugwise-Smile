@@ -199,6 +199,7 @@ class Smile:
         # just using request to parse the data
         gateway = result.find(".//gateway")
 
+        model = version = None
         if gateway is not None:
             if gateway.find("hostname") is not None:
                 self.smile_hostname = gateway.find("hostname").text
@@ -209,15 +210,15 @@ class Smile:
             anna = result.find('.//appliance[type="thermostat"]')
             # Fake insert version assuming Anna
             # couldn't find another way to identify as legacy Anna
-            smile_version = "1.8.0"
-            smile_model = "smile_thermo"
+            version = "1.8.0"
+            model = "smile_thermo"
             if anna is None:
                 # P1 legacy:
                 if dsmrmain is not None:
                     try:
                         status = await self.request(STATUS)
-                        smile_version = status.find(".//system/version").text
-                        smile_model = status.find(".//system/product").text
+                        version = status.find(".//system/version").text
+                        model = status.find(".//system/product").text
                         self.smile_hostname = status.find(".//network/hostname").text
                     except self.InvalidXMLError:
                         raise self.ConnectionFailedError
@@ -226,8 +227,8 @@ class Smile:
                 elif network is not None:
                     try:
                         system = await self.request(SYSTEM)
-                        smile_version = system.find(".//gateway/firmware").text
-                        smile_model = system.find(".//gateway/product").text
+                        version = system.find(".//gateway/firmware").text
+                        model = system.find(".//gateway/product").text
                         self.smile_hostname = system.find(".//gateway/hostname").text
                         self.gateway_id = network.attrib["id"]
                     except self.InvalidXMLError:
@@ -237,15 +238,15 @@ class Smile:
                     raise self.ConnectionFailedError
 
         if not self._smile_legacy:
-            smile_model = result.find(".//gateway/vendor_model").text
-            smile_version = result.find(".//gateway/firmware_version").text
+            model = result.find(".//gateway/vendor_model").text
+            version = result.find(".//gateway/firmware_version").text
 
-        if smile_model is None or smile_version is None:
+        if model is None or version is None:
             _LOGGER.error("Unable to find model or version information")
             raise self.UnsupportedDeviceError
 
-        ver = semver.parse(smile_version)
-        target_smile = f"{smile_model}_v{ver['major']}"
+        ver = semver.parse(version)
+        target_smile = f"{model}_v{ver['major']}"
 
         _LOGGER.debug("Plugwise identified as %s", target_smile)
 
@@ -261,7 +262,7 @@ class Smile:
 
         self.smile_name = SMILES[target_smile]["friendly_name"]
         self.smile_type = SMILES[target_smile]["type"]
-        self.smile_version = (smile_version, ver)
+        self.smile_version = (version, ver)
 
         if "legacy" in SMILES[target_smile]:
             self._smile_legacy = SMILES[target_smile]["legacy"]
@@ -290,6 +291,7 @@ class Smile:
         """Request data."""
         # pylint: disable=too-many-return-statements,raise-missing-from
 
+        resp = None
         url = f"{self._endpoint}{command}"
 
         if headers is None:

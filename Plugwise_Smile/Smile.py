@@ -46,41 +46,39 @@ HOME_MEASUREMENTS = {
 # zone_thermosstat 'temperature_offset'
 # radiator_valve 'uncorrected_temperature', 'temperature_offset'
 DEVICE_MEASUREMENTS = {
-    # HA setpoint
-    "thermostat": "setpoint",
-    # HA current_temperature
+    # HA Core current_temperature
     "temperature": "temperature",
-    # Only present on legacy Anna and Anna_v3
-    "schedule_temperature": "schedule_temperature",
+    # HA Core setpoint
+    "thermostat": "setpoint",
+    # Anna/Adam 
+    "boiler_temperature": "water_temperature",
+    "domestic_hot_water_state": "dhw_state",
+    "intended_boiler_temperature": "intended_boiler_temperature",  # non-zero when heating, zero when dhw-heating
+    "intended_central_heating_state": "heating_state", # use intended_c_h_state, this key shows the heating-behavior better than c-h_state
+    "modulation_level": "modulation_level",
+    "return_water_temperature": "return_temperature",
+    # Used with the Elga heatpump - marcelveldt
+    "compressor_state": "compressor_state",
+    "cooling_state": "cooling_state",
+    # Next 2 keys are used to show the state of the gas-heater used next to the Elga heatpump - marcelveldt
+    "slave_boiler_state": "slave_boiler_state",
+    "flame_state": "flame_state", # also present when there is a single gas-heater
+    # Anna only
+    "central_heater_water_pressure": "water_pressure",
+    "outdoor_temperature": "outdoor_temperature", # Outdoor temp as reported on the Anna, in the App
+    "schedule_temperature": "schedule_temperature", # Only present on legacy Anna and Anna_v3
+    # Legacy Anna: similar to flame-state on Anna/Adam
+    "boiler_state": "boiler_state",
+    # Legacy Anna: shows when heating is active, don't show dhw_state, cannot be determinded reliably
+    "intended_boiler_state": "intended_boiler_state",
     # Lisa and Tom
     "battery": "battery",
-    "valve_position": "valve_position",
     "temperature_difference": "temperature_difference",
+    "valve_position": "valve_position",
     # Plug
     "electricity_consumed": "electricity_consumed",
     "electricity_produced": "electricity_produced",
     "relay": "relay",
-    # Outdoor temp as reported on the Anna, in the App
-    "outdoor_temperature": "outdoor_temperature",
-    # Anna/Adam: use intended_c_h_state, this key shows the heating-behavior better than c-h_state
-    "intended_central_heating_state": "heating_state",
-    "domestic_hot_water_state": "dhw_state",
-    "boiler_temperature": "water_temperature",
-    "return_water_temperature": "return_temperature",
-    "central_heater_water_pressure": "water_pressure",  # not present on Adam
-    # Legacy Anna: similar to flame-state on Anna/Adam
-    "boiler_state": "boiler_state",
-    # Legacy Anna: shows when heating and/or dhw is active
-    "intended_boiler_state": "intended_boiler_state",
-    # Legacy Anna: use the next two keys to detect heating/dhw?
-    "intended_boiler_temperature": "intended_boiler_temperature",  # non-zero when heating
-    "modulation_level": "modulation_level",  # TBD
-    # Used with the Elga heatpump - marcelveldt
-    "cooling_state": "cooling_state",
-    # Next  3 keys are used to show the state of the heater used next to the Elga heatpump - marcelveldt
-    "slave_boiler_state": "slave_boiler_state",
-    "compressor_state": "compressor_state",
-    "flame_state": "flame_state",
 }
 
 SMILES = {
@@ -164,14 +162,15 @@ class Smile:
         self._smile_legacy = False
         self._thermo_master_id = None
 
-        self.dsmrmain_id = None
+        self.active_device_present = False
         self.gateway_id = None
         self.heater_id = None
+        self.notifications = {}
         self.smile_hostname = None
         self.smile_name = None
         self.smile_type = None
         self.smile_version = ()
-        self.notifications = {}
+
 
     async def connect(self):
         """Connect to Plugwise device."""
@@ -199,6 +198,7 @@ class Smile:
         # just using request to parse the data
         gateway = result.find(".//gateway")
 
+        model = version = None
         if gateway is not None:
             if gateway.find("hostname") is not None:
                 self.smile_hostname = gateway.find("hostname").text
@@ -209,15 +209,15 @@ class Smile:
             anna = result.find('.//appliance[type="thermostat"]')
             # Fake insert version assuming Anna
             # couldn't find another way to identify as legacy Anna
-            smile_version = "1.8.0"
-            smile_model = "smile_thermo"
+            version = "1.8.0"
+            model = "smile_thermo"
             if anna is None:
                 # P1 legacy:
                 if dsmrmain is not None:
                     try:
                         status = await self.request(STATUS)
-                        smile_version = status.find(".//system/version").text
-                        smile_model = status.find(".//system/product").text
+                        version = status.find(".//system/version").text
+                        model = status.find(".//system/product").text
                         self.smile_hostname = status.find(".//network/hostname").text
                     except self.InvalidXMLError:
                         raise self.ConnectionFailedError
@@ -226,8 +226,8 @@ class Smile:
                 elif network is not None:
                     try:
                         system = await self.request(SYSTEM)
-                        smile_version = system.find(".//gateway/firmware").text
-                        smile_model = system.find(".//gateway/product").text
+                        version = system.find(".//gateway/firmware").text
+                        model = system.find(".//gateway/product").text
                         self.smile_hostname = system.find(".//gateway/hostname").text
                         self.gateway_id = network.attrib["id"]
                     except self.InvalidXMLError:
@@ -237,15 +237,15 @@ class Smile:
                     raise self.ConnectionFailedError
 
         if not self._smile_legacy:
-            smile_model = result.find(".//gateway/vendor_model").text
-            smile_version = result.find(".//gateway/firmware_version").text
+            model = result.find(".//gateway/vendor_model").text
+            version = result.find(".//gateway/firmware_version").text
 
-        if smile_model is None or smile_version is None:
+        if model is None or version is None:
             _LOGGER.error("Unable to find model or version information")
             raise self.UnsupportedDeviceError
 
-        ver = semver.parse(smile_version)
-        target_smile = f"{smile_model}_v{ver['major']}"
+        ver = semver.parse(version)
+        target_smile = f"{model}_v{ver['major']}"
 
         _LOGGER.debug("Plugwise identified as %s", target_smile)
 
@@ -261,7 +261,7 @@ class Smile:
 
         self.smile_name = SMILES[target_smile]["friendly_name"]
         self.smile_type = SMILES[target_smile]["type"]
-        self.smile_version = (smile_version, ver)
+        self.smile_version = (version, ver)
 
         if "legacy" in SMILES[target_smile]:
             self._smile_legacy = SMILES[target_smile]["legacy"]
@@ -290,6 +290,7 @@ class Smile:
         """Request data."""
         # pylint: disable=too-many-return-statements,raise-missing-from
 
+        resp = None
         url = f"{self._endpoint}{command}"
 
         if headers is None:
@@ -734,6 +735,22 @@ class Smile:
 
         return switch_groups
 
+    def get_open_valves(self):
+        """Obtain the amount of open valves, from APPLIANCES."""
+        appliances = self._appliances.findall(".//appliance")
+        
+        open_valve_count = 0
+        for appliance in appliances:
+                locator = (
+                    f'.//logs/point_log[type="valve_position"]/period/measurement'
+                )
+                if appliance.find(locator) is not None:
+                    measure = appliance.find(locator).text
+                    if float(measure) > 0.0:
+                        open_valve_count += 1
+
+        return open_valve_count
+
     def get_device_data(self, dev_id):
         """Provide device-data, based on location_id, from APPLIANCES."""
         devices = self.get_all_devices()
@@ -753,9 +770,17 @@ class Smile:
             device_data.pop("boiler_state", None)
             device_data.pop("intended_boiler_state", None)
 
-        # Fix for Adam + Anna
+        # Fix for Adam + Anna: intended_central_heating_state also present under Anna, remove
         if "setpoint" in device_data:
             device_data.pop("heating_state", None)
+
+        # Adam: indicate heating_state based on valves being open in case of city-provided heating
+        if self.smile_name == "Adam": 
+            if details["class"] == "heater_central":
+                if not self.active_device_present:
+                    device_data["heating_state"] = True
+                    if self.get_open_valves() == 0:
+                        device_data["heating_state"] = False
 
         # Anna, Lisa, Tom/Floor
         if details["class"] in thermostat_classes:
@@ -789,8 +814,8 @@ class Smile:
                 outdoor_temperature = self.get_object_value(
                     "location", self._home_location, "outdoor_temperature"
                 )
-            if outdoor_temperature is not None:
-                device_data["outdoor_temperature"] = outdoor_temperature
+                if outdoor_temperature is not None:
+                    device_data["outdoor_temperature"] = outdoor_temperature
 
             # Try to get P1 data and 2nd outdoor_temperature, when present
             power_data = self.get_power_data_from_location(details["location"])
@@ -844,6 +869,12 @@ class Smile:
                         and float(measure) > 3.5
                     ):
                         continue
+                    # The presence of either indicates a local active device, e.g. heat-pump or gas-fired heater
+                    if (
+                        measurement == "compressor_state" 
+                        or measurement == "flame_state"
+                    ):
+                        self.active_device_present = True
 
                     data[name] = self._format_measure(measure)
 

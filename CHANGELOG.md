@@ -1,5 +1,7 @@
 # Changelog
 
+## 1.6.0 - Improve city-heating support for Adams
+
 ## 1.5.1 - Decrease sensitivity for future updates
 
 ## 1.5.0 - Add delete_notification service

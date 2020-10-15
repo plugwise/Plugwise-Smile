@@ -1,1 +1,1 @@
-{"heating_state": false, "dhw_state": false, "water_temperature": 47.0, "intended_boiler_temperature": 0.0, "flame_state": false}
+{"water_temperature": 47.0, "dhw_state": false, "intended_boiler_temperature": 0.0, "heating_state": false, "flame_state": false}

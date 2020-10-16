@@ -365,10 +365,10 @@ class Smile:
                 msg_type = notification.find("type").text
                 msg = notification.find("message").text
                 self.notifications.update({msg_id: {msg_type: msg}})
-                _LOGGER.debug("Plugwise System notifications: %s", self.notifications)
+                _LOGGER.debug("Plugwise notifications: %s", self.notifications)
             except AttributeError:
                 _LOGGER.info(
-                    "Plugwise System Error Notification present but unable to process, manually investigate: %s",
+                    "Plugwise notification present but unable to process, manually investigate: %s",
                     url,
                 )
 

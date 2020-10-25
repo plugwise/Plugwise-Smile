@@ -1,3 +1,12 @@
+# Left here for historical purposes, please use python-plugwise (just plugwise on PyPi)
+
+[python-plugwise](https://github.com/plugwise/python-plugwise)
+
+Pending PR-progress at HA-core this library (and PyPi version) will be replaced by `python-plugwise` which combines networked and USB products
+
+---
+
+
 # Plugwise Smile python module
 
 Our main usage for this module is supporting [Home Assistant](https://www.home-assistant.io) / [home-assistant](http://github.com/home-assistant/core/)
